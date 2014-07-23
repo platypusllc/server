@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger version="2" >
+
+    <dataSet config="main" >
+        <source path="C:\Users\psigen\Documents\GitHub\Lutra\software\assets" >
+            <file
+                name="microlog.properties"
+                path="C:\Users\psigen\Documents\GitHub\Lutra\software\assets\microlog.properties" />
+        </source>
+    </dataSet>
+    <dataSet config="debug" >
+        <source path="C:\Users\psigen\Documents\GitHub\Lutra\software\build-types\debug\assets" />
+    </dataSet>
+
+</merger>
