@@ -8,9 +8,6 @@ import android.util.Log;
 
 import com.google.code.microlog4android.LoggerFactory;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -114,7 +111,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 */
 	double[] r_PID = {.2, 0, .3}; // Kp, Ki, Kd
 	double [] t_PID = {.5, .5, .5};
-    public static final double SAFE_DIFFERENTIAL_THRUST = 0.12;
+    public static final double SAFE_DIFFERENTIAL_THRUST = 0.4;
     public static final double SAFE_VECTORED_THRUST = 0.6;
 
     /**
@@ -204,16 +201,16 @@ public class AirboatImpl extends AbstractVehicleServer {
                     // Send velocities as a JSON command
                     try {
                         // Until ESCs are able to reverse, set the lower limit to 0.0
-                        double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), 0.0, 1.0);
-                        double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), 0.0, 1.0);
+                        double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -1.0, 1.0);
+                        double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -1.0, 1.0);
 
                         // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
                         constrainedV0 = map(constrainedV0,
-                                0.0, 1.0, // Original range.
-                                0.0, AirboatImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                                -1.0, 1.0, // Original range.
+                                -AirboatImpl.SAFE_DIFFERENTIAL_THRUST, AirboatImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
                         constrainedV1 = map(constrainedV1,
-                                0.0, 1.0, // Original range.
-                                0.0, AirboatImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                                -1.0, 1.0, // Original range.
+                                -AirboatImpl.SAFE_DIFFERENTIAL_THRUST, AirboatImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
 
                         velocity0.put("v", (float) constrainedV0);
                         velocity1.put("v", (float) constrainedV1);
@@ -299,25 +296,23 @@ public class AirboatImpl extends AbstractVehicleServer {
         // TODO: Get rid of this, it is a hack.
         // Special case to handle winch commands...
         else if (axis == 3) {
+            JSONObject command = new JSONObject();
+            JSONObject winchSettings = new JSONObject();
+
             logger.info("WINCH: " + Arrays.toString(k));
             // Call command to adjust winch
             synchronized (_usbWriter) {
-                StringWriter str = new StringWriter();
-                JsonWriter json = new JsonWriter(str);
-                try {
-                    json.beginObject();
-                    {
-                        json.name("s2").beginObject();
-                        {
-                            json.name("p").value(k[0]);
-                            json.name("v").value(k[1]);
-                        }
-                        json.endObject();
-                    }
-                    json.endObject();
-                    _usbWriter.println(str.toString());
+                try{
+                    //Set desired winch movement distance
+                    winchSettings.put("p", (float) Math.abs(k[0]));
+
+                    //Hardcoded velocity - get rid of this eventually
+                    winchSettings.put("v", 500*Math.signum(k[0]));
+                    command.put("s2", winchSettings);
+                    _usbWriter.println(command.toString());
                     _usbWriter.flush();
-                } catch (IOException e) {
+                    logger.info("WINCH CMD: " + command.toString());
+                } catch (Exception e) {
                     Log.w(logTag, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
                 }
             }

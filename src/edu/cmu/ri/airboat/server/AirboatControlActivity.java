@@ -45,7 +45,7 @@ public class AirboatControlActivity extends Activity {
 	public static final long PID_UPDATE_MS = 1000;
 	
 	// Ranges for thrust and rudder signals
-	public static final double THRUST_MIN =  0.0;
+	public static final double THRUST_MIN =  -1.0;
 	public static final double THRUST_MAX =  1.0;
 	public static final double RUDDER_MIN =  1.0; // Reversed to match +Z rotation.
 	public static final double RUDDER_MAX = -1.0;
