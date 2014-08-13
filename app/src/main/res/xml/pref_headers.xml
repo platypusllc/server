@@ -3,15 +3,11 @@
     <!-- These settings headers are only used on tablets. -->
 
     <header
-        android:fragment="com.platypus.server.SettingsActivity$GeneralPreferenceFragment"
-        android:title="@string/pref_header_general" />
+        android:fragment="com.platypus.server.SettingsActivity$ServerPreferenceFragment"
+        android:title="@string/pref_header_server" />
 
     <header
-        android:fragment="com.platypus.server.SettingsActivity$NotificationPreferenceFragment"
-        android:title="@string/pref_header_notifications" />
-
-    <header
-        android:fragment="com.platypus.server.SettingsActivity$DataSyncPreferenceFragment"
-        android:title="@string/pref_header_data_sync" />
+        android:fragment="com.platypus.server.SettingsActivity$MechanicalPreferenceFragment"
+        android:title="@string/pref_header_mechanical" />
 
 </preference-headers>

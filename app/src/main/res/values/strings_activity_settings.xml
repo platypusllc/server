@@ -2,57 +2,41 @@
     
     <!-- Strings related to Settings -->
 
-    <!-- Example General settings -->
-    <string name="pref_header_general">General</string>
+    <!-- Server settings -->
+    <string name="pref_header_server">Server</string>
 
-    <string name="pref_title_social_recommendations">Enable social recommendations</string>
-    <string name="pref_description_social_recommendations">Recommendations for people to contact based on your message history</string>
+    <string name="pref_madara_server">MADARA</string>
+    <string name="pref_description_madara_server">Run a MADARA server</string>
+    <string name="pref_title_madara_server_multicast_address">Multicast Transport</string>
+    <string name="pref_title_madara_server_multicast_address_default">127.0.0.1</string>
 
-    <string name="pref_title_display_name">Display name</string>
-    <string name="pref_default_display_name">John Smith</string>
+    <string name="pref_http_server">HTTP</string>
+    <string name="pref_description_http_server">Run an HTTP server</string>
 
-    <string name="pref_title_add_friends_to_messages">Add friends to messages</string>
-    <string-array name="pref_example_list_titles">
-        <item>Always</item>
-        <item>When possible</item>
-        <item>Never</item>
+    <string name="pref_tcp_server">TCP</string>
+    <string name="pref_description_tcp_server">Run a TCP server</string>
+
+    <string name="pref_udp_server">UDP</string>
+    <string name="pref_description_udp_server">Run an UDP server</string>
+
+    <string name="pref_registry_server">Registry</string>
+    <string name="pref_description_registry_server">Connect to a registry</string>
+
+    <!-- Mechanical settings -->
+    <string name="pref_header_mechanical">Mechanical</string>
+
+    <string name="pref_title_phone_mount">Phone Mounting</string>
+
+    <string-array name="pref_mechanical_phone_mount_titles">
+        <item>Auto-detect</item>
+        <item>Camera Up-Left</item>
+        <item>Camera Up-Right</item>
+        <item>Camera Forwards</item>
     </string-array>
-    <string-array name="pref_example_list_values">
-        <item>1</item>
+    <string-array name="pref_mechanical_phone_mount_values">
         <item>0</item>
-        <item>-1</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
     </string-array>
-
-    <!-- Example settings for Data & Sync -->
-    <string name="pref_header_data_sync">Data &amp; sync</string>
-
-    <string name="pref_title_sync_frequency">Sync frequency</string>
-    <string-array name="pref_sync_frequency_titles">
-        <item>15 minutes</item>
-        <item>30 minutes</item>
-        <item>1 hour</item>
-        <item>3 hours</item>
-        <item>6 hours</item>
-        <item>Never</item>
-    </string-array>
-    <string-array name="pref_sync_frequency_values">
-        <item>15</item>
-        <item>30</item>
-        <item>60</item>
-        <item>180</item>
-        <item>360</item>
-        <item>-1</item>
-    </string-array>
-
-    <string name="pref_title_system_sync_settings">System sync settings</string>
-
-    <!-- Example settings for Notifications -->
-    <string name="pref_header_notifications">Notifications</string>
-
-    <string name="pref_title_new_message_notifications">New message notifications</string>
-
-    <string name="pref_title_ringtone">Ringtone</string>
-    <string name="pref_ringtone_silent">Silent</string>
-
-    <string name="pref_title_vibrate">Vibrate</string>
 </resources>
