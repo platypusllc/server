@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Platypus Server</string>
+    <string name="server_service_started">PLATYPUS_SERVER_SERVICE_STARTED</string>
 </resources>

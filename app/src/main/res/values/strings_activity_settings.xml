@@ -2,24 +2,30 @@
     
     <!-- Strings related to Settings -->
 
+    <!-- General settings -->
+    <string name="pref_header_general">General</string>
+
+    <string name="pref_title_server_service">Server Service</string>
+    <string name="pref_description_server_service">Run the Platypus server service</string>
+
     <!-- Server settings -->
     <string name="pref_header_server">Server</string>
 
-    <string name="pref_madara_server">MADARA</string>
+    <string name="pref_title_madara_server">MADARA</string>
     <string name="pref_description_madara_server">Run a MADARA server</string>
     <string name="pref_title_madara_server_multicast_address">Multicast Transport</string>
     <string name="pref_title_madara_server_multicast_address_default">127.0.0.1</string>
 
-    <string name="pref_http_server">HTTP</string>
+    <string name="pref_title_http_server">HTTP</string>
     <string name="pref_description_http_server">Run an HTTP server</string>
 
-    <string name="pref_tcp_server">TCP</string>
+    <string name="pref_title_tcp_server">TCP</string>
     <string name="pref_description_tcp_server">Run a TCP server</string>
 
-    <string name="pref_udp_server">UDP</string>
+    <string name="pref_title_udp_server">UDP</string>
     <string name="pref_description_udp_server">Run an UDP server</string>
 
-    <string name="pref_registry_server">Registry</string>
+    <string name="pref_title_registry_server">Registry</string>
     <string name="pref_description_registry_server">Connect to a registry</string>
 
     <!-- Mechanical settings -->

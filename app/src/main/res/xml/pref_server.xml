@@ -1,45 +1,45 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <CheckBoxPreference
+        android:defaultValue="true"
         android:key="madara_server_checkbox"
-        android:title="@string/pref_madara_server"
         android:summary="@string/pref_description_madara_server"
-        android:defaultValue="true" />
+        android:title="@string/pref_title_madara_server" />
 
     <!-- NOTE: EditTextPreference's summary should be set to its value by the activity code. -->
     <EditTextPreference
-        android:dependency="madara_server_checkbox"
-        android:key="madara_server_multicast_address_text"
-        android:title="@string/pref_title_madara_server_multicast_address"
-        android:defaultValue="@string/pref_title_madara_server_multicast_address_default"
-        android:selectAllOnFocus="true"
-        android:inputType="phone"
         android:capitalize="none"
+        android:defaultValue="@string/pref_title_madara_server_multicast_address_default"
+        android:dependency="madara_server_checkbox"
+        android:inputType="phone"
+        android:key="madara_server_multicast_address_text"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
         android:singleLine="true"
-        android:maxLines="1" />
+        android:title="@string/pref_title_madara_server_multicast_address" />
 
     <CheckBoxPreference
+        android:defaultValue="false"
         android:key="http_server_checkbox"
-        android:title="@string/pref_http_server"
         android:summary="@string/pref_description_http_server"
-        android:defaultValue="false" />
+        android:title="@string/pref_title_http_server" />
 
     <CheckBoxPreference
+        android:defaultValue="false"
         android:key="tcp_server_checkbox"
-        android:title="@string/pref_tcp_server"
         android:summary="@string/pref_description_tcp_server"
-        android:defaultValue="false" />
+        android:title="@string/pref_title_tcp_server" />
 
     <CheckBoxPreference
+        android:defaultValue="false"
         android:key="udp_server_checkbox"
-        android:title="@string/pref_udp_server"
         android:summary="@string/pref_description_udp_server"
-        android:defaultValue="false" />
+        android:title="@string/pref_title_udp_server" />
 
     <CheckBoxPreference
+        android:defaultValue="false"
         android:key="registry_server_checkbox"
-        android:title="@string/pref_registry_server"
         android:summary="@string/pref_description_registry_server"
-        android:defaultValue="false" />
+        android:title="@string/pref_title_registry_server" />
 
 </PreferenceScreen>
