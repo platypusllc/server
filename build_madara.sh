@@ -105,3 +105,13 @@ then
     echo "ERROR: Unable to build MADARA."
     exit 5
 fi
+
+# Copy the resulting build files to the appropriate library directory for
+# native libraries. Based on http://stackoverflow.com/a/22072984
+mkdir -p "${SCRIPT_DIR}/libs/armeabi"
+cp "${MADARA_ROOT}/lib/libMADARA.so" "${SCRIPT_DIR}/libs/armeabi/"
+cp "${MADARA_ROOT}/lib/madara.jar" "${SCRIPT_DIR}/libs/"
+echo "Done building MADARA for Android."
+
+# Remove temporary files.
+rm -rf "${BUILD_ROOT}"
