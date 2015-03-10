@@ -1,0 +1,34 @@
+diff --git a/port/java/jni/com.madara.KnowledgeBase.cpp b/port/java/jni/com.madara.KnowledgeBase.cpp
+index 24a6d65..27cf838 100644
+--- a/port/java/jni/com.madara.KnowledgeBase.cpp
++++ b/port/java/jni/com.madara.KnowledgeBase.cpp
+@@ -178,10 +178,10 @@ Madara::Knowledge_Record default_madara_return_function
+ {
+   JNIEnv *env;
+ 
+-#ifndef _USING_OPENJDK_
+-  jvm->AttachCurrentThread((void **)&env, NULL);
+-#else
++#if defined(_USING_OPENJDK_) || defined(_MADARA_ANDROID_)
+   jvm->AttachCurrentThread(&env, NULL);
++#else
++  jvm->AttachCurrentThread((void **)&env, NULL);
+ #endif
+ 
+   jlong ret;
+diff --git a/port/java/jni/madara_jni.cpp b/port/java/jni/madara_jni.cpp
+index 64dd1f2..97e2c2c 100644
+--- a/port/java/jni/madara_jni.cpp
++++ b/port/java/jni/madara_jni.cpp
+@@ -35,7 +35,11 @@ MADARA_Export JNIEnv* madara_jni_get_env()
+   madara_JVM->GetEnv((void**)&env, JNI_VERSION_1_6);
+   if (env == 0) //Thread is not attached
+   {
++#if defined(_USING_OPENJDK_) || defined(_MADARA_ANDROID_)
++    madara_JVM->AttachCurrentThread(&env, NULL);
++#else
+     madara_JVM->AttachCurrentThread((void**)&env, NULL);
++#endif
+   }
+   return env;
+ }
