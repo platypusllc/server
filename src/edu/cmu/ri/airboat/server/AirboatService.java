@@ -102,6 +102,7 @@ public class AirboatService extends Service {
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
 	private UdpVehicleService _udpService;
+    private MadaraVehicleService _madaraService;
 
 	// Lock objects that prevent the phone from sleeping
 	private WakeLock _wakeLock = null;
@@ -288,7 +289,7 @@ public class AirboatService extends Service {
 		}
 
 		// Ensure that we do not reinitialize if not necessary
-		if (_airboatImpl != null || _udpService != null) {
+		if (_airboatImpl != null) {
 			Log.w(TAG, "Attempted to start while running.");
 			return Service.START_STICKY;
 		}
@@ -397,6 +398,22 @@ public class AirboatService extends Service {
 			}
 		}).start();
 
+        // Start up the MADARA service in the background.
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    // Create a MadaraVehicleService to expose the data object
+                    _madaraService = new MadaraVehicleService(_airboatImpl);
+                } catch (Exception e) {
+                    Log.e(TAG, "MadaraVehicleService failed to launch", e);
+                    sendNotification("MadaraVehicleService failed: "
+                            + e.getMessage());
+                    stopSelf();
+                }
+            }
+        }).start();
+
 		// Start up UDP vehicle service in the background
 		new Thread(new Runnable() {
 			@Override
@@ -423,7 +440,6 @@ public class AirboatService extends Service {
 					sendNotification("UdpVehicleService failed: "
 							+ e.getMessage());
 					stopSelf();
-					return;
 				}
 			}
 		}).start();
