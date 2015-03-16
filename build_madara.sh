@@ -8,17 +8,11 @@
 #
 # $ export NDK=<path to ndk>
 #
-# Then, build the NDK standalone toolchain to some location.
-# (http://www.kandroid.org/ndk/docs/STANDALONE-TOOLCHAIN.html)
-# 
-# e.g.
-# $ 
-#
 # Save its path to the environment variable 'NDK_BIN':
 #
 # $ export NDK_BIN=<path_to_ndk_standalone_toolchain>
 #
-# Finally, execute this script.
+# Then, execute this script.
 #
 # $ ./build_madara.sh
 #
