@@ -36,4 +36,4 @@
 		<EditText android:text="0.000" android:id="@+id/RudderDGain" android:layout_weight="1" android:layout_width="0dp" android:layout_height="wrap_content" android:editable="true" android:isScrollContainer="false" android:singleLine="true" android:typeface="monospace" android:imeOptions="actionDone"></EditText>
 	</LinearLayout>
 </LinearLayout>
-<!-- From: file:/C:/Users/psigen/Documents/GitHub/Lutra/software/res/layout/control.xml -->
+<!-- From: file:/home/pkv/Desktop/platypus/Server/res/layout/control.xml -->
