@@ -35,7 +35,9 @@ public class MadaraVehicleService implements WaypointListener, PoseListener, Sen
      * Handle incoming MADARA data by forwarding it to the vehicle server.
      */
     final RecordFilter _receivedMessageFilter = new RecordFilter() {
-        // Add an id if it doesn't exist. Strip id if it does.
+        /**
+         * Listens for incoming records that are potentially commands for the server.
+         */
         public KnowledgeRecord filter(KnowledgeList args, Variables variables) {
             KnowledgeRecord record = args.get(0);
             if (args.get(1).toString().contains(".pose")) {
