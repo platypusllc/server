@@ -97,7 +97,7 @@ var app = {
 
         // Grab the refresh interval from the results
         info = eventData.interval;
-        document.getElementById("motionInterval").innerHTML = info;       
+        document.getElementById("motionInterval").innerHTML = info;
     }
 };
 
