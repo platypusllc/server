@@ -1,0 +1,29 @@
+{
+  "name": "Platypus Server",
+  "version": "0.0.1",
+  "homepage": "https://github.com/PlatypusLLC/Server",
+  "authors": [
+    "Pras Velagapudi <psigen@gmail.com>"
+  ],
+  "description": "A mobile server for autonomous vehicles.",
+  "main": "index.html",
+  "moduleType": [
+    "es6"
+  ],
+  "keywords": [
+    "robot",
+    "autonomy",
+    "android"
+  ],
+  "license": "BSD",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "gl-matrix": "~2.2.1"
+  }
+}
