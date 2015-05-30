@@ -42,6 +42,18 @@ var app = {
             console.log("Device does not support motion events!");
             document.getElementById("hasMotionEvent").innerHTML = "Not supported."
         }
+
+        navigator.geolocation.getCurrentPosition(this.onDevicePosition,
+                                                 this.onDevicePositionError);
+        var watchId = navigator.geolocation.watchPosition(
+            this.onDevicePosition,
+            this.onDevicePositionError,
+            {
+                maximumAge: 5000,
+                timeout: 1000,
+                enableHighAccuracy: true
+            }
+        );
     },
 
     // deviceready Event Handler
@@ -98,6 +110,37 @@ var app = {
         // Grab the refresh interval from the results
         info = eventData.interval;
         document.getElementById("motionInterval").innerHTML = info;
+    },
+
+    onDevicePosition: function(position) {
+        var element = document.getElementById('geoLatitude');
+        element.innerHTML = position.coords.latitude;
+
+        var element = document.getElementById('geoLongitude');
+        element.innerHTML = position.coords.longitude;
+
+        var element = document.getElementById('geoAltitude');
+        element.innerHTML = position.coords.altitude;
+
+        var element = document.getElementById('geoAccuracy');
+        element.innerHTML = position.coords.accuracy;
+
+        var element = document.getElementById('geoAltitudeAccuracy');
+        element.innerHTML = position.coords.altitudeAccuracy;
+
+        var element = document.getElementById('geoHeading');
+        element.innerHTML = position.coords.heading;
+
+        var element = document.getElementById('geoSpeed');
+        element.innerHTML = position.coords.speed;
+
+        var element = document.getElementById('geoTimestamp');
+        element.innerHTML = position.coords.timestamp;
+    },
+
+    onDevicePositionError: function(error) {
+        alert("code: "    + error.code    + "\n" +
+              "message: " + error.message + "\n");
     }
 };
 
