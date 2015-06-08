@@ -21,9 +21,51 @@ import org.json.JSONObject;
 /**
  * This class echoes a string called from JavaScript.
  */
-public class Controller extends CordovaPlugin { 
+public class Controller extends CordovaPlugin {
+    private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
+    private static final String USB_ACCESSORY_MANUFACTURER = "Platypus";
+    private static final String USB_ACCESSORY_MODEL = "Controller";
+    
+    // Reference to USB accessory
+    private final Object mUsbLock = new Object();
+    private UsbManager mUsbManager;
+    private UsbAccessory mUsbAccessory;
+    private ParcelFileDescriptor mUsbDescriptor;
+
+    // Callback lists for connection and receive events.
     private NavigableMap<Integer, CallbackContext> connectionCallbacks = new NavigableMap<>();
     private NavigableMap<Integer, CallbackContext> receiveCallbacks = new NavigableMap<>();
+
+    @Override
+    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
+        super.initialize(cordova, webView);
+
+        // Retrieve the USB manager for Android accessory devices.
+        mUsbManager = (UsbManager)cordova.getContext().getSystemService(Context.USB_SERVICE);
+
+        // Create a filter that listens for permission to be granted on accessory devices.
+        IntentFilter permission_filter = new IntentFilter(ACTION_USB_PERMISSION); 
+        registerReceiver(mUsbReceiver, permission_filter);
+
+        // Create a filter that listens for accessories to be attached.
+        IntentFilter attached_filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
+        registerReceiver(mUsbReceiver, attached_filter);
+
+        // Attempt to connect to any already available accessories.
+        UsbAccessory[] accessoryList = manager.getAcccessoryList();
+        for (UsbAccessory accessory : accessoryList) {
+
+            // Check if this accessory is a Platypus Controller.
+            if (!accessory.getManufacturer().equals(USB_ACCESSORY_MANUFACTURER))
+                continue;
+            if (!accessory.getModel().equals(USB_ACCESSORY_MODEL))
+                continue;
+
+            // Request permission to connect to a matching accessory.
+            permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+            mUsbManager.requestPermission(accessory, mPermissionIntent);
+        }
+    }
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -104,4 +146,110 @@ public class Controller extends CordovaPlugin {
             callbackContext.error("Expected one non-empty string argument.");
         }
     }
+
+    /**
+     * Handle JSON data received from USB accessory.
+     */
+    private void onReceive(JSONObject object) {
+        // TODO: send this to the receive callbacks.
+    }
+
+    /**
+     * On connection of a new accessory, open the descriptor.
+     */
+    private void onUsbConnection(UsbAccessory usbAccessory) {
+        mUsbAccessory = usbAccessory;
+        mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
+
+        // If the accessory fails to connect, terminate service.
+        if (mUsbDescriptor == null) {
+            Log.e(TAG, "Failed to open accessory.");
+            return;
+        }
+
+        // Create readers and writers for output over USB
+        mUsbWriter = new PrintWriter(new OutputStreamWriter(
+            new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
+        new Thread(new UsbReceiveHandler(mUsbDescriptor));
+    }
+
+    /**
+     * Class that waits for input from the USB controller and dispatches it to
+     * the onReceive handler.
+     */
+    class UsbReceiveHandler implements Runnable {
+        InputStream mUsbReader;
+
+        public UsbReceiveHandler(UsbAccessory mUsbDescriptor) {
+            mUsbReader = new BufferedReader(new InputStreamReader(
+                FileInputStream(mUsbDescriptor.getFileDescriptor()), "US-ASCII"));
+        }
+
+        @Override
+        public void run() {
+            // Start a loop to receive data from accessory.
+            try {
+                while (true) {
+                    // Try to interpret each line as a JSON object and send it
+                    // to the onReceive handler.
+                    String line = mUsbReader.readLine();
+                    try {
+                        JSONObject data = new JSONObject(line);
+                        onReceive(data);
+                    } catch (JSONException e) {
+                        Log.w(TAG, "Invalid controller input JSON: '" + line + "'.", e);
+                    }
+                }
+            } catch (IOException e) {
+                Log.d(TAG, "USB connection interrupted.", e);
+            }
+
+            try {
+                mUsbReader.close();
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to close USB input stream cleanly.", e);
+            }
+        }
+    }
+
+    /**
+     * Listen for disconnection events for accessory and close connection.
+     */
+    BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            // Get the action and the USB device that was affected.
+            String action = intent.getAction(); 
+            UsbAccessory accessory = (UsbAccessory)intent.getParcelableExtra(
+                UsbManager.EXTRA_ACCESSORY);
+
+            if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
+                // Handle disconnection on a currently connected accessory.
+                synchronized(mUsbLock) {
+                    if (mUsbAccessory.equals(accessory)) {
+                        try {
+                            mUsbDescriptor.close();
+                            Log.i(TAG, "Closed USB accessory.");
+                        } catch (IOException e) {
+                            Log.w(TAG, "Failed to close USB accessory cleanly.", e);
+                        }
+
+                        mUsbDescriptor = null;
+                        mUsbAccessory = null;
+                    }
+                }
+            } else if (ACTION_USB_PERMISSION.equals(action)) {
+                // If we received permission to connect to a device, try opening it.
+                synchronized(mUsbLock) {
+                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                        onUsbConnection(accessory);
+                    }
+                    else {
+                        Log.w(TAG, "Permission denied for USB accessory " + accessory);
+                    }
+                }
+            }
+        }
+    };
 }
