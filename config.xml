@@ -25,4 +25,5 @@
     </platform>
     <plugin name="de.appplant.cordova.plugin.background-mode" spec="^0.6.4" />
     <plugin name="cordova-plugin-geolocation" spec="^1.0.0" />
+    <plugin name="com.platypus.controller" spec="../../platypus-controller-plugin" />
 </widget>
