@@ -11,14 +11,14 @@ import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.Set;
+import java.util.HashSet;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
@@ -59,23 +59,23 @@ public class Controller extends CordovaPlugin {
     private ParcelFileDescriptor mUsbDescriptor;
 
     // Callback lists for connection and receive events.
-    private final NavigableMap<Integer, CallbackContext> connectionCallbacks = new TreeMap();
-    private final NavigableMap<Integer, CallbackContext> receiveCallbacks = new TreeMap();
+    private final Set<CallbackContext> connectionCallbacks = new HashSet();
+    private final Set<CallbackContext> receiveCallbacks = new HashSet();
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
 
         // Retrieve the USB manager for Android accessory devices.
-        mUsbManager = (UsbManager)cordova.getContext().getSystemService(Context.USB_SERVICE);
+        mUsbManager = (UsbManager)cordova.getActivity().getSystemService(Context.USB_SERVICE);
 
         // Create a filter that listens for permission to be granted on accessory devices.
         IntentFilter permission_filter = new IntentFilter(ACTION_USB_PERMISSION); 
-        registerReceiver(mUsbReceiver, permission_filter);
+        cordova.getActivity().registerReceiver(mUsbReceiver, permission_filter);
 
         // Create a filter that listens for accessories to be attached.
         IntentFilter attached_filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
-        registerReceiver(mUsbReceiver, attached_filter);
+        cordova.getActivity().registerReceiver(mUsbReceiver, attached_filter);
 
         // Attempt to connect to any already available accessories.
         UsbAccessory[] accessoryList = mUsbManager.getAccessoryList();
@@ -88,8 +88,8 @@ public class Controller extends CordovaPlugin {
                 continue;
 
             // Request permission to connect to a matching accessory.
-            Intent permissionIntent = PendingIntent.getBroadcast(
-                    cordova.getContext(), 0, new Intent(ACTION_USB_PERMISSION), 0);
+            PendingIntent permissionIntent = PendingIntent.getBroadcast(
+                    cordova.getActivity(), 0, new Intent(ACTION_USB_PERMISSION), 0);
             mUsbManager.requestPermission(accessory, permissionIntent);
         }
     }
@@ -108,8 +108,7 @@ public class Controller extends CordovaPlugin {
             return true;
         } else if ("removeEventListener".equals(action)) {
             String eventName = args.getString(0);
-            int index = args.getInt(1);
-            removeEventListener(eventName, index, callbackContext);
+            removeEventListener(eventName, callbackContext);
             return true;
         } else if ("send".equals(action)) {
             JSONObject message = args.getJSONObject(0);
@@ -125,33 +124,41 @@ public class Controller extends CordovaPlugin {
 
         // Add callback as next entry in the appropriate connection callback structure.
         if ("connection".equals(eventName)) {
-            Map.Entry<Integer, CallbackContext> lastEntry = connectionCallbacks.lastEntry();
-            index = lastEntry == null ? 0 : lastEntry.getKey() + 1;
-            connectionCallbacks.put(index, callbackContext);
+            synchronized(connectionCallbacks) {
+                connectionCallbacks.add(callbackContext);
+            }
         } else if ("receive".equals(eventName)) {
-            Map.Entry<Integer, CallbackContext> lastEntry = receiveCallbacks.lastEntry();
-            index = lastEntry == null ? 0 : lastEntry.getKey() + 1;
-            receiveCallbacks.put(index, callbackContext);
+            synchronized(receiveCallbacks) {
+                receiveCallbacks.add(callbackContext);
+            }
         } else {
             // If the type is unknown, return error and stop processing here.
             callbackContext.error("Unsupported event type '" + eventName + "' specified.");
             return;
         }
 
-        // Don't return any result now, since status results will be sent when events come in from broadcast receiver
-        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, index);
+        // Status results will be sent when events come in from broadcast receiver.
+        PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
         pluginResult.setKeepCallback(true);
         callbackContext.sendPluginResult(pluginResult);
     }
 
-    private void removeEventListener(String eventName, int index, CallbackContext callbackContext) {
+    private void removeEventListener(String eventName, CallbackContext callbackContext) {
         CallbackContext listenerContext;
 
+        // TODO: How do we unregister callbacks?
+        
         // Attempt to retrieve a corresponding callback from the appropriate callback structure.
         if ("connection".equals(eventName)) {
-            listenerContext = connectionCallbacks.remove(index);
+            synchronized(connectionCallbacks) {
+                connectionCallbacks.remove(callbackContext);
+                listenerContext = callbackContext;
+            }
         } else if ("receive".equals(eventName)) {
-            listenerContext = receiveCallbacks.remove(index);
+            synchronized(receiveCallbacks) {
+                receiveCallbacks.remove(callbackContext);
+                listenerContext = callbackContext;
+            }
         } else {
             // If the type is unknown, return error and stop processing here.
             callbackContext.error("Unsupported event type '" + eventName + "' specified.");
@@ -162,10 +169,14 @@ public class Controller extends CordovaPlugin {
         // one last time, then report success to the original caller.
         // TODO: do we need to call it one last time?
         if (listenerContext == null) {
-            callbackContext.error("Listener [" + index + "] did not exist for event '" + eventName + "'.");
+            callbackContext.error("Listener did not exist for event '" + eventName + "'.");
         } else {
-            listenerContext.setKeepCallback(false);
-            listenerContext.success();
+            // Make a final call to the callback function.
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
+            pluginResult.setKeepCallback(false);
+            listenerContext.sendPluginResult(pluginResult);
+            
+            // Return success to the removeEventListener callee.
             callbackContext.success();
         }
     }
@@ -197,7 +208,14 @@ public class Controller extends CordovaPlugin {
      * Handle JSON data received from USB accessory.
      */
     private void onReceive(JSONObject object) {
-        // TODO: send this to the receive callbacks.
+        synchronized(receiveCallbacks) {
+            for (CallbackContext listenerContext : receiveCallbacks) {
+                // Send message to each receive callback function.
+                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, object);
+                pluginResult.setKeepCallback(true);
+                listenerContext.sendPluginResult(pluginResult);
+            }
+        }
     }
 
     /**
@@ -215,7 +233,7 @@ public class Controller extends CordovaPlugin {
             return;
         }
 
-        // Create readers and writers for output over USB
+        // Create readers and writers for output over USB.
         mUsbWriter = new PrintWriter(new OutputStreamWriter(
             new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
         new Thread(new UsbReceiveHandler(mUsbDescriptor)).start();
@@ -228,9 +246,10 @@ public class Controller extends CordovaPlugin {
     protected class UsbReceiveHandler implements Runnable {
         BufferedReader mUsbReader;
 
-        public UsbReceiveHandler(UsbAccessory mUsbDescriptor) {
+        public UsbReceiveHandler(ParcelFileDescriptor usbDescriptor) {
+            // TODO: be specific about the charset?
             mUsbReader = new BufferedReader(new InputStreamReader(
-                FileInputStream(mUsbDescriptor.getFileDescriptor()), "US-ASCII"));
+                new FileInputStream(usbDescriptor.getFileDescriptor())));
         }
 
         @Override
@@ -245,6 +264,7 @@ public class Controller extends CordovaPlugin {
                         JSONObject data = new JSONObject(line);
                         onReceive(data);
                     } catch (JSONException e) {
+                        // TODO: make a helper logging function.
                         webView.loadUrl("javascript:console.warn('Invalid controller input JSON.');");
                         Log.w(TAG, "Invalid controller input JSON: '" + line + "'.", e);
                     }
@@ -279,8 +299,13 @@ public class Controller extends CordovaPlugin {
                     if (mUsbAccessory.equals(accessory)) {
                         try {
                             mUsbDescriptor.close();
+                            
+                            // TODO: make a helper logging function.
+                            webView.loadUrl("javascript:console.log('Closed USB accessory.');");
                             Log.i(TAG, "Closed USB accessory.");
                         } catch (IOException e) {
+                            // TODO: make a helper logging function.
+                            webView.loadUrl("javascript:console.warn('Failed to close USB accessory cleanly.');");
                             Log.w(TAG, "Failed to close USB accessory cleanly.", e);
                         }
 
@@ -295,6 +320,8 @@ public class Controller extends CordovaPlugin {
                         onUsbConnection(accessory);
                     }
                     else {
+                        // TODO: make a helper logging function.
+                        webView.loadUrl("javascript:console.warn('Permission denied for USB accessory.');");
                         Log.w(TAG, "Permission denied for USB accessory " + accessory);
                     }
                 }
