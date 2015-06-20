@@ -181,7 +181,10 @@ public class Controller extends CordovaPlugin {
     }
 
     private void isConnected(CallbackContext callbackContext) {
-        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, false));
+        synchronized(mUsbLock) {
+            final boolean isConnected = (mUsbAccessory != null);
+            callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, isConnected));
+        }
     }
 
     private void getVersion(CallbackContext callbackContext) {
