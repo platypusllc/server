@@ -120,7 +120,6 @@ public class Controller extends CordovaPlugin {
     }
 
     private void addEventListener(String eventName, CallbackContext callbackContext) {
-        int index;
 
         // Add callback as next entry in the appropriate connection callback structure.
         if ("connection".equals(eventName)) {
@@ -200,8 +199,10 @@ public class Controller extends CordovaPlugin {
             return;
         }
         
-        mUsbWriter.println(message.toString());
-        callbackContext.success(message);
+        synchronized(mUsbLock) {
+            mUsbWriter.println(message.toString());
+            callbackContext.success(message);
+        }
     }
 
     /**
@@ -222,23 +223,71 @@ public class Controller extends CordovaPlugin {
      * On connection of a new accessory, open the descriptor.
      */
     private void onUsbConnection(UsbAccessory usbAccessory) {
-        mUsbAccessory = usbAccessory;
-        mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
+        synchronized(mUsbLock) {
+            mUsbAccessory = usbAccessory;
+            mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
 
-        // If the accessory fails to connect, terminate service.
-        if (mUsbDescriptor == null) {
-            // TODO: make a helper logging function.
-            webView.loadUrl("javascript:console.error('Failed to open accessory.');");
-            Log.e(TAG, "Failed to open accessory.");
-            return;
+            // If the accessory fails to connect, terminate service.
+            if (mUsbDescriptor == null) {
+                // TODO: make a helper logging function.
+                webView.loadUrl("javascript:console.error('Failed to open accessory.');");
+                Log.e(TAG, "Failed to open accessory.");
+                return;
+            }
+
+            // Create readers and writers for output over USB.
+            mUsbWriter = new PrintWriter(new OutputStreamWriter(
+                new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
+            new Thread(new UsbReceiveHandler(mUsbDescriptor)).start();
         }
 
-        // Create readers and writers for output over USB.
-        mUsbWriter = new PrintWriter(new OutputStreamWriter(
-            new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
-        new Thread(new UsbReceiveHandler(mUsbDescriptor)).start();
+        // Report that a device is now connected.
+        synchronized(connectionCallbacks) {
+            for (CallbackContext listenerContext : connectionCallbacks) {
+                // Send message to each receive callback function.
+                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, true);
+                pluginResult.setKeepCallback(true);
+                listenerContext.sendPluginResult(pluginResult);
+            }
+        }
     }
 
+    /**
+     * On disconnection of a USB accessory, close the descriptor.
+     */
+    private void onUsbDisconnection(UsbAccessory accessory) {
+        synchronized(mUsbLock) {
+            // If this is not our current accessory, ignore.
+            if (!mUsbAccessory.equals(accessory)) {
+                return;
+            }
+            
+            try {
+                mUsbDescriptor.close();
+                // TODO: make a helper logging function.
+                webView.loadUrl("javascript:console.log('Closed USB accessory.');");
+                Log.i(TAG, "Closed USB accessory.");
+            } catch (IOException e) {
+                // TODO: make a helper logging function.
+                webView.loadUrl("javascript:console.warn('Failed to close USB accessory cleanly.');");
+                Log.w(TAG, "Failed to close USB accessory cleanly.", e);
+            }
+
+            mUsbDescriptor = null;
+            mUsbAccessory = null;
+        }
+        
+        // Report that no device is connected.
+        synchronized(connectionCallbacks) {
+            for (CallbackContext listenerContext : connectionCallbacks) {
+                // Send message to each receive callback function.
+                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, false);
+                pluginResult.setKeepCallback(true);
+                listenerContext.sendPluginResult(pluginResult);
+            }
+        }
+    }
+    
     /**
      * Class that waits for input from the USB controller and dispatches it to
      * the onReceive handler.
@@ -295,35 +344,15 @@ public class Controller extends CordovaPlugin {
 
             if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
                 // Handle disconnection on a currently connected accessory.
-                synchronized(mUsbLock) {
-                    if (mUsbAccessory.equals(accessory)) {
-                        try {
-                            mUsbDescriptor.close();
-                            
-                            // TODO: make a helper logging function.
-                            webView.loadUrl("javascript:console.log('Closed USB accessory.');");
-                            Log.i(TAG, "Closed USB accessory.");
-                        } catch (IOException e) {
-                            // TODO: make a helper logging function.
-                            webView.loadUrl("javascript:console.warn('Failed to close USB accessory cleanly.');");
-                            Log.w(TAG, "Failed to close USB accessory cleanly.", e);
-                        }
-
-                        mUsbDescriptor = null;
-                        mUsbAccessory = null;
-                    }
-                }
+                onUsbDisconnection(accessory);
             } else if (ACTION_USB_PERMISSION.equals(action)) {
                 // If we received permission to connect to a device, try opening it.
-                synchronized(mUsbLock) {
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        onUsbConnection(accessory);
-                    }
-                    else {
-                        // TODO: make a helper logging function.
-                        webView.loadUrl("javascript:console.warn('Permission denied for USB accessory.');");
-                        Log.w(TAG, "Permission denied for USB accessory " + accessory);
-                    }
+                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                    onUsbConnection(accessory);
+                } else {
+                    // TODO: make a helper logging function.
+                    webView.loadUrl("javascript:console.warn('Permission denied for USB accessory.');");
+                    Log.w(TAG, "Permission denied for USB accessory " + accessory);
                 }
             }
         }
