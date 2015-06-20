@@ -59,8 +59,8 @@ public class Controller extends CordovaPlugin {
     private ParcelFileDescriptor mUsbDescriptor;
 
     // Callback lists for connection and receive events.
-    private final Set<CallbackContext> connectionCallbacks = new HashSet();
-    private final Set<CallbackContext> receiveCallbacks = new HashSet();
+    private final Set<CallbackContext> mConnectionCallbacks = new HashSet();
+    private final Set<CallbackContext> mReceiveCallbacks = new HashSet();
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -123,12 +123,12 @@ public class Controller extends CordovaPlugin {
 
         // Add callback as next entry in the appropriate connection callback structure.
         if ("connection".equals(eventName)) {
-            synchronized(connectionCallbacks) {
-                connectionCallbacks.add(callbackContext);
+            synchronized(mConnectionCallbacks) {
+                mConnectionCallbacks.add(callbackContext);
             }
         } else if ("receive".equals(eventName)) {
-            synchronized(receiveCallbacks) {
-                receiveCallbacks.add(callbackContext);
+            synchronized(mReceiveCallbacks) {
+                mReceiveCallbacks.add(callbackContext);
             }
         } else {
             // If the type is unknown, return error and stop processing here.
@@ -149,13 +149,13 @@ public class Controller extends CordovaPlugin {
         
         // Attempt to retrieve a corresponding callback from the appropriate callback structure.
         if ("connection".equals(eventName)) {
-            synchronized(connectionCallbacks) {
-                connectionCallbacks.remove(callbackContext);
+            synchronized(mConnectionCallbacks) {
+                mConnectionCallbacks.remove(callbackContext);
                 listenerContext = callbackContext;
             }
         } else if ("receive".equals(eventName)) {
-            synchronized(receiveCallbacks) {
-                receiveCallbacks.remove(callbackContext);
+            synchronized(mReceiveCallbacks) {
+                mReceiveCallbacks.remove(callbackContext);
                 listenerContext = callbackContext;
             }
         } else {
@@ -212,8 +212,8 @@ public class Controller extends CordovaPlugin {
      * Handle JSON data received from USB accessory.
      */
     private void onReceive(JSONObject object) {
-        synchronized(receiveCallbacks) {
-            for (CallbackContext listenerContext : receiveCallbacks) {
+        synchronized(mReceiveCallbacks) {
+            for (CallbackContext listenerContext : mReceiveCallbacks) {
                 // Send message to each receive callback function.
                 PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, object);
                 pluginResult.setKeepCallback(true);
@@ -245,8 +245,8 @@ public class Controller extends CordovaPlugin {
         }
 
         // Report that a device is now connected.
-        synchronized(connectionCallbacks) {
-            for (CallbackContext listenerContext : connectionCallbacks) {
+        synchronized(mConnectionCallbacks) {
+            for (CallbackContext listenerContext : mConnectionCallbacks) {
                 // Send message to each receive callback function.
                 PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, true);
                 pluginResult.setKeepCallback(true);
@@ -281,8 +281,8 @@ public class Controller extends CordovaPlugin {
         }
         
         // Report that no device is connected.
-        synchronized(connectionCallbacks) {
-            for (CallbackContext listenerContext : connectionCallbacks) {
+        synchronized(mConnectionCallbacks) {
+            for (CallbackContext listenerContext : mConnectionCallbacks) {
                 // Send message to each receive callback function.
                 PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, false);
                 pluginResult.setKeepCallback(true);
