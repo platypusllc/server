@@ -32,13 +32,13 @@ import org.json.JSONObject;
 
 /**
  * API sketch:
- * getVersion:
- * isConnected:
- * addEventListener("connection", [...]):
- * removeEventListener("connection", [...]):
- * send:
- * addEventListener("receive", [...]):
- * removeEventListener("receive", [...]):
+ * getVersion()
+ * isConnected()
+ * addEventListener("connection", [...])
+ * removeEventListener("connection", [...])
+ * send(message)
+ * addEventListener("receive", [...])
+ * removeEventListener("receive", [...])
  */
 
 /**
