@@ -1,5 +1,41 @@
 package edu.cmu.ri.airboat.server;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.hardware.Camera;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Vibrator;
+import android.preference.PreferenceManager;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.AutoCompleteTextView;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ToggleButton;
+
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -11,39 +47,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import org.jscience.geography.coordinates.LatLong;
-import org.jscience.geography.coordinates.UTM;
-import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-
-import robotutils.Pose3D;
-import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.os.AsyncTask;
-import android.os.Bundle;
-import android.os.Handler;
-import android.preference.PreferenceManager;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.AdapterView;
-import android.widget.AutoCompleteTextView;
-import android.widget.Button;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.ToggleButton;
 import edu.cmu.ri.airboat.server.AirboatFailsafeService.AirboatFailsafeIntent;
 import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
+import robotutils.Pose3D;
 
 public class AirboatActivity extends Activity {
 	private static final String logTag = AirboatActivity.class.getName();
@@ -55,8 +63,12 @@ public class AirboatActivity extends Activity {
 	public static final String OBSTACLE_DATA = "OBSTACLE_DATA";
 
 	private UtmPose _homePosition = new UtmPose();
-	
-	/** Called when the activity is first created. */
+    private boolean isFistTimeTime =true;
+    private boolean isAuto=false;
+    final AtomicBoolean gotGPS = new AtomicBoolean(false);
+
+
+    /** Called when the activity is first created. */
     @Override
 	public void onCreate(Bundle savedInstanceState) {
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(AirboatActivity.this);
@@ -94,11 +106,11 @@ public class AirboatActivity extends Activity {
 						// Try to open the host name in the text box, 
 						// if it succeeds, change color accordingly
 						InetSocketAddress addr = CrwNetworkUtils.toInetSocketAddress(text);
-						
-						if (addr != null && addr.getAddress().isReachable(500))
+
+                        if (addr != null && addr.getAddress().isReachable(500))
 							textBackground = 0xAA00AA00;
 				    } catch (IOException e) {}
-				    
+
 				    return textBackground;
 				}
 
@@ -121,8 +133,8 @@ public class AirboatActivity extends Activity {
 				    // In any case, we are now done updating
 				    _isUpdating.set(false);
 				}
-			};
-			
+			}
+
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before, int count) {}
 			
@@ -162,11 +174,87 @@ public class AirboatActivity extends Activity {
                 // Depending on whether the service is running, start or stop
                 if (!connectToggle.isChecked()) {
                     Log.i(logTag, "Starting background service.");
-                    startActivity(intent);
+                   startActivity(intent);
                 } else {
                     Log.i(logTag, "Stopping background service.");
                     stopService(new Intent(AirboatActivity.this, AirboatService.class));
                 }
+                /////Check if the GPS signal is good. if not, send a warning
+                final LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+                if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    Toast.makeText(getApplicationContext(),
+                            "GPS must be turned on to set home location.",
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                final LocationListener ll = new LocationListener() {
+
+                    public void onStatusChanged(String provider, int status, Bundle extras) {}
+                    public void onProviderEnabled(String provider) {}
+                    public void onProviderDisabled(String provider) {}
+
+                    @Override
+                    public void onLocationChanged(Location location) {
+
+                        locationManager.removeUpdates(this);
+                        gotGPS.set(true);
+                    }
+                };
+
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, ll);
+
+                // Cancel GPS fix after a while
+                final Handler _handler = new Handler();
+                _handler.postDelayed(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        if (!gotGPS.get()) {
+                            // Cancel GPS lookup after 5 seconds
+                            locationManager.removeUpdates(ll);
+
+                            // Report failure to get location
+                            //make Alarm working for warning
+                            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                            Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+                            r.play();
+                            //vibrate to make a warning
+                            Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+                            getSystemService(VIBRATOR_SERVICE);
+                            vibrator.vibrate(3000);
+                            Camera camera = null;
+                            Camera.Parameters parameters = null;
+                            camera = Camera.open();
+                            //flash the flash light for 10 times
+                            for(int i=0; i<10;i++) {
+                                parameters = camera.getParameters();
+                                parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);//open
+                                camera.setParameters(parameters);
+                                try {
+                                    Thread.sleep(100);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);//close
+                                camera.setParameters(parameters);
+                                try {
+                                    Thread.sleep(100);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            camera.release();
+                            r.stop();
+                            Toast.makeText(getApplicationContext(),"Warning: no GPS signal",Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }, 5000);
+
+            /////
+
+
+
             }
         });
         
@@ -178,8 +266,11 @@ public class AirboatActivity extends Activity {
 				connectToggle.setChecked(AirboatService.isRunning);
 				connectToggle.setEnabled(true);
 				handler.postDelayed(this, 300);
+				//Log.i(logTag,"Start Running");
 			}
 		}, 0);
+
+
 
         // Initialize vehicle type spinner using preferences.
         final Spinner vehicle_type = (Spinner)findViewById(R.id.VehicleTypeSpinner);
@@ -216,14 +307,30 @@ public class AirboatActivity extends Activity {
 				// start controller
 			}
 		});
-        
+
+
+        //isAutoStart check box
+        final CheckBox isAutoStart=(CheckBox)findViewById(R.id.isAuto);
+        isAutoStart.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                final AutoCompleteTextView Address = (AutoCompleteTextView)findViewById(R.id.FailsafeAddress);
+                isAuto=isAutoStart.isChecked()?true:false;
+                if (isAutoStart.isChecked()) {
+                    Toast.makeText(getApplicationContext(), ((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress(), Toast.LENGTH_SHORT).show();
+                    if (((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress() != null)
+                        Address.setText(((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress());
+                }
+            }
+        });
+
         // Register handler for failsafe address that changes color 
 		// if a valid hostname seems to be reached.
 		// TODO: Move this to its own class!
+
 		final AutoCompleteTextView failsafeAddress = (AutoCompleteTextView)findViewById(R.id.FailsafeAddress);
 		failsafeAddress.addTextChangedListener(new TextWatcher() {
 			
-			final Handler handler = new Handler();
 			final AtomicBoolean _isUpdating = new AtomicBoolean(false);
 			final AtomicBoolean _isUpdated = new AtomicBoolean(false);
 			
@@ -247,8 +354,8 @@ public class AirboatActivity extends Activity {
 						// if it succeeds, change color accordingly
 						if (hostname.trim().length() != 0 && InetAddress.getByName(hostname).isReachable(500))
 				        	textBkgnd = 0xAA00AA00;
+                        //Log.i(logTag, getLocalIpAddress());
 				    } catch (IOException e) {}
-				    
 				    return textBkgnd;
 				}
 
@@ -271,8 +378,8 @@ public class AirboatActivity extends Activity {
 				    // In any case, we are now done updating
 				    _isUpdating.set(false);
 				}
-			};
-			
+			}
+
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before, int count) {}
 			
@@ -290,6 +397,8 @@ public class AirboatActivity extends Activity {
 				}
 			}
 		});
+
+
 		
 		// Register handler for failsafe toggle button
         final ToggleButton failsafeToggle = (ToggleButton)findViewById(R.id.FailsafeToggle);
@@ -339,16 +448,19 @@ public class AirboatActivity extends Activity {
         final Button homeButton = (Button)findViewById(R.id.HomeButton);
         homeButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-				// Turn on GPS, get location, set as the home position
+
+                // Turn on GPS, get location, set as the home position
 				final LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-				if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+
+
+                if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
 					Toast.makeText(getApplicationContext(),
 							"GPS must be turned on to set home location.",
 							Toast.LENGTH_SHORT).show();
 					return;
 				}
-				
-				final AtomicBoolean gotHome = new AtomicBoolean(false); 
+
+                gotGPS.set(false);
 				final LocationListener ll = new LocationListener() {
 					
 					public void onStatusChanged(String provider, int status, Bundle extras) {}
@@ -357,7 +469,6 @@ public class AirboatActivity extends Activity {
 					
 					@Override
 					public void onLocationChanged(Location location) {
-						
 						// Convert from lat/long to UTM coordinates
 			        	UTM utmLoc = UTM.latLongToUtm(
 			        				LatLong.valueOf(location.getLatitude(), location.getLongitude(), NonSI.DEGREE_ANGLE), 
@@ -377,9 +488,10 @@ public class AirboatActivity extends Activity {
 								Toast.LENGTH_SHORT).show();
 			        	Log.i(logTag, "Set home to " + utmLoc);
 						locationManager.removeUpdates(this);
-						gotHome.set(true);
+						gotGPS.set(true);
 					}
 				};
+
         		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, ll);
         		
         		// Cancel GPS fix after a while
@@ -388,7 +500,7 @@ public class AirboatActivity extends Activity {
 					
 					@Override
 					public void run() {
-						if (!gotHome.get()) {
+						if (!gotGPS.get()) {
 							// Cancel GPS lookup after 5 seconds
 							locationManager.removeUpdates(ll);
 							
@@ -406,16 +518,65 @@ public class AirboatActivity extends Activity {
         // Set text boxes to previous values
         masterAddress.setText(prefs.getString(KEY_MASTER_URI, masterAddress.getText().toString()));
         failsafeAddress.setText(prefs.getString(KEY_FAILSAFE_ADDR, failsafeAddress.getText().toString()));
+
+
+
+        // Register handler for homing button
+        final Button offlineButton = (Button)findViewById(R.id.Offline);
+        offlineButton.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                Intent intent=new Intent(AirboatActivity.this, AirboatOfflineActivity.class);
+                intent.putExtra(AirboatService.UDP_REGISTRY_ADDR, masterAddress.getText().toString());
+//                startService(intent);
+                startActivity(intent);
+            }
+        });
     }
-    
+
+
     @Override
     public void onResume() {
     	super.onResume();
-    	
     	// Refresh current IP address
         final TextView addrText = (TextView)findViewById(R.id.IpAddressText);
         addrText.setText(getLocalIpAddress() + ":11411");
+
+        // Auto set up failsafe system at the first time
+        final AutoCompleteTextView Address = (AutoCompleteTextView)findViewById(R.id.FailsafeAddress);
+        final Button homeButton = (Button)findViewById(R.id.HomeButton);
+        final ToggleButton failsafeToggle = (ToggleButton)findViewById(R.id.FailsafeToggle);
+        final Handler handler = new Handler();
+        final Handler handler2= new Handler();
+        final LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress() != null)
+                    if (isFistTimeTime && isAuto) {
+                        Address.setText(((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress());
+                        homeButton.performClick();
+                            handler2.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (gotGPS.get())
+                                        failsafeToggle.performClick();
+                                    else
+                                        Toast.makeText(getApplicationContext(), "No GPS signal: Failsafe system fail to start", Toast.LENGTH_SHORT).show();
+
+                                }
+                            }, 10000);
+                        isFistTimeTime = false;
+
+                    }
+            }
+        }, 1000);
+
     }
+
+
     
     @Override
 	public void onDestroy() {
@@ -446,5 +607,6 @@ public class AirboatActivity extends Activity {
 		}
 		return null;
 	}
+
 
 }

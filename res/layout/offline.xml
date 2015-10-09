@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:weightSum="1"
+    tools:context=".AirboatOfflineActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="37dp"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Input Path File"
+        android:id="@+id/Filename" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:id="@+id/FilePath"
+        android:text="/sdcard/bluetooth/Path1.path"
+        android:layout_marginLeft="10dp" />
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="10dp"
+        android:layout_weight="0.10"
+        android:weightSum="1">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Offline System"
+            android:id="@+id/textView2" />
+
+        <ToggleButton
+            android:layout_width="246dp"
+            android:layout_height="wrap_content"
+            android:text="Start Server"
+            android:id="@+id/OfflineServer"
+            android:layout_gravity="center_horizontal"
+            android:checked="false"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:layout_width="345dp"
+            android:layout_height="wrap_content"
+            android:text="debug"
+            android:id="@+id/debugtext"
+            android:layout_weight="0.44"
+            android:textSize="80dp"
+            android:textAlignment="center"
+            android:textIsSelectable="false"
+            android:gravity="center_vertical|center_horizontal" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="debug"
+            android:id="@+id/debug" />
+
+    </LinearLayout>
+
+</LinearLayout>

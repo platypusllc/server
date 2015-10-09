@@ -1,8 +1,5 @@
 package edu.cmu.ri.airboat.server;
 
-import java.text.DecimalFormat;
-import java.util.Arrays;
-
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -25,6 +22,9 @@ import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
 import com.google.code.microlog4android.LoggerFactory;
+
+import java.text.DecimalFormat;
+import java.util.Arrays;
 
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.data.Twist;
@@ -70,7 +70,7 @@ public class AirboatControlActivity extends Activity {
 	
 	// Create a factory interface that generates the necessary TimerTasks
 	interface AsyncTaskFactory<A, B, C> {
-		public AsyncTask<A, B, C> instance();
+		AsyncTask<A, B, C> instance();
 	}
 	
 	// Converts from progress bar value to linear scaling between min and max
@@ -262,6 +262,8 @@ public class AirboatControlActivity extends Activity {
 						double[] pidThrust = server.getGains(0);
 						// fix below statement; causes server to crash when shut down
 						double[] pidRudder = server.getGains(5);
+
+
 						
 						return new double[][] { pidThrust, pidRudder };
 					}
@@ -300,6 +302,8 @@ public class AirboatControlActivity extends Activity {
 						// Reschedule the next iteration of this update
 						_pidHandler.postDelayed(_pidCallback, PID_UPDATE_MS);
 					}
+
+
 				};
 			}
 		};

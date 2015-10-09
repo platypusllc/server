@@ -1,25 +1,5 @@
 package edu.cmu.ri.airboat.server;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.InetSocketAddress;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
-import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
-
-import org.jscience.geography.coordinates.LatLong;
-import org.jscience.geography.coordinates.UTM;
-import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import robotutils.Pose3D;
-import robotutils.Quaternion;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -55,11 +35,32 @@ import com.google.code.microlog4android.appender.FileAppender;
 import com.google.code.microlog4android.config.PropertyConfigurator;
 import com.google.code.microlog4android.format.PatternFormatter;
 
-import edu.cmu.ri.crw.CrwNetworkUtils;
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
+
 import edu.cmu.ri.crw.CrwSecurityManager;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import edu.cmu.ri.crw.udp.UdpVehicleService;
+import robotutils.Pose3D;
+import robotutils.Quaternion;
 
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
@@ -148,9 +149,9 @@ public class AirboatService extends Service {
 			// Apply update using filter object
 			if (_airboatImpl != null) {
 				_airboatImpl.filter.gpsUpdate(utm, location.getTime());
-				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
-						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
-						+ ", " + location.getBearing());
+//				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
+//						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
+//						+ ", " + location.getBearing());
 			}
 		}
 	};
@@ -166,7 +167,7 @@ public class AirboatService extends Service {
 				if (_airboatImpl != null) {
 					_airboatImpl.filter.compassUpdate(yaw,
 							System.currentTimeMillis());
-					logger.info("COMPASS: " + yaw);
+//					logger.info("COMPASS: " + yaw);
 				}
 			}
 		}
@@ -346,7 +347,7 @@ public class AirboatService extends Service {
 		// Connect to control board.
 		// (Assume that we can only be launched by the LauncherActivity which
 		// provides a handle to the accessory.)
-		mUsbAccessory = (UsbAccessory) intent
+		mUsbAccessory = intent
 				.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 		mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
 		if (mUsbDescriptor == null) {
@@ -402,23 +403,45 @@ public class AirboatService extends Service {
 			@Override
 			public void run() {
 				try {
-					// Create a UdpVehicleService to expose the data object
+                    //get the host computer's IP address
+                    if(((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress()==null) {
+                        DatagramSocket ds = null;
+                        DatagramPacket dp2 = null;
+                        byte[] data = new byte[1024];
+                        dp2 = new DatagramPacket(data, data.length);
+                        ds = new DatagramSocket(11411);
+                        ds.setBroadcast(true);
+                        try {
+                            ds.receive(dp2);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        if (dp2 != null) {
+                            ((ApplicationGlobe) getApplicationContext()).setFailsafe_IPAddress(dp2.getAddress().toString().substring(1));
+
+                        }
+                        ds.setBroadcast(false);
+                        ds.close();
+                    }
+
+                    //Create a UdpVehicleService to expose the data object
 					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT,
 							_airboatImpl);
-
 					// If given a UDP registry parameter, add registry to
 					// service
 					String udpRegistryStr = intent
 							.getStringExtra(UDP_REGISTRY_ADDR);
-					_udpRegistryAddr = CrwNetworkUtils
-							.toInetSocketAddress(udpRegistryStr);
-					if (_udpRegistryAddr != null) {
+					//_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
+                    if (_udpRegistryAddr!= null) {
 						_udpService.addRegistry(_udpRegistryAddr);
-					} else {
-						Log.w(TAG, "Unable to parse '" + udpRegistryStr
+
+                    } else {
+                        //((ApplicationGlobe)getApplicationContext()).setFailsafe_IPAddress(_udpRegistryAddr.getHostName());
+                        Log.w(TAG, "Unable to parse '" + udpRegistryStr
 								+ "' into UDP address.");
 					}
-				} catch (Exception e) {
+                    //((ApplicationGlobe)getApplicationContext()).setFailsafe_IPAddress(CrwNetworkUtils.getLocalhost(udpRegistryStr));
+                } catch (Exception e) {
 					Log.e(TAG, "UdpVehicleService failed to launch", e);
 					sendNotification("UdpVehicleService failed: "
 							+ e.getMessage());
@@ -427,6 +450,7 @@ public class AirboatService extends Service {
 				}
 			}
 		}).start();
+
 
 		// Log the velocity gains before starting the service
 		new Thread(new Runnable() {
@@ -606,7 +630,7 @@ public class AirboatService extends Service {
 		public void onReceive(Context context, Intent intent) {
 
 			// Retrieve the device that was just disconnected.
-			UsbAccessory accessory = (UsbAccessory) intent
+			UsbAccessory accessory = intent
 					.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 
 			// Check if this accessory matches the one we have open.

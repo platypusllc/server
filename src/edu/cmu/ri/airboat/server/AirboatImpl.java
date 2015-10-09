@@ -8,6 +8,9 @@ import android.util.Log;
 
 import com.google.code.microlog4android.LoggerFactory;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -44,6 +47,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public static final int UPDATE_INTERVAL_MS = 100;
 	public static final int NUM_SENSORS = 4;
 	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.STOP.controller;
+//	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.SHOOT_ON_MOVE;
 
     protected final SharedPreferences _prefs;
 
@@ -63,7 +67,7 @@ public class AirboatImpl extends AbstractVehicleServer {
     // TODO: Remove this variable, it is totally arbitrary
     private double winch_depth_ = Double.NaN;
 
-    public static enum VehicleType {
+    public enum VehicleType {
         DIFFERENTIAL_THRUST,
         VECTORED_THRUST,
         UNKNOWN
@@ -95,6 +99,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 */
 	VehicleFilter filter = new SimpleFilter();
 
+
 	/**
 	 * Inertial velocity vector, containing a 6D angular velocity estimate: [rx,
 	 * ry, rz, rPhi, rPsi, rOmega]
@@ -110,9 +115,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * Hard-coded PID gains and thrust limits per vehicle type.
 	 */
 	double[] r_PID = {.2, 0, .3}; // Kp, Ki, Kd
-	double [] t_PID = {.5, .5, .5};
-    public static final double SAFE_DIFFERENTIAL_THRUST = 0.4;
-    public static final double SAFE_VECTORED_THRUST = 0.6;
+	double [] t_PID = {.7, .5, .5};
+    public static final double SAFE_DIFFERENTIAL_THRUST = 0.14;
+    public static final double SAFE_VECTORED_THRUST = 0.7;
 
     /**
      * Simple clipping function that restricts a value to a given range.
@@ -164,6 +169,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
         // Start a regular update function
 		_updateTimer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
+
 	}
 
 	/**
@@ -296,23 +302,25 @@ public class AirboatImpl extends AbstractVehicleServer {
         // TODO: Get rid of this, it is a hack.
         // Special case to handle winch commands...
         else if (axis == 3) {
-            JSONObject command = new JSONObject();
-            JSONObject winchSettings = new JSONObject();
-
             logger.info("WINCH: " + Arrays.toString(k));
             // Call command to adjust winch
             synchronized (_usbWriter) {
-                try{
-                    //Set desired winch movement distance
-                    winchSettings.put("p", (float) Math.abs(k[0]));
-
-                    //Hardcoded velocity - get rid of this eventually
-                    winchSettings.put("v", 500*Math.signum(k[0]));
-                    command.put("s2", winchSettings);
-                    _usbWriter.println(command.toString());
+                StringWriter str = new StringWriter();
+                JsonWriter json = new JsonWriter(str);
+                try {
+                    json.beginObject();
+                    {
+                        json.name("s2").beginObject();
+                        {
+                            json.name("p").value(k[0]);
+                            json.name("v").value(k[1]);
+                        }
+                        json.endObject();
+                    }
+                    json.endObject();
+                    _usbWriter.println(str.toString());
                     _usbWriter.flush();
-                    logger.info("WINCH CMD: " + command.toString());
-                } catch (Exception e) {
+                } catch (IOException e) {
                     Log.w(logTag, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
                 }
             }
@@ -355,14 +363,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 	protected void onCommand(JSONObject cmd) {
 
 		@SuppressWarnings("unchecked")
-		Iterator<String> keyIterator = (Iterator<String>)cmd.keys();
+		Iterator<String> keyIterator = cmd.keys();
 
 		// Iterate through JSON fields
 		while (keyIterator.hasNext()) {
 			String name = keyIterator.next();
 			try {
 				JSONObject value = cmd.getJSONObject(name);
-				
+				logger.info("Value" + value + " "+ "Name" + name);
 				if (name.startsWith("m")) {
 					int motor = name.charAt(1) - 48;
 					logger.info("MOTOR" + motor + ": " + value.getDouble("v"));
@@ -372,26 +380,49 @@ public class AirboatImpl extends AbstractVehicleServer {
 					
 					// Hacks to send sensor information
 					if (value.has("type")) {
+
 						String type = value.getString("type");
+						//logger.info("Test1" + type);
 						if (type.equalsIgnoreCase("es2")) {
+							//logger.info("Test2");
 							SensorData reading = new SensorData();
+							String[] data = value.getString("data").trim().split(" ");
 							reading.channel = sensor;
                             reading.type = SensorType.TE;
+//							double temp = value.getDouble("data");
+//							String tem = value.getString("data");
+							//logger.info("Data"+ data[0]+" " + data[1]);
 							reading.data = new double[] {
-									value.getDouble("t"),
-									value.getDouble("c")
+									Double.parseDouble(data[0]),
+									Double.parseDouble(data[1])
 								};
+							//reading.data = new double[]{5.0,1.5};
 							sendSensor(sensor, reading);
-					    } else if (type.equalsIgnoreCase("hdf5")) {
+
+					    }else if (type.equalsIgnoreCase("atlas")) {
+							SensorData reading = new SensorData();
+							String[] data = value.getString("data").trim().split(",");
+							reading.channel = sensor;
+							reading.type = SensorType.UNKNOWN;
+//
+							logger.info("Data"+ data);
+							reading.data = new double[] {
+									Double.parseDouble(data[0]),
+									//Double.parseDouble(data[1])
+							};
+
+							sendSensor(sensor, reading);
+						}
+						else if (type.equalsIgnoreCase("hdf5")) {
                             String nmea = value.getString("nmea");
                             if (nmea.startsWith("$SDDBT")) {
                                 try {
-                                    double depth = Double.parseDouble(nmea.split(",")[3]);
+                                    double DO = Double.parseDouble(nmea.split(",")[3]);
 
                                     SensorData reading = new SensorData();
-                                    reading.type = SensorType.DEPTH;
+                                    reading.type = SensorType.UNKNOWN;
                                     reading.channel = sensor;
-                                    reading.data = new double[] { depth };
+                                    reading.data = new double[] { DO };
 
                                     sendSensor(sensor, reading);
                                 } catch(Exception e) {

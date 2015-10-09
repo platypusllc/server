@@ -1,15 +1,15 @@
 package edu.cmu.ri.airboat.server;
 
+import com.google.code.microlog4android.LoggerFactory;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
-
-import robotutils.Pose3D;
 import edu.cmu.ri.crw.VehicleController;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
-import com.google.code.microlog4android.LoggerFactory;
+import robotutils.Pose3D;
 
 /**
  * A library of available navigation controllers that are accessible through the
@@ -54,7 +54,7 @@ public enum AirboatController {
 				return;
 			}
 			Pose3D waypoint = waypoints[0].pose;
-			
+
 			double distanceSq = planarDistanceSq(pose, waypoint);
 			
 			if (distanceSq <= 25)
@@ -185,7 +185,7 @@ public enum AirboatController {
 				public void run() {
 					// TODO Auto-generated method stub
 					if (log_boolean) { logger.info("START"); log_boolean = false;}
-					((AirboatImpl) server).setVelocity(new Twist(first[2], 0, 0, 0, 0, first[0]));
+					server.setVelocity(new Twist(first[2], 0, 0, 0, 0, first[0]));
 					// when go testing, use AirboatImpl.CONST_THRUST
 				}
 			};
@@ -193,7 +193,7 @@ public enum AirboatController {
 				@Override
 				public void run() {
 					// TODO Auto-generated method stub
-					((AirboatImpl) server).setVelocity(new Twist(second[2], 0, 0, 0, 0, second[0]));
+					server.setVelocity(new Twist(second[2], 0, 0, 0, 0, second[0]));
 					
 				}
 			};
@@ -201,7 +201,7 @@ public enum AirboatController {
 				@Override
 				public void run() {
 					// TODO Auto-generated method stub
-					((AirboatImpl) server).setVelocity(new Twist(third[2], 0, 0, 0, 0, third[0]));
+					server.setVelocity(new Twist(third[2], 0, 0, 0, 0, third[0]));
 					
 				}
 			};
@@ -209,7 +209,7 @@ public enum AirboatController {
 				@Override
 				public void run() {
 					// TODO Auto-generated method stub
-					((AirboatImpl) server).setVelocity(new Twist(fourth[2], 0, 0, 0, 0, fourth[0]));
+					server.setVelocity(new Twist(fourth[2], 0, 0, 0, 0, fourth[0]));
 					
 				}
 			};
@@ -219,8 +219,8 @@ public enum AirboatController {
 				public void run() {
 					// TODO Auto-generated method stub
 					if (!log_boolean) {logger.info("END"); log_boolean = true;}
-					((AirboatImpl) server).setVelocity(new Twist(500, 0, 0, 0, 0, 90));
-					((AirboatImpl) server).startWaypoints(new UtmPose[0], "POINT_AND_SHOOT");
+					server.setVelocity(new Twist(500, 0, 0, 0, 0, 90));
+					server.startWaypoints(new UtmPose[0], "POINT_AND_SHOOT");
 					log.purge();
 					log.cancel();
 					t.purge();
@@ -265,6 +265,8 @@ public enum AirboatController {
 
 		@Override
 		public void update(VehicleServer server, double dt) {
+
+
 			Twist twist = new Twist();
 
 			// Get the position of the vehicle
@@ -382,7 +384,7 @@ public enum AirboatController {
 
 	public enum PlanningMethod {
 		SIMPLE, GEOMETRIC
-	};
+	}
 
 	/**
 	 * The controller implementation associated with this library name.
@@ -395,7 +397,7 @@ public enum AirboatController {
 	 * @param controller
 	 *            the controller to be used by this entry.
 	 */
-	private AirboatController(VehicleController controller) {
+	AirboatController(VehicleController controller) {
 		this.controller = controller;
 	}
 
@@ -437,9 +439,9 @@ public enum AirboatController {
 	 * in the XY-plane to take if starting at the source pose to reach the
 	 * destination pose.
 	 * 
-	 * @param a
+	 * @param src
 	 *            the source (starting) pose
-	 * @param b
+	 * @param dest
 	 *            the destination (final) pose
 	 * @return an angle in the XY-plane (around +Z-axis) to get to destination
 	 */

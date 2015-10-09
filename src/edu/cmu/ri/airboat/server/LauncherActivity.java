@@ -38,18 +38,25 @@ public class LauncherActivity extends Activity {
         
         // Defer to superclass
         super.onCreate(savedInstanceState);
-        
+//        ((ApplicationGlobe)getApplicationContext()).setFailsafe_IPAddress("123ss");
+//        final ApplicationGlobe globe = (ApplicationGlobe)getApplication();
+//        globe.setFailsafe_IPAddress("123ss");
+
         Log.d(TAG, "Starting vehicle service launcher.");
 
         // Register a listener for USB permission events.
         // (This is cleaned up when the launcher is destroyed, but we might need
         // it if we have to search for an accessory.)
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        //IntentFilter filter = new IntentFilter("");
         registerReceiver(usbReceiver_, filter);
         
         // Request permission for ANY connected devices.
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         UsbAccessory[] usbAccessoryList = usbManager.getAccessoryList();
+
+
+
 
         if (usbAccessoryList != null && usbAccessoryList.length > 0) {
             // TODO: only detect Platypus Hardware!
@@ -58,6 +65,7 @@ public class LauncherActivity extends Activity {
             PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(
                     ACTION_USB_PERMISSION), 0);
             usbManager.requestPermission(usbAccessoryList[0], permissionIntent);
+            //usbManager.requestPermission(, permissionIntent);
         } else {
             Log.d(TAG, "Exiting vehicle service launcher: No devices found.");
             Toast.makeText(this, "No devices found.", Toast.LENGTH_SHORT).show();

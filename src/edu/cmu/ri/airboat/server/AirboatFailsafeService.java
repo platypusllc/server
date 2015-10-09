@@ -1,17 +1,5 @@
 package edu.cmu.ri.airboat.server;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
-
-import org.jscience.geography.coordinates.LatLong;
-import org.jscience.geography.coordinates.UTM;
-import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-
-import robotutils.Pose3D;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -22,6 +10,9 @@ import android.content.ServiceConnection;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -29,9 +20,23 @@ import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
 import android.widget.Toast;
+
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
+
 import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
+import robotutils.Pose3D;
 
 /**
  * Runs a background process that verifies that the vehicle server is currently
@@ -55,8 +60,11 @@ public class AirboatFailsafeService extends Service {
 	// The "home" position that will be set as a waypoint if a failure occurs
 	private static final Object _homeLock = new Object();
 	private static UtmPose _homePosition = new UtmPose();
-	
-	// Contains a reference to the airboat service, or null if service is not running 
+
+    private static UtmPose _savePoint = new UtmPose();
+
+
+    // Contains a reference to the airboat service, or null if service is not running
 	private AirboatService _airboatService = null;
 	
 	// Indicates if we have a valid reference to the airboat service.
@@ -73,6 +81,9 @@ public class AirboatFailsafeService extends Service {
 	
 	// Number of allowable successive failures
 	private int _numAllowedFailures = 4;
+
+    // Number of allowable attempts to the "save point"
+    private int _numAllowedAttempts = 2;
 	
 	// Period between connection tests
 	private int _connectionTestDelayMs = 2000;
@@ -158,6 +169,7 @@ public class AirboatFailsafeService extends Service {
 					rawHomePose[2], 
 					0.0, 0.0, 0.0);
 			_homePosition.origin = new Utm(rawHomeZone, rawHomeNorth);
+            _savePoint=_homePosition.clone();
 		}
 			
 		// Schedule the next connection test
@@ -232,6 +244,7 @@ public class AirboatFailsafeService extends Service {
 	        	Log.i(logTag2, "Set home to " + utmLoc);
 				locationManager.removeUpdates(this);
 				gotHome.set(true);
+
 			}
 		};
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, ll);
@@ -293,28 +306,120 @@ public class AirboatFailsafeService extends Service {
 			
 			// If there is no vehicle server, then there's nothing to do here
 			if (_airboatService == null) return;
-			VehicleServer server = _airboatService.getServer();
-			
-			// Test for connectivity to the specified server
+			final VehicleServer server = _airboatService.getServer();
+            final Uri notification1 = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            final Uri notification2 = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            final Ringtone[] r = new Ringtone[1];
+            final Handler handler= new Handler();
+
+            // Test for connectivity to the specified server
 			try {
 				if (InetAddress.getByName(_hostname).isReachable(500)) {
 					_numFailures = 0;
+                    ///save the last point that the boat can ping the computer server successfully///
+                    final LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+                    final LocationListener ll = new LocationListener() {
+
+                        public void onStatusChanged(String provider, int status, Bundle extras) {}
+                        public void onProviderEnabled(String provider) {}
+                        public void onProviderDisabled(String provider) {}
+
+                        @Override
+                        public void onLocationChanged(Location location) {
+                            UtmPose _localPosition = new UtmPose();
+
+                            // Convert from lat/long to UTM coordinates
+                            UTM utmLoc = UTM.latLongToUtm(
+                                    LatLong.valueOf(location.getLatitude(), location.getLongitude(), NonSI.DEGREE_ANGLE),
+                                    ReferenceEllipsoid.WGS84
+                            );
+                            _localPosition.pose = new Pose3D(
+                                    utmLoc.eastingValue(SI.METER),
+                                    utmLoc.northingValue(SI.METER),
+                                    location.getAltitude(),
+                                    0.0, 0.0, 0.0);
+                            _localPosition.origin = new Utm(utmLoc.longitudeZone(), utmLoc.latitudeZone() > 'o');
+//                            final ApplicationGlobe globe = (ApplicationGlobe)getApplication();
+//                            globe.setSafePoint(_localPosition);
+                            _savePoint=_localPosition.clone();
+                            // Now that we have the GPS location, stop listening
+                            locationManager.removeUpdates(this);
+                        }
+                    };
+                    //////
+
+
 				} else {
-					_numFailures++;
-				}
+                    Toast.makeText(getApplicationContext(),"Number of waypoints: "+server.getWaypoints().length+"",Toast.LENGTH_SHORT).show();
+//                    if(server.getWaypoints().length==1) {
+//                        r[0] = RingtoneManager.getRingtone(getApplicationContext(), notification2);
+//                        r[0].play();
+//                        handler.postDelayed(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                r[0].stop();
+//                            }
+//                        }, 2000);
+//                    }
+                    //If the current waypoint thread is not over, do NOT turn on the failsafe system
+                    if (server.getWaypoints().length==0) {
+                        _numFailures++;
+                        server.setVelocity(new Twist(0,0));
+//                        Toast.makeText(getApplicationContext(), _numFailures+"",Toast.LENGTH_SHORT).show();
+                    }
+
+                }
 			} catch (IOException e) {
-				_numFailures++;
 				Log.i(LOG_TAG, "Connection failure: " + e.getMessage());
 			}
-			
-			// If the connection failed, trigger the failsafe behavior
+            // If the connection failed, trigger the failsafe behavior
 			if (_numFailures > _numAllowedFailures) {
-				_numFailures = 0;
-				synchronized(_homeLock) {
-					Log.i(LOG_TAG, "Failsafe triggered: " + _homePosition);
-					server.setAutonomous(true);
-					server.startWaypoints(new UtmPose[]{_homePosition}, "POINT_AND_SHOOT");
-				}
+                _numFailures = 0;
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            if (!(InetAddress.getByName(_hostname).isReachable(500)||(server.getWaypoints().length!=0))) {
+                                synchronized (_homeLock) {
+                                    Log.i(LOG_TAG, "Failsafe triggered: " + _homePosition);
+                                    server.setAutonomous(true);
+                                    //firstly try the "save point"
+                                    if (_numAllowedAttempts > 0) {
+                                        server.startWaypoints(new UtmPose[]{_savePoint}, "POINT_AND_SHOOT");
+                                        r[0] = RingtoneManager.getRingtone(getApplicationContext(), notification1);
+                                        r[0].play();
+                                        handler.postDelayed(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                r[0].stop();
+                                            }
+                                        }, 2000);
+                                        Toast.makeText(getApplicationContext(),
+                                                "Start Waypoint! save point"+_savePoint.toString(),
+                                                Toast.LENGTH_SHORT).show();
+                                        _numAllowedAttempts--;
+                                    } else {
+                                        //after a few attempts, get back home
+                                        server.startWaypoints(new UtmPose[]{_homePosition}, "POINT_AND_SHOOT");
+                                        r[0] = RingtoneManager.getRingtone(getApplicationContext(), notification2);
+                                        r[0].play();
+                                        handler.postDelayed(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                r[0].stop();
+                                            }
+                                        },2000);
+                                        Toast.makeText(getApplicationContext(),
+                                                "Start Waypoint! home"+_homePosition.toString(),
+                                                Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, 10000);
 			}
 			
 			// Schedule the next connection test
