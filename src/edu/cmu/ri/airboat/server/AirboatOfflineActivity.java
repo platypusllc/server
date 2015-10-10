@@ -21,6 +21,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Vibrator;
@@ -198,11 +199,11 @@ public class AirboatOfflineActivity extends Activity {
 
         sm = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
 
-        Path.setOnLongClickListener(new View.OnLongClickListener(){
+        Path.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                String [] fileType = {"txt"};
-                AirboatFileExplorer dlg = new AirboatFileExplorer(AirboatOfflineActivity.this,fileType,myListener);
+                String[] fileType = {"txt"};
+                AirboatFileExplorer dlg = new AirboatFileExplorer(AirboatOfflineActivity.this, fileType, myListener);
                 dlg.setTitle("Choose file(.txt)");
                 dlg.show();
                 return false;
@@ -229,11 +230,11 @@ public class AirboatOfflineActivity extends Activity {
                     _isUpdated.set(true);
                     _isUpdating.set(true);
 
-                        // Try to open the host name in the text box,
-                        // if it succeeds, change color accordingly
-                        File file = new File(path);
-                        if (path.trim().length() != 0 && file.exists())
-                            textBkgnd = 0xAA00AA00;
+                    // Try to open the host name in the text box,
+                    // if it succeeds, change color accordingly
+                    File file = new File(path);
+                    if (path.trim().length() != 0 && file.exists())
+                        textBkgnd = 0xAA00AA00;
 
                     return textBkgnd;
                 }
@@ -279,8 +280,8 @@ public class AirboatOfflineActivity extends Activity {
             }
         });
         // Set text boxes to previous values
-        Path.setText("/sdcard/bluetooth/Path1.txt");
-
+        Path.setText(Environment.getExternalStorageDirectory().getPath() + "bluetooth/Path1.txt");
+        
 
 
         final ToggleButton offlineServer = (ToggleButton)findViewById(R.id.OfflineServer);

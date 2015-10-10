@@ -3,7 +3,6 @@ package edu.cmu.ri.airboat.server;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.util.JsonWriter;
 import android.util.Log;
 
 import com.google.code.microlog4android.LoggerFactory;
@@ -11,9 +10,7 @@ import com.google.code.microlog4android.LoggerFactory;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Timer;
@@ -302,28 +299,26 @@ public class AirboatImpl extends AbstractVehicleServer {
         // TODO: Get rid of this, it is a hack.
         // Special case to handle winch commands...
         else if (axis == 3) {
-            logger.info("WINCH: " + Arrays.toString(k));
-            // Call command to adjust winch
-            synchronized (_usbWriter) {
-                StringWriter str = new StringWriter();
-                JsonWriter json = new JsonWriter(str);
-                try {
-                    json.beginObject();
-                    {
-                        json.name("s2").beginObject();
-                        {
-                            json.name("p").value(k[0]);
-                            json.name("v").value(k[1]);
-                        }
-                        json.endObject();
-                    }
-                    json.endObject();
-                    _usbWriter.println(str.toString());
-                    _usbWriter.flush();
-                } catch (IOException e) {
-                    Log.w(logTag, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
-                }
-            }
+			JSONObject command = new JSONObject();
+			JSONObject winchSettings = new JSONObject();
+
+			logger.info("WINCH: " + Arrays.toString(k));
+			// Call command to adjust winch
+			synchronized (_usbWriter) {
+				try {
+					//Set desired winch movement distance
+					winchSettings.put("p", (float) Math.abs(k[0]));
+
+					//Hardcoded velocity - get rid of this eventually
+					winchSettings.put("v", 500 * Math.signum(k[0]));
+					command.put("s2", winchSettings);
+					_usbWriter.println(command.toString());
+					_usbWriter.flush();
+					logger.info("WINCH CMD: " + command.toString());
+				} catch (Exception e) {
+					Log.w(logTag, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
+				}
+			}
         }
 	}
 	/**
@@ -413,9 +408,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 							sendSensor(sensor, reading);
 						}
-						else if (type.equalsIgnoreCase("hdf5")) {
+						else if (type.equalsIgnoreCase("hds")) {
                             String nmea = value.getString("nmea");
-                            if (nmea.startsWith("$SDDBT")) {
+                            if (nmea.startsWith("$SDDBT")) { //Depth Below Transducer
                                 try {
                                     double DO = Double.parseDouble(nmea.split(",")[3]);
 
@@ -428,7 +423,13 @@ public class AirboatImpl extends AbstractVehicleServer {
                                 } catch(Exception e) {
                                     Log.w(logTag, "Failed to parse depth reading: " + nmea);
                                 }
-                            }
+                            }else if (nmea.startsWith("$SDMTW")){ //Water Temperature
+
+							}else if (nmea.startsWith("$SDRMC")){ //GPS
+
+							}else{
+								Log.w(logTag, "Unknown NMEA String: " + nmea);
+							}
                         } else if (type.equalsIgnoreCase("winch")) {
                             SensorData reading = new SensorData();
                             reading.channel = sensor;
