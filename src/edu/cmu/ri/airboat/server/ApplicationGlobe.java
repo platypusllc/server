@@ -7,7 +7,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Vibrator;
 
-import edu.cmu.ri.crw.data.UtmPose;
+import com.platypus.crw.data.UtmPose;
 
 /**
  * Created by hnx on 6/23/14.

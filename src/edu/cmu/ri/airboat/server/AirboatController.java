@@ -1,14 +1,14 @@
 package edu.cmu.ri.airboat.server;
 
 import com.google.code.microlog4android.LoggerFactory;
+import com.platypus.crw.VehicleController;
+import com.platypus.crw.VehicleServer;
+import com.platypus.crw.data.Twist;
+import com.platypus.crw.data.UtmPose;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
-import edu.cmu.ri.crw.VehicleController;
-import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.data.Twist;
-import edu.cmu.ri.crw.data.UtmPose;
 import robotutils.Pose3D;
 
 /**

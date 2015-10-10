@@ -32,6 +32,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.platypus.crw.CrwNetworkUtils;
+import com.platypus.crw.data.Utm;
+import com.platypus.crw.data.UtmPose;
+
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
@@ -48,9 +52,6 @@ import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
 import edu.cmu.ri.airboat.server.AirboatFailsafeService.AirboatFailsafeIntent;
-import edu.cmu.ri.crw.CrwNetworkUtils;
-import edu.cmu.ri.crw.data.Utm;
-import edu.cmu.ri.crw.data.UtmPose;
 import robotutils.Pose3D;
 
 public class AirboatActivity extends Activity {
