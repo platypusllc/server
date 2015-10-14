@@ -1,5 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
+import android.util.Log;
+
 import com.google.code.microlog4android.LoggerFactory;
 import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleServer;
@@ -21,7 +23,8 @@ import robotutils.Pose3D;
  */
 public enum AirboatController {
 
-	
+
+
 	/**
 	 * This is the implementation of Yunde's controller. This controller also updates the velocities twist as done in POINT_AND_SHOOT,
 	 * but instead of velocities, it passes in servo commands to the thruster and rudder. The process of converting desired velocities
@@ -29,6 +32,7 @@ public enum AirboatController {
 	 * at indexes 0 and 5 respectively.
 	 * UPDATE: renamed POINT_AND_SHOOT to be compatible with all code. 
 	 */
+
 	POINT_AND_SHOOT(new VehicleController() {
 		// variable for monitoring previous destination angle for error calculation 
 		private double prev_angle_destination = 0;
@@ -38,27 +42,39 @@ public enum AirboatController {
 		double[] buffer = new double[BUFFER_SIZE];
 		int bIndex = 0;
 		double bSum = 0;
-		
+		// Simulation part. The current pose will change to the nearest waypoint after seconds
+		int oldtime = 0;
+
 		@Override
 		public void update(VehicleServer server, double dt) {
+
 			Twist twist = new Twist();
 			
 			// Get the position of the vehicle
 			UtmPose state = server.getPose();
 			Pose3D pose = state.pose;
-			
+
+
+
 			// Get the current waypoint, or return if there are none
 			UtmPose[] waypoints = server.getWaypoints();
 			if (waypoints == null || waypoints.length <= 0) {
 				server.setVelocity(twist);
+
 				return;
 			}
 			Pose3D waypoint = waypoints[0].pose;
 
+
 			double distanceSq = planarDistanceSq(pose, waypoint);
-			
+			// Simulation part, when oldtime count to 10, pose move to the next waypoint
+//			if(oldtime > 10){
+//				distanceSq = 0;
+//				oldtime = 0;
+//			}
 			if (distanceSq <= 25)
 			{
+				Log.i("POINT_AND_SHOOT:", "Arrived Waypoint");
 				// if reached the target, reset the buffer and previous angle
 				bIndex = 0;
 				bSum = 0;
@@ -74,8 +90,11 @@ public enum AirboatController {
 			}
 			else
 			{
+				// Simulation part, when oldtime count to 10, pose move to the next waypoint
+				//oldtime+=1;
+				//Log.i("POINT_AND_SHOOT:", "On the way: " + oldtime);
 				// ANGLE CONTROL SEGMENT
-				
+
 				// find destination angle between boat and waypoint position
 				double angle_destination = angleBetween(pose, waypoint);
 				

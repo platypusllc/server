@@ -395,7 +395,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 							reading.channel = sensor;
                             reading.type = SensorType.ES2;
 							reading.data = new double[] { ecData, tempData};
-
+							Log.i(logTag, "ES2: " + data);
 							sendSensor(sensor, reading);
 
 					    }else if (type.equalsIgnoreCase("atlas_do")) {
@@ -604,6 +604,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
 			VehicleController vc = AirboatController.valueOf(controller).controller;
 			vc.update(AirboatImpl.this, (double) UPDATE_INTERVAL_MS / 1000.0);
+			Log.i(logTag, "Waypoint Status: PRIMITIVES");
 		}
 		else
 		{
@@ -616,6 +617,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				{
 					try {
 						vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
+						//Log.i(logTag, "vc:"+ vc.toString() + "controller" + controller );
 					} catch (IllegalArgumentException e) {
 						Log.w(logTag, "Unknown controller specified (using " + vc
 								+ " instead): " + controller);
@@ -625,21 +627,28 @@ public class AirboatImpl extends AbstractVehicleServer {
 				@Override
 				public void run() {
 					synchronized (_navigationLock) {
+						//Log.i(logTag, "Synchronized");
+
 						if (!_isAutonomous.get()) {
 							// If we are not autonomous, do nothing
+							Log.i(logTag,"Paused");
 							sendWaypointUpdate(WaypointState.PAUSED);
 						} else if (_waypoints.length == 0) {
 							// If we are finished with waypoints, stop in place
+							Log.i(logTag, "Done");
 							sendWaypointUpdate(WaypointState.DONE);
 							setVelocity(new Twist(DEFAULT_TWIST));
 							this.cancel();
 							_navigationTask = null;
+
 						} else {
 							// If we are still executing waypoints, use a
 							// controller to figure out how to get to waypoint
 							// TODO: measure dt directly instead of approximating
+							Log.i(logTag,"controller :" + controller);
 							vc.update(AirboatImpl.this, dt);
 							sendWaypointUpdate(WaypointState.GOING);
+							//Log.i(logTag, "Waypoint Status: POINT_AND_SHOOT");
 						}
 					}
 				}
@@ -674,6 +683,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				_navigationTask = null;
 				_waypoints = new UtmPose[0];
 				setVelocity(new Twist(DEFAULT_TWIST));
+				Log.i(logTag, "StopWaypoint");
 			}
 		}
 		sendWaypointUpdate(WaypointState.CANCELLED);

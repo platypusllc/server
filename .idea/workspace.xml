@@ -10,116 +10,76 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f228661d-d68b-4801-8cd2-eb87d9d11fa5" name="Default" comment="Repository cleanup. Removed tracking for a bunch of intermediate and workspace specific files.">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.gradle/1.12/taskArtifacts/cache.properties" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.gradle/1.12/taskArtifacts/cache.properties.lock" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.gradle/1.12/taskArtifacts/fileHashes.bin" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.gradle/1.12/taskArtifacts/fileSnapshots.bin" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.gradle/1.12/taskArtifacts/outputFileStates.bin" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.gradle/1.12/taskArtifacts/taskArtifacts.bin" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/generated/source/buildConfig/debug/edu/cmu/ri/airboat/server/BuildConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/generated/source/r/debug/edu/cmu/ri/airboat/server/R.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/assets/debug/microlog.properties" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1$TextUpdate$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1$TextUpdate.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$3.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$4.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$5.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$6$TextUpdate$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$6$TextUpdate.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$6.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$7.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$8.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$9$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$9$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$9.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity$SavePhotoTask.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$3.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$4.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$5.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$6$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$6.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$7.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$AsyncTaskFactory.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$PidKeyListener.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$3.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$4.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$5.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$6.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$4.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$5.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$PlanningMethod.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$3.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$AirboatFailsafeIntent.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$ConnectionTest.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$LocalBinder.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$3.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$4.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$VehicleType.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$2.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$3.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$4.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$5.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$6.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$7.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$AirboatBinder.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/BuildConfig.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/LauncherActivity$1.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/LauncherActivity.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R$array.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R$attr.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R$drawable.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R$id.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R$layout.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R$string.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R$xml.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/ReadOnlyToggleButton.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/SimpleFilter.class" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/incremental/aidl/debug/dependency.store" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/incremental/mergeAssets/debug/merger.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/incremental/mergeResources/debug/merger.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/libs/software-debug.ap_" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/manifests/debug/AndroidManifest.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/model_data.bin" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/drawable/btn_background.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/drawable/btn_default.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/drawable/btn_focused.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/drawable/btn_selected.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/drawable/camera_icon.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/drawable/icon.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/layout/camera.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/layout/control.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/layout/main.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/layout/row.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/values/values.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/build/intermediates/res/debug/xml/device_filter.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/local.properties" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/local.properties" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1$TextUpdate$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1$TextUpdate$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1$TextUpdate.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1$TextUpdate.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$2.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$2.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$3.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$3.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$4.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$4.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$5.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$5.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$6.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$6.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$7.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$7.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$8.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$8.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$9.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity$9.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatActivity.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity$2.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity$2.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatCameraActivity.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$2.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$2.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$3.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$3.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$4.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$4.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$5.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$5.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$6$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$6$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$6.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$6.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$7.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$7.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$PidKeyListener.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity$PidKeyListener.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatControlActivity.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$2.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$2.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$2.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$2.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$3.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$3.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$4.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$4.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$5.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$5.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$6.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3$6.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$3.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$4.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$4.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$5.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$5.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$PlanningMethod.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController$PlanningMethod.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatController.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$2.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$2.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$3.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$3.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$ConnectionTest.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$ConnectionTest.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$LocalBinder.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService$LocalBinder.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatFailsafeService.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$2.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$2.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$3.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$3.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$4.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$4.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$VehicleType.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl$VehicleType.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatImpl.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$2.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$2.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$3.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$3.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$4.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$4.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$5.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$5.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$6.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$6.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$7.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$7.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$AirboatBinder.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService$AirboatBinder.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/AirboatService.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/LauncherActivity$1.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/LauncherActivity$1.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/LauncherActivity.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/LauncherActivity.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/R.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/SimpleFilter.class" afterPath="$PROJECT_DIR$/build/intermediates/classes/debug/edu/cmu/ri/airboat/server/SimpleFilter.class" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatController.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatController.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/gradle.xml" afterPath="$PROJECT_DIR$/.idea/gradle.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/incremental/mergeAssets/debug/merger.xml" afterPath="$PROJECT_DIR$/build/intermediates/incremental/mergeAssets/debug/merger.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="software.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -154,27 +114,7 @@
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="59" column="3" selection-start-line="59" selection-start-column="3" selection-end-line="59" selection-end-column="3" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ApplicationGlobe.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ApplicationGlobe.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="9" column="19" selection-start-line="9" selection-start-column="19" selection-end-line="9" selection-end-column="19" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="LauncherActivity.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="23" column="13" selection-start-line="23" selection-start-column="13" selection-end-line="23" selection-end-column="13" />
+              <caret line="74" column="32" selection-start-line="74" selection-start-column="32" selection-end-line="74" selection-end-column="32" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -182,58 +122,18 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ReadOnlyToggleButton.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ReadOnlyToggleButton.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
-              <folding>
-                <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="SimpleFilter.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/SimpleFilter.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="9" column="0" selection-start-line="9" selection-start-column="0" selection-end-line="9" selection-end-column="0" />
-              <folding>
-                <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="AirboatImpl.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="AirboatImpl.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="503" column="16" selection-start-line="503" selection-start-column="16" selection-end-line="503" selection-end-column="16" />
+            <state vertical-scroll-proportion="-7.718894">
+              <caret line="291" column="26" selection-start-line="291" selection-start-column="26" selection-end-line="291" selection-end-column="26" />
               <folding>
                 <element signature="imports" expanded="true" />
+                <element signature="e#24050#24051#0" expanded="true" />
+                <element signature="e#24082#24083#0" expanded="true" />
+                <element signature="e#24126#24127#0" expanded="true" />
+                <element signature="e#24159#24160#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="misc.xml" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/.idea/misc.xml">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name=".gitignore" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/.gitignore">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.33163264">
-              <caret line="13" column="17" selection-start-line="13" selection-start-column="17" selection-end-line="13" selection-end-column="17" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -241,19 +141,35 @@
       <file leaf-file-name="AirboatController.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatController.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="36" column="36" selection-start-line="36" selection-start-column="36" selection-end-line="36" selection-end-column="36" />
+            <state vertical-scroll-proportion="-14.703704">
+              <caret line="131" column="59" selection-start-line="131" selection-start-column="51" selection-end-line="131" selection-end-column="59" />
+              <folding>
+                <element signature="e#5145#5282#0" expanded="true" />
+                <element signature="e#5281#5282#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="AirboatControlActivity.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatControlActivity.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="-9.703704">
+              <caret line="106" column="52" selection-start-line="106" selection-start-column="44" selection-end-line="106" selection-end-column="52" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="AirboatOfflineService.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatOfflineService.java">
+      <file leaf-file-name="Twist.class" pinned="false" current-in-tab="false">
+        <entry file="jar://$PROJECT_DIR$/libs/crwlib_core.jar!/com/platypus/crw/data/Twist.class">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="17" column="19" selection-start-line="17" selection-start-column="19" selection-end-line="17" selection-end-column="19" />
-              <folding />
+            <state vertical-scroll-proportion="-16.666666">
+              <caret line="50" column="22" selection-start-line="50" selection-start-column="22" selection-end-line="50" selection-end-column="22" />
+              <folding>
+                <element signature="e#1069#1070#0" expanded="true" />
+                <element signature="e#1106#1107#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -845,7 +761,7 @@
     </option>
     <option name="modificationStamps">
       <map>
-        <entry key="$PROJECT_DIR$" value="1444441003297" />
+        <entry key="$PROJECT_DIR$" value="1444760375000" />
       </map>
     </option>
     <option name="projectBuildClasspath">
@@ -860,8 +776,8 @@
                       <ExternalModuleBuildClasspathPojo>
                         <option name="entries">
                           <list>
-                            <option value="$MODULE_DIR$/libs/jscience-4.3.jar" />
                             <option value="$MODULE_DIR$/libs/crwlib_core.jar" />
+                            <option value="$MODULE_DIR$/libs/jscience-4.3.jar" />
                             <option value="$MODULE_DIR$/libs/microlog4android-1.0.0.jar" />
                             <option value="$APPLICATION_HOME_DIR$/gradle/m2repository/com/android/tools/build/gradle/1.3.0/gradle-1.3.0-sources.jar" />
                             <option value="$APPLICATION_HOME_DIR$/gradle/m2repository/com/android/tools/build/gradle/1.3.0/gradle-1.3.0.jar" />
@@ -950,117 +866,117 @@
               <option name="name" value="Server" />
               <option name="projectBuildClasspath">
                 <list>
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/sonar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/testing-native" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/base-services" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/platform-play" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/announce" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/antlr" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ear" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/dependency-management" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-scala" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/jacoco" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/plugin-development" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/publish" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/core" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/tooling-api" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-java" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ide-native" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/scala" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/internal-integ-testing" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/maven" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/internal-testing" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/osgi" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/resources-sftp" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/plugin-use" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ivy" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/resources" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/base-services" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/base-services-groovy" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/build-comparison" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/build-init" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/launcher" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ui" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/cli" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/code-quality" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/core" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/dependency-management" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/diagnostics" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ear" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ide" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ide-native" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/internal-integ-testing" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/internal-testing" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ivy" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/jacoco" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/javascript" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/jetty" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-groovy" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-java" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-jvm" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-native" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-scala" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/launcher" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/maven" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/messaging" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/model-core" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/model-groovy" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/native" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/open-api" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/platform-jvm" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/build-comparison" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/model-core" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/tooling-api-builders" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/diagnostics" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/code-quality" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-native" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/messaging" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/platform-native" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/base-services-groovy" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-groovy" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/plugins" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/language-jvm" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/osgi" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/platform-base" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/resources-http" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ide" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/resources-s3" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/wrapper" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/javascript" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/cli" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/model-groovy" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/platform-jvm" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/platform-native" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/platform-play" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/plugin-development" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/plugin-use" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/plugins" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/publish" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/reporting" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/announce" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/resources" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/resources-http" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/resources-s3" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/resources-sftp" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/scala" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/signing" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-core-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-base-services-groovy-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-launcher-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-tooling-api-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-wrapper-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-cli-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-model-core-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/groovy-all-2.3.10.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-messaging-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-model-groovy-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-base-services-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-ui-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/sonar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/testing-native" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/tooling-api" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/tooling-api-builders" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/ui" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/src/wrapper" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/ant-1.9.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/ant-launcher-1.9.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-base-services-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-base-services-groovy-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-cli-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-core-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-docs-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-launcher-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-messaging-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-model-core-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-model-groovy-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-native-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-open-api-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-resources-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/ant-1.9.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-docs-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-native-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-plugin-use-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-ear-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-platform-base-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-tooling-api-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-ui-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/gradle-wrapper-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/groovy-all-2.3.10.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-announce-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-jacoco-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/ivy-2.2.0.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-platform-native-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-dependency-management-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-resources-sftp-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-scala-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-platform-play-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-antlr-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-build-comparison-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-build-init-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-code-quality-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-reporting-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-resources-http-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-dependency-management-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-diagnostics-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-ear-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-ide-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-ide-native-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-javascript-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-antlr-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-ivy-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-plugins-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-osgi-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-language-native-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-jacoco-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-javascript-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-jetty-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-platform-jvm-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-plugin-development-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-language-jvm-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-sonar-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-language-groovy-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-resources-s3-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-maven-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-language-scala-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-testing-native-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-signing-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-publish-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-build-init-2.4.jar" />
-                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-tooling-api-builders-2.4.jar" />
                   <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-language-java-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-language-jvm-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-language-native-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-language-scala-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-maven-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-osgi-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-platform-base-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-platform-jvm-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-platform-native-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-platform-play-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-plugin-development-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-plugin-use-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-plugins-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-publish-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-reporting-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-resources-http-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-resources-s3-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-resources-sftp-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-scala-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-signing-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-sonar-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-testing-native-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/gradle-tooling-api-builders-2.4.jar" />
+                  <option value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4/lib/plugins/ivy-2.2.0.jar" />
                   <option value="$PROJECT_DIR$/buildSrc/src/main/java" />
                   <option value="$PROJECT_DIR$/buildSrc/src/main/groovy" />
                 </list>
@@ -1076,7 +992,6 @@
       <list>
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatFileExplorer.java" />
         <option value="$PROJECT_DIR$/res/layout/offline.xml" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatController.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatControlActivity.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatFailsafeService.java" />
@@ -1085,8 +1000,10 @@
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ApplicationGlobe.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/SimpleFilter.java" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java" />
         <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/local.properties" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatController.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java" />
       </list>
     </option>
   </component>
@@ -1094,10 +1011,8 @@
     <order />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="65" />
-    <option name="y" value="24" />
-    <option name="width" value="1855" />
-    <option name="height" value="1056" />
+    <option name="width" value="1280" />
+    <option name="height" value="800" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <OptionsSetting value="true" id="Add" />
@@ -1126,8 +1041,6 @@
     </navigator>
     <panes>
       <pane id="PackagesPane" />
-      <pane id="Scratches" />
-      <pane id="Scope" />
       <pane id="AndroidView" />
       <pane id="ProjectPane">
         <subPane>
@@ -1157,12 +1070,60 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="server" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="software" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Server" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="build" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="software" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Server" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value=".settings" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="software" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Server" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value=".gradle" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
+      <pane id="Scope" />
+      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -1172,12 +1133,12 @@
     <property name="MemberChooser.sorted" value="false" />
     <property name="MemberChooser.showClasses" value="true" />
     <property name="MemberChooser.copyJavadoc" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/build" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../Platypus-Android" />
     <property name="options.lastSelected" value="vcs.Git" />
     <property name="options.splitter.main.proportions" value="0.3" />
     <property name="options.splitter.details.proportions" value="0.2" />
     <property name="options.searchVisible" value="true" />
-    <property name="android.project.structure.last.selected" value="software" />
+    <property name="android.project.structure.last.selected" value="Project" />
     <property name="android.project.structure.proportion" value="0.15" />
     <property name="recentsLimit" value="5" />
     <property name="settings.editor.selected.configurable" value="project.propVCSSupport.Mappings" />
@@ -1201,6 +1162,116 @@
     <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
     <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth3" value="667" />
     <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
+  </component>
+  <component name="RestoreUpdateTree" date="Moments ago" ActionInfo="_Update">
+    <UpdatedFiles>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Updated from server" />
+        <option name="myStatusName" value="Changed on server" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="CHANGED_ON_SERVER" />
+        <FILE-GROUP>
+          <option name="myUpdateName" value="Updated" />
+          <option name="myStatusName" value="Changed" />
+          <option name="mySupportsDeletion" value="false" />
+          <option name="myCanBeAbsent" value="false" />
+          <option name="myId" value="UPDATED" />
+        </FILE-GROUP>
+        <FILE-GROUP>
+          <option name="myUpdateName" value="Created" />
+          <option name="myStatusName" value="Created" />
+          <option name="mySupportsDeletion" value="false" />
+          <option name="myCanBeAbsent" value="false" />
+          <option name="myId" value="CREATED" />
+        </FILE-GROUP>
+        <FILE-GROUP>
+          <option name="myUpdateName" value="Deleted" />
+          <option name="myStatusName" value="Deleted" />
+          <option name="mySupportsDeletion" value="false" />
+          <option name="myCanBeAbsent" value="true" />
+          <option name="myId" value="REMOVED_FROM_REPOSITORY" />
+          <PATH vcs="Git" revision="">$PROJECT_DIR$/local.properties</PATH>
+        </FILE-GROUP>
+        <FILE-GROUP>
+          <option name="myUpdateName" value="Restored" />
+          <option name="myStatusName" value="Will be restored" />
+          <option name="mySupportsDeletion" value="false" />
+          <option name="myCanBeAbsent" value="false" />
+          <option name="myId" value="RESTORED" />
+        </FILE-GROUP>
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Modified" />
+        <option name="myStatusName" value="Modified" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="MODIFIED" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Skipped" />
+        <option name="myStatusName" value="Skipped" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="SKIPPED" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Merged with conflicts" />
+        <option name="myStatusName" value="Will be merged with conflicts" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="MERGED_WITH_CONFLICTS" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Merged with tree conflicts" />
+        <option name="myStatusName" value="Merged with tree conflicts" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="MERGED_WITH_TREE_CONFLICT" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Merged with property conflicts" />
+        <option name="myStatusName" value="Will be merged with property conflicts" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="MERGED_WITH_PROPERTY_CONFLICT" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Merged" />
+        <option name="myStatusName" value="Will be merged" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="MERGED" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Not in repository" />
+        <option name="myStatusName" value="Not in repository" />
+        <option name="mySupportsDeletion" value="true" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="UNKNOWN" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Locally added" />
+        <option name="myStatusName" value="Locally added" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="LOCALLY_ADDED" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Locally removed" />
+        <option name="myStatusName" value="Locally removed" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="LOCALLY_REMOVED" />
+      </FILE-GROUP>
+      <FILE-GROUP>
+        <option name="myUpdateName" value="Switched" />
+        <option name="myStatusName" value="Switched" />
+        <option name="mySupportsDeletion" value="false" />
+        <option name="myCanBeAbsent" value="false" />
+        <option name="myId" value="SWITCHED" />
+      </FILE-GROUP>
+    </UpdatedFiles>
   </component>
   <component name="RunManager" selected="Android Application.Server">
     <configuration default="true" type="AndroidRunConfigurationType" factoryName="Android Application">
@@ -1459,40 +1530,40 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="65" y="24" width="1855" height="1056" extended-state="6" />
-    <editor active="true" />
+    <frame x="0" y="0" width="1280" height="800" extended-state="6" />
+    <editor active="false" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3290461" sideWeight="0.49806523" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3376206" sideWeight="0.49143174" order="15" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3371105" sideWeight="0.4878837" order="15" side_tool="false" content_ui="tabs" />
       <window_info id="Build Variants" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3376206" sideWeight="0.5085683" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3286119" sideWeight="0.51615506" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Android Monitor" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3290461" sideWeight="0.47816473" order="14" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3290461" sideWeight="0.4870094" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Android Monitor" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3286119" sideWeight="0.47816473" order="14" side_tool="false" content_ui="tabs" />
+      <window_info id="Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32875606" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3286119" sideWeight="0.4838449" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3286119" sideWeight="0.49585405" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Captures" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="12" side_tool="true" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.25815368" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.25767368" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3286119" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32985073" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Android Model" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.39978564" sideWeight="0.49806523" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32946378" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3290461" sideWeight="0.49585405" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Android" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="Vcs.Log.UiProperties">
@@ -1534,180 +1605,10 @@
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="59" column="3" selection-start-line="59" selection-start-column="3" selection-end-line="59" selection-end-column="3" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ApplicationGlobe.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="9" column="19" selection-start-line="9" selection-start-column="19" selection-end-line="9" selection-end-column="19" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="23" column="13" selection-start-line="23" selection-start-column="13" selection-end-line="23" selection-end-column="13" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ReadOnlyToggleButton.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/SimpleFilter.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="9" column="0" selection-start-line="9" selection-start-column="0" selection-end-line="9" selection-end-column="0" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatListener.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatOfflineActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="49" column="41" selection-start-line="49" selection-start-column="41" selection-end-line="49" selection-end-column="41" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatOfflineService.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="17" column="19" selection-start-line="17" selection-start-column="19" selection-end-line="17" selection-end-column="19" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatFileExplorer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="176" column="0" selection-start-line="176" selection-start-column="0" selection-end-line="176" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="60" column="19" selection-start-line="60" selection-start-column="19" selection-end-line="60" selection-end-column="19" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ApplicationGlobe.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="9" column="19" selection-start-line="9" selection-start-column="19" selection-end-line="9" selection-end-column="19" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="23" column="13" selection-start-line="23" selection-start-column="13" selection-end-line="23" selection-end-column="13" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ReadOnlyToggleButton.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/SimpleFilter.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="8" column="0" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatListener.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatOfflineActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="50" column="0" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatOfflineService.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="17" column="19" selection-start-line="17" selection-start-column="19" selection-end-line="17" selection-end-column="19" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatFileExplorer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="176" column="0" selection-start-line="176" selection-start-column="0" selection-end-line="176" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
           <caret line="442" column="97" selection-start-line="442" selection-start-column="97" selection-end-line="442" selection-end-column="97" />
-          <folding />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1717,6 +1618,10 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#24050#24051#0" expanded="true" />
+            <element signature="e#24082#24083#0" expanded="true" />
+            <element signature="e#24126#24127#0" expanded="true" />
+            <element signature="e#24159#24160#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -1751,7 +1656,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="174" column="24" selection-start-line="174" selection-start-column="24" selection-end-line="174" selection-end-column="24" />
           <folding>
-            <element signature="imports" expanded="true" />
+            <element signature="imports" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1767,7 +1672,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="72" column="13" selection-start-line="72" selection-start-column="13" selection-end-line="72" selection-end-column="13" />
-          <folding />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1777,6 +1684,10 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#24050#24051#0" expanded="true" />
+            <element signature="e#24082#24083#0" expanded="true" />
+            <element signature="e#24126#24127#0" expanded="true" />
+            <element signature="e#24159#24160#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -1785,7 +1696,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="55" column="13" selection-start-line="55" selection-start-column="13" selection-end-line="55" selection-end-column="13" />
-          <folding />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1794,13 +1707,6 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/build.gradle">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
         </state>
       </provider>
     </entry>
@@ -1814,28 +1720,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="54" column="0" selection-start-line="54" selection-start-column="0" selection-end-line="54" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatCameraActivity.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="174" column="24" selection-start-line="174" selection-start-column="24" selection-end-line="174" selection-end-column="24" />
           <folding>
-            <element signature="imports" expanded="true" />
+            <element signature="imports" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatControlActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="29" column="19" selection-start-line="29" selection-start-column="19" selection-end-line="29" selection-end-column="19" />
         </state>
       </provider>
     </entry>
@@ -1889,7 +1780,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="23" column="13" selection-start-line="23" selection-start-column="13" selection-end-line="23" selection-end-column="13" />
           <folding>
-            <element signature="imports" expanded="true" />
+            <element signature="imports" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1899,7 +1790,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
           <folding>
-            <element signature="imports" expanded="true" />
+            <element signature="imports" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1909,24 +1800,8 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="9" column="0" selection-start-line="9" selection-start-column="0" selection-end-line="9" selection-end-column="0" />
           <folding>
-            <element signature="imports" expanded="true" />
+            <element signature="imports" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="59" column="3" selection-start-line="59" selection-start-column="3" selection-end-line="59" selection-end-column="3" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatController.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="36" column="36" selection-start-line="36" selection-start-column="36" selection-end-line="36" selection-end-column="36" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1938,10 +1813,37 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java">
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="6.4444447">
+          <caret line="13" column="17" selection-start-line="13" selection-start-column="17" selection-end-line="13" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$PROJECT_DIR$/libs/crwlib_core.jar!/com/platypus/crw/udp/UdpVehicleService.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-1.3518518">
+          <caret line="428" column="31" selection-start-line="428" selection-start-column="26" selection-end-line="428" selection-end-column="31" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$USER_HOME$/Library/Android/sdk/platforms/android-20/android.jar!/java/lang/Enum.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.3125">
+          <caret line="22" column="18" selection-start-line="22" selection-start-column="18" selection-end-line="22" selection-end-column="18" />
+          <folding>
+            <element signature="e#541#542#0" expanded="true" />
+            <element signature="e#592#593#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="503" column="16" selection-start-line="503" selection-start-column="16" selection-end-line="503" selection-end-column="16" />
+          <caret line="56" column="13" selection-start-line="56" selection-start-column="13" selection-end-line="56" selection-end-column="13" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
@@ -1956,11 +1858,209 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/.gitignore">
+    <entry file="file://$PROJECT_DIR$/AndroidManifest.xml">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.33163264">
-          <caret line="13" column="17" selection-start-line="13" selection-start-column="17" selection-end-line="13" selection-end-column="17" />
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/default.properties">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/project.properties">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/build.gradle">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gradlew">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Server.iml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.idea/modules.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.idea/runConfigurations.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.idea/compiler.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.idea/encodings.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.idea/vcs.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/local.properties">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$PROJECT_DIR$/libs/crwlib_core.jar!/com/platypus/crw/AbstractVehicleServer.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-9.296296">
+          <caret line="229" column="19" selection-start-line="229" selection-start-column="19" selection-end-line="229" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$USER_HOME$/Library/Android/sdk/platforms/android-20/android.jar!/java/util/concurrent/atomic/AtomicBoolean.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-0.3148148">
+          <caret line="18" column="25" selection-start-line="18" selection-start-column="25" selection-end-line="18" selection-end-column="25" />
+          <folding>
+            <element signature="e#440#441#0" expanded="true" />
+            <element signature="e#491#492#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/res/layout/control.xml">
+      <provider editor-type-id="android-designer">
+        <state />
+      </provider>
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-3.1034484">
+          <caret line="6" column="64" selection-start-line="6" selection-start-column="64" selection-end-line="6" selection-end-column="64" />
+          <folding>
+            <element signature="e#433#457#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="74" column="32" selection-start-line="74" selection-start-column="32" selection-end-line="74" selection-end-column="32" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$PROJECT_DIR$/libs/crwlib_core.jar!/robotutils/Pose3D.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-3.3333333">
+          <caret line="15" column="13" selection-start-line="15" selection-start-column="13" selection-end-line="15" selection-end-column="13" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$PROJECT_DIR$/libs/crwlib_core.jar!/com/platypus/crw/VehicleServer.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-10.0">
+          <caret line="55" column="20" selection-start-line="55" selection-start-column="9" selection-end-line="55" selection-end-column="20" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$PROJECT_DIR$/libs/crwlib_core.jar!/com/platypus/crw/VehicleController.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.16129032">
+          <caret line="10" column="9" selection-start-line="10" selection-start-column="9" selection-end-line="10" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$PROJECT_DIR$/libs/crwlib_core.jar!/com/platypus/crw/data/Twist.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-16.666666">
+          <caret line="50" column="22" selection-start-line="50" selection-start-column="22" selection-end-line="50" selection-end-column="22" />
+          <folding>
+            <element signature="e#1069#1070#0" expanded="true" />
+            <element signature="e#1106#1107#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatController.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-14.703704">
+          <caret line="131" column="59" selection-start-line="131" selection-start-column="51" selection-end-line="131" selection-end-column="59" />
+          <folding>
+            <element signature="e#5145#5282#0" expanded="true" />
+            <element signature="e#5281#5282#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatControlActivity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-9.703704">
+          <caret line="106" column="52" selection-start-line="106" selection-start-column="44" selection-end-line="106" selection-end-column="52" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-7.718894">
+          <caret line="291" column="26" selection-start-line="291" selection-start-column="26" selection-end-line="291" selection-end-column="26" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#24050#24051#0" expanded="true" />
+            <element signature="e#24082#24083#0" expanded="true" />
+            <element signature="e#24126#24127#0" expanded="true" />
+            <element signature="e#24159#24160#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
