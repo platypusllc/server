@@ -11,6 +11,7 @@
 # Java class files
 *.class
 
+/.idea/workspace.xml
 # Generated files
 bin/
 gen/
