@@ -50,8 +50,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -403,6 +401,7 @@ public class AirboatService extends Service {
 			@Override
 			public void run() {
 				try {
+                    /*
                     //get the host computer's IP address
                     if(((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress()==null) {
                         DatagramSocket ds = null;
@@ -417,12 +416,12 @@ public class AirboatService extends Service {
                             e.printStackTrace();
                         }
                         if (dp2 != null) {
-                            ((ApplicationGlobe) getApplicationContext()).setFailsafe_IPAddress(dp2.getAddress().toString().substring(1));
+                            //((ApplicationGlobe) getApplicationContext()).setFailsafe_IPAddress(dp2.getAddress().toString().substring(1));
 
                         }
                         ds.setBroadcast(false);
                         ds.close();
-                    }
+                    }*/
 
                     //Create a UdpVehicleService to expose the data object
 					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT,

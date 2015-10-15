@@ -207,7 +207,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                     // Send velocities as a JSON command
                     try {
-                        // Until ESCs are able to reverse, set the lower limit to 0.0
                         double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -1.0, 1.0);
                         double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -1.0, 1.0);
 
@@ -241,8 +240,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                     // Send velocities as a JSON command
                     try {
-                        // Until ESCs are able to reverse, set the lower limit to 0.0
-                        double constrainedV = clip(_velocities.dx(), 0.0, 1.0);
+                        double constrainedV = clip(_velocities.dx(), -1.0, 1.0);
 
                         // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
                         constrainedV = map(constrainedV,
@@ -414,8 +412,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 							sendSensor(sensor, reading);
 						}
 						else if (type.equalsIgnoreCase("hds")) {
-							// Todo: Change nmea to data so json strings are consistent across sensors
-                            String nmea = value.getString("nmea");
+                            String nmea = value.getString("data");
                             if (nmea.startsWith("$SDDBT")) { //Depth Below Transducer
                                 try {
                                     double depth = Double.parseDouble(nmea.split(",")[3]);
