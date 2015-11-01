@@ -1,2 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<merger version="3"><dataSet config="main"><source path="/home/ckt/Documents/src/reorg/Server/assets"><file name="microlog.properties" path="/home/ckt/Documents/src/reorg/Server/assets/microlog.properties"/></source></dataSet><dataSet config="debug"><source path="/home/ckt/Documents/src/reorg/Server/build-types/debug/assets"/></dataSet></merger>
