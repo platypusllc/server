@@ -394,6 +394,7 @@ public class AirboatImpl extends AbstractVehicleServer {
                             reading.type = SensorType.ES2;
 							reading.data = new double[] { ecData, tempData};
 							Log.i(logTag, "ES2: " + data);
+
 							sendSensor(sensor, reading);
 
 					    }else if (type.equalsIgnoreCase("atlas_do")) {
@@ -403,6 +404,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 							reading.data = new double[] { value.getDouble("data") };
 
 							sendSensor(sensor, reading);
+
 						}else if (type.equalsIgnoreCase("atlas_ph")) {
 							SensorData reading = new SensorData();
 							reading.channel = sensor;
@@ -433,7 +435,21 @@ public class AirboatImpl extends AbstractVehicleServer {
 							}else{
 								Log.w(logTag, "Unknown NMEA String: " + nmea);
 							}
-                        } else if (type.equalsIgnoreCase("winch")) {
+                        } else if (type.equalsIgnoreCase("battery")){
+							// Parse out voltage and motor velocity values
+							String[] data = value.getString("data").trim().split(" ");
+							double voltage = Double.parseDouble(data[0]);
+							double motor0Velocity = Double.parseDouble(data[1]);
+							double motor1Velocity = Double.parseDouble(data[2]);
+
+							SensorData reading = new SensorData();
+							reading.channel = sensor;
+							reading.type = SensorType.BATTERY;
+							reading.data = new double[] {voltage, motor0Velocity, motor1Velocity};
+
+							sendSensor(sensor, reading);
+
+						} else if (type.equalsIgnoreCase("winch")) {
                             SensorData reading = new SensorData();
                             reading.channel = sensor;
                             reading.type = SensorType.UNKNOWN;
