@@ -42,7 +42,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	private static final String logTag = AirboatImpl.class.getName();
 	public static final int UPDATE_INTERVAL_MS = 100;
-	public static final int NUM_SENSORS = 4;
+	public static final int NUM_SENSORS = 5;
 	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.STOP.controller;
 //	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.SHOOT_ON_MOVE;
 
@@ -367,13 +367,13 @@ public class AirboatImpl extends AbstractVehicleServer {
 			String name = keyIterator.next();
 			try {
 				JSONObject value = cmd.getJSONObject(name);
-				logger.info("Value" + value + " "+ "Name" + name);
+				//logger.info("Value" + value + " "+ "Name" + name);
 				if (name.startsWith("m")) {
 					int motor = name.charAt(1) - 48;
-					logger.info("MOTOR" + motor + ": " + value.getDouble("v"));
+					//logger.info("MOTOR" + motor + ": " + value.getDouble("v"));
 				} else if (name.startsWith("s")) {
 					int sensor = name.charAt(1) - 48;
-					logger.info("SENSOR" + sensor + ": " + value.toString());
+					//logger.info("SENSOR" + sensor + ": " + value.toString());
 					
 					// Hacks to send sensor information
 					if (value.has("type")) {
@@ -393,9 +393,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 							reading.channel = sensor;
                             reading.type = SensorType.ES2;
 							reading.data = new double[] { ecData, tempData};
-							Log.i(logTag, "ES2: " + data);
+							//Log.i(logTag, "ES2: " + data);
 
 							sendSensor(sensor, reading);
+							logger.info("EC2: "+ sensor + " " + reading );
 
 					    }else if (type.equalsIgnoreCase("atlas_do")) {
 							SensorData reading = new SensorData();
@@ -446,8 +447,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 							reading.channel = sensor;
 							reading.type = SensorType.BATTERY;
 							reading.data = new double[] {voltage, motor0Velocity, motor1Velocity};
+							//reading.data = new double[] {value.getDouble("data")};
 
 							sendSensor(sensor, reading);
+							logger.info("Battery Voltage: "+ sensor + " " + reading );
 
 						} else if (type.equalsIgnoreCase("winch")) {
                             SensorData reading = new SensorData();
