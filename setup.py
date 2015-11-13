@@ -31,11 +31,12 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'server=platypus.server:main'
+            'platypus_server=platypus.server:main'
         ]
     },
     install_requires=[
         'pyserial',
         'utm'
     ],
+    test_suite="tests",
 )
