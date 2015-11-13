@@ -97,7 +97,9 @@ def merge(destination, source):
     :rtype:  dict
     """
     for key, value in source.items():
-        if key not in destination:
+        if value is None:
+            del destination[key]
+        elif key not in destination:
             destination[key] = value
         else:
             if isinstance(value, dict):
