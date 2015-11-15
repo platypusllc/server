@@ -6,9 +6,9 @@ import threading
 from . import util
 
 
-class _ProxyAttribute(object):
+class _ControllerAttribute(object):
     """
-    Proxy to a controller attribute that stores a value.
+    Lazily-evaluated proxy to a controller attribute.
     """
     def __init__(self, controller, path=[]):
         self._controller = controller
@@ -23,7 +23,7 @@ class _ProxyAttribute(object):
             d = root[element]
         d[key] = value
 
-        self._controller.write(root)
+        self._controller._write(root)
 
     def __getitem__(self, key):
         d = self._controller._data
@@ -45,9 +45,8 @@ class Controller(object):
         :param baud: baud rate of serial connection
         :type  baud: int
         """
-        pass
         # Create an internal data dictionary that stores controller state.
-        self._data = util.ObservableDict()
+        self._data = dict()
         self._port = port
         self._baud = baud
 
@@ -97,12 +96,12 @@ class Controller(object):
             try:
                 line = self._device.readline()
                 update = json.parse(line)
-                self._data.merge(update)
+                util.merge(self._data, update)
             except Exception as e:
                 print("Exception: {:s}".format(e))
 
     def __getattr__(self, key):
-        return None
+        return _ControllerAttribute(self)[key]
 
     def __setattr__(self, key, value):
-        pass
+        _ControllerAttribute(self)[key] = value
