@@ -1,5 +1,7 @@
 # Platypus Vehicle Server #
 
+[![Build Status](https://travis-ci.org/platypusllc/server.svg?branch=python)](https://travis-ci.org/platypusllc/server)
+
 This package contains server and control logic for Platypus vehicles.
 
  >:warning: This library is currently under development!  Some of the functionality in the library may be incomplete or untested.
