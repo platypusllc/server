@@ -1,0 +1,5 @@
+# Inherit requirements from `pypi` + `setup.py` instead of repeating them.
+# Inspired by: https://caremad.io/2013/07/setup-vs-requirement/
+--index-url https://pypi.python.org/simple/
+
+-e .
