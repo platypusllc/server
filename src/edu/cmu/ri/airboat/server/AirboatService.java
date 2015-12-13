@@ -34,6 +34,10 @@ import com.google.code.microlog4android.LoggerFactory;
 import com.google.code.microlog4android.appender.FileAppender;
 import com.google.code.microlog4android.config.PropertyConfigurator;
 import com.google.code.microlog4android.format.PatternFormatter;
+import com.platypus.crw.CrwSecurityManager;
+import com.platypus.crw.data.Utm;
+import com.platypus.crw.data.UtmPose;
+import com.platypus.crw.udp.UdpVehicleService;
 
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
@@ -46,8 +50,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -55,10 +57,6 @@ import java.util.Date;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import edu.cmu.ri.crw.CrwSecurityManager;
-import edu.cmu.ri.crw.data.Utm;
-import edu.cmu.ri.crw.data.UtmPose;
-import edu.cmu.ri.crw.udp.UdpVehicleService;
 import robotutils.Pose3D;
 import robotutils.Quaternion;
 
@@ -403,6 +401,7 @@ public class AirboatService extends Service {
 			@Override
 			public void run() {
 				try {
+                    /*
                     //get the host computer's IP address
                     if(((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress()==null) {
                         DatagramSocket ds = null;
@@ -417,12 +416,12 @@ public class AirboatService extends Service {
                             e.printStackTrace();
                         }
                         if (dp2 != null) {
-                            ((ApplicationGlobe) getApplicationContext()).setFailsafe_IPAddress(dp2.getAddress().toString().substring(1));
+                            //((ApplicationGlobe) getApplicationContext()).setFailsafe_IPAddress(dp2.getAddress().toString().substring(1));
 
                         }
                         ds.setBroadcast(false);
                         ds.close();
-                    }
+                    }*/
 
                     //Create a UdpVehicleService to expose the data object
 					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT,

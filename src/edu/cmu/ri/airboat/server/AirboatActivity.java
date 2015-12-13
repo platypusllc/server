@@ -25,12 +25,14 @@ import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
+
+import com.platypus.crw.CrwNetworkUtils;
+import com.platypus.crw.data.Utm;
+import com.platypus.crw.data.UtmPose;
 
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
@@ -48,9 +50,6 @@ import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
 import edu.cmu.ri.airboat.server.AirboatFailsafeService.AirboatFailsafeIntent;
-import edu.cmu.ri.crw.CrwNetworkUtils;
-import edu.cmu.ri.crw.data.Utm;
-import edu.cmu.ri.crw.data.UtmPose;
 import robotutils.Pose3D;
 
 public class AirboatActivity extends Activity {
@@ -308,7 +307,7 @@ public class AirboatActivity extends Activity {
 			}
 		});
 
-
+		/*
         //isAutoStart check box
         final CheckBox isAutoStart=(CheckBox)findViewById(R.id.isAuto);
         isAutoStart.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -317,12 +316,12 @@ public class AirboatActivity extends Activity {
                 final AutoCompleteTextView Address = (AutoCompleteTextView)findViewById(R.id.FailsafeAddress);
                 isAuto=isAutoStart.isChecked()?true:false;
                 if (isAutoStart.isChecked()) {
-                    Toast.makeText(getApplicationContext(), ((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), Address.getText(), Toast.LENGTH_SHORT).show();
                     if (((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress() != null)
                         Address.setText(((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress());
                 }
             }
-        });
+        });*/
 
         // Register handler for failsafe address that changes color 
 		// if a valid hostname seems to be reached.
@@ -543,6 +542,7 @@ public class AirboatActivity extends Activity {
         final TextView addrText = (TextView)findViewById(R.id.IpAddressText);
         addrText.setText(getLocalIpAddress() + ":11411");
 
+		/*
         // Auto set up failsafe system at the first time
         final AutoCompleteTextView Address = (AutoCompleteTextView)findViewById(R.id.FailsafeAddress);
         final Button homeButton = (Button)findViewById(R.id.HomeButton);
@@ -573,7 +573,7 @@ public class AirboatActivity extends Activity {
                     }
             }
         }, 1000);
-
+		*/
     }
 
 

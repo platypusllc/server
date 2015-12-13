@@ -6,6 +6,14 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.google.code.microlog4android.LoggerFactory;
+import com.platypus.crw.AbstractVehicleServer;
+import com.platypus.crw.VehicleController;
+import com.platypus.crw.VehicleFilter;
+import com.platypus.crw.VehicleServer;
+import com.platypus.crw.data.SensorData;
+import com.platypus.crw.data.Twist;
+import com.platypus.crw.data.Utm;
+import com.platypus.crw.data.UtmPose;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -17,14 +25,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import edu.cmu.ri.crw.AbstractVehicleServer;
-import edu.cmu.ri.crw.VehicleController;
-import edu.cmu.ri.crw.VehicleFilter;
-import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.data.SensorData;
-import edu.cmu.ri.crw.data.Twist;
-import edu.cmu.ri.crw.data.Utm;
-import edu.cmu.ri.crw.data.UtmPose;
 import robotutils.Pose3D;
 
 /**
@@ -42,7 +42,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	private static final String logTag = AirboatImpl.class.getName();
 	public static final int UPDATE_INTERVAL_MS = 100;
-	public static final int NUM_SENSORS = 4;
+	public static final int NUM_SENSORS = 5;
 	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.STOP.controller;
 //	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.SHOOT_ON_MOVE;
 
@@ -63,6 +63,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 
     // TODO: Remove this variable, it is totally arbitrary
     private double winch_depth_ = Double.NaN;
+
+	// Last known temperature and EC values for sensor compensation
+	private double _lastTemp = 20.0; // Deg C
+	private double _lastEC = 0.0; // uS/cm
 
     public enum VehicleType {
         DIFFERENTIAL_THRUST,
@@ -203,7 +207,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                     // Send velocities as a JSON command
                     try {
-                        // Until ESCs are able to reverse, set the lower limit to 0.0
                         double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -1.0, 1.0);
                         double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -1.0, 1.0);
 
@@ -237,8 +240,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                     // Send velocities as a JSON command
                     try {
-                        // Until ESCs are able to reverse, set the lower limit to 0.0
-                        double constrainedV = clip(_velocities.dx(), 0.0, 1.0);
+                        double constrainedV = clip(_velocities.dx(), -1.0, 1.0);
 
                         // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
                         constrainedV = map(constrainedV,
@@ -336,7 +338,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 	
 	/**
-	 * @see edu.cmu.ri.crw.VehicleServer#isConnected()
+	 * @see com.platypus.crw.VehicleServer#isConnected()
 	 */
 	public boolean isConnected() {
 		return _isConnected.get();
@@ -365,59 +367,63 @@ public class AirboatImpl extends AbstractVehicleServer {
 			String name = keyIterator.next();
 			try {
 				JSONObject value = cmd.getJSONObject(name);
-				logger.info("Value" + value + " "+ "Name" + name);
+				//logger.info("Value" + value + " "+ "Name" + name);
 				if (name.startsWith("m")) {
 					int motor = name.charAt(1) - 48;
-					logger.info("MOTOR" + motor + ": " + value.getDouble("v"));
+					//logger.info("MOTOR" + motor + ": " + value.getDouble("v"));
 				} else if (name.startsWith("s")) {
 					int sensor = name.charAt(1) - 48;
-					logger.info("SENSOR" + sensor + ": " + value.toString());
+					//logger.info("SENSOR" + sensor + ": " + value.toString());
 					
 					// Hacks to send sensor information
 					if (value.has("type")) {
 
 						String type = value.getString("type");
-						//logger.info("Test1" + type);
+
 						if (type.equalsIgnoreCase("es2")) {
-							//logger.info("Test2");
-							SensorData reading = new SensorData();
+							// Parse out temperature and ec values
 							String[] data = value.getString("data").trim().split(" ");
+							double ecData = Double.parseDouble(data[0]);
+							double tempData = Double.parseDouble(data[1]);
+
+							// Todo: update stored temp and ec values then push to DO/pH probes
+
+							// Build SensorReading object
+							SensorData reading = new SensorData();
 							reading.channel = sensor;
-                            reading.type = SensorType.TE;
-//							double temp = value.getDouble("data");
-//							String tem = value.getString("data");
-							//logger.info("Data"+ data[0]+" " + data[1]);
-							reading.data = new double[] {
-									Double.parseDouble(data[0]),
-									Double.parseDouble(data[1])
-								};
-							//reading.data = new double[]{5.0,1.5};
+                            reading.type = SensorType.ES2;
+							reading.data = new double[] { ecData, tempData};
+							//Log.i(logTag, "ES2: " + data);
+
+							sendSensor(sensor, reading);
+							logger.info("EC2: "+ sensor + " " + reading );
+
+					    }else if (type.equalsIgnoreCase("atlas_do")) {
+							SensorData reading = new SensorData();
+							reading.channel = sensor;
+							reading.type = SensorType.ATLAS_DO;
+							reading.data = new double[] { value.getDouble("data") };
+
 							sendSensor(sensor, reading);
 
-					    }else if (type.equalsIgnoreCase("atlas")) {
+						}else if (type.equalsIgnoreCase("atlas_ph")) {
 							SensorData reading = new SensorData();
-							String[] data = value.getString("data").trim().split(",");
 							reading.channel = sensor;
-							reading.type = SensorType.UNKNOWN;
-//
-							logger.info("Data"+ data);
-							reading.data = new double[] {
-									Double.parseDouble(data[0]),
-									//Double.parseDouble(data[1])
-							};
+							reading.type = SensorType.ATLAS_PH;
+							reading.data = new double[] { value.getDouble("data") };
 
 							sendSensor(sensor, reading);
 						}
 						else if (type.equalsIgnoreCase("hds")) {
-                            String nmea = value.getString("nmea");
+                            String nmea = value.getString("data");
                             if (nmea.startsWith("$SDDBT")) { //Depth Below Transducer
                                 try {
-                                    double DO = Double.parseDouble(nmea.split(",")[3]);
+                                    double depth = Double.parseDouble(nmea.split(",")[3]);
 
                                     SensorData reading = new SensorData();
-                                    reading.type = SensorType.UNKNOWN;
+                                    reading.type = SensorType.HDS_DEPTH;
                                     reading.channel = sensor;
-                                    reading.data = new double[] { DO };
+                                    reading.data = new double[] { depth };
 
                                     sendSensor(sensor, reading);
                                 } catch(Exception e) {
@@ -430,7 +436,23 @@ public class AirboatImpl extends AbstractVehicleServer {
 							}else{
 								Log.w(logTag, "Unknown NMEA String: " + nmea);
 							}
-                        } else if (type.equalsIgnoreCase("winch")) {
+                        } else if (type.equalsIgnoreCase("battery")){
+							// Parse out voltage and motor velocity values
+							String[] data = value.getString("data").trim().split(" ");
+							double voltage = Double.parseDouble(data[0]);
+							double motor0Velocity = Double.parseDouble(data[1]);
+							double motor1Velocity = Double.parseDouble(data[2]);
+
+							SensorData reading = new SensorData();
+							reading.channel = sensor;
+							reading.type = SensorType.BATTERY;
+							reading.data = new double[] {voltage, motor0Velocity, motor1Velocity};
+							//reading.data = new double[] {value.getDouble("data")};
+
+							sendSensor(sensor, reading);
+							logger.info("Battery Voltage: "+ sensor + " " + reading );
+
+						} else if (type.equalsIgnoreCase("winch")) {
                             SensorData reading = new SensorData();
                             reading.channel = sensor;
                             reading.type = SensorType.UNKNOWN;
@@ -598,6 +620,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
 			VehicleController vc = AirboatController.valueOf(controller).controller;
 			vc.update(AirboatImpl.this, (double) UPDATE_INTERVAL_MS / 1000.0);
+			Log.i(logTag, "Waypoint Status: PRIMITIVES");
 		}
 		else
 		{
@@ -610,6 +633,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				{
 					try {
 						vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
+						//Log.i(logTag, "vc:"+ vc.toString() + "controller" + controller );
 					} catch (IllegalArgumentException e) {
 						Log.w(logTag, "Unknown controller specified (using " + vc
 								+ " instead): " + controller);
@@ -619,21 +643,28 @@ public class AirboatImpl extends AbstractVehicleServer {
 				@Override
 				public void run() {
 					synchronized (_navigationLock) {
+						//Log.i(logTag, "Synchronized");
+
 						if (!_isAutonomous.get()) {
 							// If we are not autonomous, do nothing
+							Log.i(logTag,"Paused");
 							sendWaypointUpdate(WaypointState.PAUSED);
 						} else if (_waypoints.length == 0) {
 							// If we are finished with waypoints, stop in place
+							Log.i(logTag, "Done");
 							sendWaypointUpdate(WaypointState.DONE);
 							setVelocity(new Twist(DEFAULT_TWIST));
 							this.cancel();
 							_navigationTask = null;
+
 						} else {
 							// If we are still executing waypoints, use a
 							// controller to figure out how to get to waypoint
 							// TODO: measure dt directly instead of approximating
+							Log.i(logTag,"controller :" + controller);
 							vc.update(AirboatImpl.this, dt);
 							sendWaypointUpdate(WaypointState.GOING);
+							//Log.i(logTag, "Waypoint Status: POINT_AND_SHOOT");
 						}
 					}
 				}
@@ -668,6 +699,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				_navigationTask = null;
 				_waypoints = new UtmPose[0];
 				setVelocity(new Twist(DEFAULT_TWIST));
+				Log.i(logTag, "StopWaypoint");
 			}
 		}
 		sendWaypointUpdate(WaypointState.CANCELLED);

@@ -21,6 +21,11 @@ import android.os.StrictMode;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.platypus.crw.VehicleServer;
+import com.platypus.crw.data.Twist;
+import com.platypus.crw.data.Utm;
+import com.platypus.crw.data.UtmPose;
+
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
@@ -32,10 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.data.Twist;
-import edu.cmu.ri.crw.data.Utm;
-import edu.cmu.ri.crw.data.UtmPose;
 import robotutils.Pose3D;
 
 /**

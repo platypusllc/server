@@ -35,6 +35,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.platypus.crw.data.Utm;
+import com.platypus.crw.data.UtmPose;
+
 import org.apache.http.util.EncodingUtils;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
@@ -49,8 +52,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import edu.cmu.ri.crw.data.Utm;
-import edu.cmu.ri.crw.data.UtmPose;
 import robotutils.Pose3D;
 
 /**

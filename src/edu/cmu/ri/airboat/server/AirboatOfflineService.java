@@ -14,8 +14,8 @@ import android.os.StrictMode;
 import android.util.Log;
 import android.widget.Toast;
 
-import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.data.UtmPose;
+import com.platypus.crw.VehicleServer;
+import com.platypus.crw.data.UtmPose;
 
 /**
  * Created by Nathan Huang on 7/10/24.

@@ -22,12 +22,11 @@ import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
 import com.google.code.microlog4android.LoggerFactory;
+import com.platypus.crw.VehicleServer;
+import com.platypus.crw.data.Twist;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
-
-import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.data.Twist;
 
 /**
  * Android activity to display the debug screen to modify server parameters using a GUI
