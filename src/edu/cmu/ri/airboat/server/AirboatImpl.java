@@ -375,7 +375,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 					//logger.info("MOTOR" + motor + ": " + value.getDouble("v"));
 				} else if (name.startsWith("s")) {
 					int sensor = name.charAt(1) - 48;
-					//logger.info("SENSOR" + sensor + ": " + value.toString());
+					logger.info("SENSOR" + sensor + ": " + value.toString());
 					
 					// Hacks to send sensor information
 					if (value.has("type")) {
