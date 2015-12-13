@@ -42,7 +42,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	private static final String logTag = AirboatImpl.class.getName();
 	public static final int UPDATE_INTERVAL_MS = 100;
-	public static final int NUM_SENSORS = 4;
+	public static final int NUM_SENSORS = 5;
 	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.STOP.controller;
 //	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.SHOOT_ON_MOVE;
 
@@ -67,6 +67,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 	// Last known temperature and EC values for sensor compensation
 	private double _lastTemp = 20.0; // Deg C
 	private double _lastEC = 0.0; // uS/cm
+	private final double _tempUpdateThreshold = 1.0;
+	private final double _ecUpdateThreshold = 50.0;
 
     public enum VehicleType {
         DIFFERENTIAL_THRUST,
@@ -244,8 +246,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                         // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
                         constrainedV = map(constrainedV,
-                                0.0, 1.0, // Original range.
-                                0.0, AirboatImpl.SAFE_VECTORED_THRUST); // New range.
+                                -1.0, 1.0, // Original range.
+                                -1.0, AirboatImpl.SAFE_VECTORED_THRUST); // New range.
 
                         // Rudder is constrained to +/-1.0
                         double constrainedP = clip(_velocities.drz(), -1.0, 1.0);
@@ -386,7 +388,26 @@ public class AirboatImpl extends AbstractVehicleServer {
 							double ecData = Double.parseDouble(data[0]);
 							double tempData = Double.parseDouble(data[1]);
 
-							// Todo: update stored temp and ec values then push to DO/pH probes
+							JSONObject command = new JSONObject();
+							JSONObject calibSettings = new JSONObject();
+
+							if (Math.abs(ecData - _lastEC) > _ecUpdateThreshold){
+								_lastEC = ecData;
+								calibSettings.put("ec", ecData);
+								command.put("c_ec", calibSettings);
+								_usbWriter.println(command.toString());
+								_usbWriter.flush();
+								command.remove("c_ec");
+								calibSettings.remove("ec");
+							}
+
+							if (Math.abs(tempData - _lastTemp) > _tempUpdateThreshold){
+								_lastTemp = tempData;
+								calibSettings.put("temp", tempData);
+								command.put("c_temp", calibSettings);
+								_usbWriter.println(command.toString());
+								_usbWriter.flush();
+							}
 
 							// Build SensorReading object
 							SensorData reading = new SensorData();
