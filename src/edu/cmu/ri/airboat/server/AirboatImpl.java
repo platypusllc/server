@@ -119,8 +119,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 */
 	double[] r_PID = {.2, 0, .3}; // Kp, Ki, Kd
 	double [] t_PID = {.7, .5, .5};
-    public static final double SAFE_DIFFERENTIAL_THRUST = 0.14;
-    public static final double SAFE_VECTORED_THRUST = 0.7;
+    public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
+    public static final double SAFE_VECTORED_THRUST = 1.0;
 
     /**
      * Simple clipping function that restricts a value to a given range.
@@ -387,11 +387,12 @@ public class AirboatImpl extends AbstractVehicleServer {
 							String[] data = value.getString("data").trim().split(" ");
 							double ecData = Double.parseDouble(data[0]);
 							double tempData = Double.parseDouble(data[1]);
-
+							
 							JSONObject command = new JSONObject();
 							JSONObject calibSettings = new JSONObject();
 
 							if (Math.abs(ecData - _lastEC) > _ecUpdateThreshold){
+								logger.info("Compensating for ec, old ec: " + _lastEC + " new ec: " + ecData);
 								_lastEC = ecData;
 								calibSettings.put("ec", ecData);
 								command.put("c_ec", calibSettings);
@@ -402,6 +403,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 							}
 
 							if (Math.abs(tempData - _lastTemp) > _tempUpdateThreshold){
+								logger.info("Compensating for temp, old temp: " + _lastTemp + " new temp: " + tempData);
 								_lastTemp = tempData;
 								calibSettings.put("temp", tempData);
 								command.put("c_temp", calibSettings);
