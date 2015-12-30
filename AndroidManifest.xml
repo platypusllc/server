@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="edu.cmu.ri.airboat.server"
+    package="com.platypus.android.server"
     android:versionCode="1"
     android:versionName="1.0">
 
@@ -18,22 +18,22 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:name=".ApplicationGlobe"
+        android:name="com.platypus.android.server.ApplicationGlobe"
         android:allowBackup="true"
         android:icon="@drawable/icon"
         android:label="@string/app_name">
 
         <service
-            android:name="AirboatService"
+            android:name="com.platypus.android.server.AirboatService"
             android:icon="@drawable/icon"
             android:label="Airboat Service" />
         <service
-            android:name="AirboatFailsafeService"
+            android:name="com.platypus.android.server.AirboatFailsafeService"
             android:icon="@drawable/icon"
             android:label="Airboat Failsafe" />
 
         <activity
-            android:name=".AirboatActivity"
+            android:name="com.platypus.android.server.AirboatActivity"
             android:icon="@drawable/icon"
             android:label="Airboat Setup"
             android:screenOrientation="portrait">
@@ -49,29 +49,29 @@
                 android:resource="@xml/device_filter" />
         </activity>
         <activity
-            android:name=".AirboatControlActivity"
+            android:name="com.platypus.android.server.AirboatControlActivity"
             android:icon="@drawable/icon"
             android:screenOrientation="portrait"
             android:label="Airboat Control" />
         <activity
-            android:name=".AirboatCameraActivity"
+            android:name="com.platypus.android.server.AirboatCameraActivity"
             android:configChanges="keyboardHidden|orientation"
             android:icon="@drawable/icon"
             android:label="Airboat Camera"
             android:screenOrientation="nosensor" />
         <activity
-            android:name=".LauncherActivity"
+            android:name="com.platypus.android.server.LauncherActivity"
             android:excludeFromRecents="true"
             android:label="Airboat Launcher Activity"
             android:launchMode="singleInstance"
             android:theme="@android:style/Theme.NoDisplay" />
         <activity
-            android:name=".AirboatOfflineActivity"
+            android:name="com.platypus.android.server.AirboatOfflineActivity"
             android:icon="@drawable/icon"
             android:label="Airboat offline"
             android:screenOrientation="portrait"/>
         <service
-            android:name=".AirboatOfflineService"
+            android:name="com.platypus.android.server.AirboatOfflineService"
             android:icon="@drawable/icon"
             android:label="Airboat Offline Service" />
     </application>

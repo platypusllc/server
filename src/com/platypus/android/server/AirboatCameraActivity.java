@@ -1,4 +1,4 @@
-package edu.cmu.ri.airboat.server;
+package com.platypus.android.server;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicMarkableReference;
 public class AirboatCameraActivity extends Activity implements SurfaceHolder.Callback {
 	public static final String TAG = AirboatCameraActivity.class.getName();
 	
-	public static final String PICTURE_INTENT = "edu.cmu.ri.airboat.intent.action.PICTURE";
+	public static final String PICTURE_INTENT = "com.platypus.android.intent.action.PICTURE";
 	public static final String QUALITY_EXTRA = "JpegQuality";
 	public static final String WIDTH_EXTRA = "ImageWidth";
 	public static final String HEIGHT_EXTRA = "ImageHeight";

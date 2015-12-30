@@ -1,4 +1,4 @@
-package edu.cmu.ri.airboat.server;
+package com.platypus.android.server;
 
 import android.app.Dialog;
 import android.content.Context;

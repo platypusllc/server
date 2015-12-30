@@ -1,4 +1,4 @@
-package edu.cmu.ri.airboat.server;
+package com.platypus.android.server;
 
 import android.app.Activity;
 import android.content.Context;
@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import edu.cmu.ri.airboat.server.AirboatFailsafeService.AirboatFailsafeIntent;
+import com.platypus.android.server.AirboatFailsafeService.AirboatFailsafeIntent;
 import robotutils.Pose3D;
 
 public class AirboatActivity extends Activity {

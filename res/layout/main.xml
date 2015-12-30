@@ -49,13 +49,13 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content" >
 
-            <edu.cmu.ri.airboat.server.ReadOnlyToggleButton
+            <com.platypus.android.server.ReadOnlyToggleButton
                 android:id="@+id/ConnectToggle"
                 android:layout_width="0dp"
                 android:layout_height="fill_parent"
                 android:layout_weight="0.66"
                 android:text="@string/connect_toggle" >
-            </edu.cmu.ri.airboat.server.ReadOnlyToggleButton>
+            </com.platypus.android.server.ReadOnlyToggleButton>
 
             <Button
                 android:id="@+id/DebugButton"
@@ -110,14 +110,14 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content" >
 
-            <edu.cmu.ri.airboat.server.ReadOnlyToggleButton
+            <com.platypus.android.server.ReadOnlyToggleButton
                 android:id="@+id/FailsafeToggle"
                 android:layout_width="0dp"
                 android:layout_height="fill_parent"
                 android:layout_weight="0.66"
                 android:text="@string/failsafe_toggle"
                 android:checked="false">
-            </edu.cmu.ri.airboat.server.ReadOnlyToggleButton>
+            </com.platypus.android.server.ReadOnlyToggleButton>
 
             <Button
                 android:id="@+id/HomeButton"

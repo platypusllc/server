@@ -1,4 +1,4 @@
-package edu.cmu.ri.airboat.server;
+package com.platypus.android.server;
 
 import android.app.Activity;
 import android.app.PendingIntent;

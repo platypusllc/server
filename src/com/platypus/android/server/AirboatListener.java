@@ -1,4 +1,4 @@
-package edu.cmu.ri.airboat.server;
+package com.platypus.android.server;
 
 /**
  * Created by Nathan Huang on 7/15/14.
