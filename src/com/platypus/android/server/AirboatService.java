@@ -481,8 +481,7 @@ public class AirboatService extends Service {
 		// This is now a foreground service
 		{
 			// Set up the icon and ticker text
-			int icon = R.drawable.icon; // TODO: change this to notification
-										// icon
+			int icon = R.mipmap.ic_launcher;
 			CharSequence tickerText = "Running normally.";
 			long when = System.currentTimeMillis();
 
@@ -601,7 +600,7 @@ public class AirboatService extends Service {
 		NotificationManager notificationManager = (NotificationManager) getSystemService(ns);
 
 		// Set up the icon and ticker text
-		int icon = R.drawable.icon; // TODO: change this to notification icon
+		int icon = R.mipmap.ic_launcher;
 		CharSequence tickerText = text;
 		long when = System.currentTimeMillis();
 
