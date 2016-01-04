@@ -28,6 +28,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.code.microlog4android.LoggerFactory;
@@ -45,14 +46,17 @@ import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -79,24 +83,10 @@ public class AirboatService extends Service {
 	private static final int DEFAULT_UDP_PORT = 11411;
 	final int GPS_UPDATE_RATE = 200; // in milliseconds
 
-	// Intent fields definitions
-	public static final String UDP_REGISTRY_ADDR = "UDP_REGISTRY_ADDR";
-	public static final String UPDATE_RATE = "UPDATE_RATE";
-
-	// Binder object that receives interactions from clients.
-	private final IBinder _binder = new AirboatBinder();
-
 	// Reference to USB accessory
 	private UsbManager mUsbManager;
 	private UsbAccessory mUsbAccessory;
 	private ParcelFileDescriptor mUsbDescriptor;
-
-	// Flag indicating run status (Android has no way to query if a service is
-	// running)
-	public static boolean isRunning = false;
-
-	// Member parameters
-	private InetSocketAddress _udpRegistryAddr;
 
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
@@ -111,6 +101,9 @@ public class AirboatService extends Service {
 
 	// global variable to reference rotation vector values
 	private float[] rotationMatrix = new float[9];
+
+	// Variable storing the current started/stopped status of the service.
+	protected AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	/**
 	 * Handles GPS updates by calling the appropriate update.
@@ -208,28 +201,12 @@ public class AirboatService extends Service {
 		}
 	};
 
-	/**
-	 * Class for clients to access. Because we know this service always runs in
-	 * the same process as its clients, we don't deal with IPC.
-	 */
-	public class AirboatBinder extends Binder {
-		AirboatService getService() {
-			return AirboatService.this;
-		}
-	}
-
-	@Override
-	public IBinder onBind(Intent intent) {
-		return _binder;
-	}
-
 	@Override
 	public void onCreate() {
 		super.onCreate();
 
 		// Disable all DNS lookups (safer for private/ad-hoc networks)
 		CrwSecurityManager.loadIfDNSIsSlow();
-		isRunning = true;
 
 		// Disable strict-mode (TODO: remove this and use handlers)
 		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
@@ -274,20 +251,8 @@ public class AirboatService extends Service {
 	public int onStartCommand(final Intent intent, int flags, int startId) {
 		super.onStartCommand(intent, flags, startId);
 
-		// Ignore startup requests that don't include an intent
-		if (intent == null) {
-			Log.e(TAG, "Started with null intent.");
-			return Service.START_STICKY;
-		}
-
-		// Ignore startup requests without an accessory.
-		if (!intent.hasExtra(UsbManager.EXTRA_ACCESSORY)) {
-			Log.e(TAG, "Attempted to start without accessory.");
-			return Service.START_STICKY;
-		}
-
-		// Ensure that we do not reinitialize if not necessary
-		if (_airboatImpl != null || _udpService != null) {
+		// Ensure that we do not reinitialize if not necessary.
+		if (isRunning.get()) {
 			Log.w(TAG, "Attempted to start while running.");
 			return Service.START_STICKY;
 		}
@@ -338,15 +303,15 @@ public class AirboatService extends Service {
 				locationListener);
 
 		// Create an intent filter to listen for device disconnections
-		IntentFilter filter = new IntentFilter(
-				UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+		IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
 		registerReceiver(_usbStatusReceiver, filter);
 
 		// Connect to control board.
 		// (Assume that we can only be launched by the ControllerLauncherActivity which
 		// provides a handle to the accessory.)
-		mUsbAccessory = intent
-				.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
+		// TODO: fix this behavior.
+		/*
+		mUsbAccessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 		mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
 		if (mUsbDescriptor == null) {
 			// If the accessory fails to connect, terminate service.
@@ -359,9 +324,15 @@ public class AirboatService extends Service {
 		PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(
 				new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
 		final FileInputStream usbReader = new FileInputStream(mUsbDescriptor.getFileDescriptor());
+		*/
 
-		// Create the data object
+		// TODO: remove this placeholder.
+		OutputStream nullOutputStream = new OutputStream() { @Override public void write(int b) { } };
+		PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(nullOutputStream));
+
+		// Create the internal vehicle server implementation.
 		_airboatImpl = new AirboatImpl(this, usbWriter);
+		/*
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -395,43 +366,23 @@ public class AirboatService extends Service {
 				}
 			}
 		}).start();
+		*/
 
 		// Start up UDP vehicle service in the background
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
-                    /*
-                    //get the host computer's IP address
-                    if(((ApplicationGlobe) getApplicationContext()).getFailsafe_IPAddress()==null) {
-                        DatagramSocket ds = null;
-                        DatagramPacket dp2 = null;
-                        byte[] data = new byte[1024];
-                        dp2 = new DatagramPacket(data, data.length);
-                        ds = new DatagramSocket(11411);
-                        ds.setBroadcast(true);
-                        try {
-                            ds.receive(dp2);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        if (dp2 != null) {
-                            //((ApplicationGlobe) getApplicationContext()).setFailsafe_IPAddress(dp2.getAddress().toString().substring(1));
-
-                        }
-                        ds.setBroadcast(false);
-                        ds.close();
-                    }*/
-
-                    //Create a UdpVehicleService to expose the data object
-					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT,
-							_airboatImpl);
+                    // Create a UdpVehicleService to expose the data object
+					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
 					// If given a UDP registry parameter, add registry to
 					// service
+					/*
 					String udpRegistryStr = intent
 							.getStringExtra(UDP_REGISTRY_ADDR);
 					//_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
-                    if (_udpRegistryAddr!= null) {
+					// TODO: add registry from the SharedPreferences.
+                    if (_udpRegistryAddr! = null) {
 						_udpService.addRegistry(_udpRegistryAddr);
 
                     } else {
@@ -439,17 +390,16 @@ public class AirboatService extends Service {
                         Log.w(TAG, "Unable to parse '" + udpRegistryStr
 								+ "' into UDP address.");
 					}
+					*/
+
                     //((ApplicationGlobe)getApplicationContext()).setFailsafe_IPAddress(CrwNetworkUtils.getLocalhost(udpRegistryStr));
                 } catch (Exception e) {
 					Log.e(TAG, "UdpVehicleService failed to launch", e);
-					sendNotification("UdpVehicleService failed: "
-							+ e.getMessage());
+					sendNotification("UdpVehicleService failed: " + e.getMessage());
 					stopSelf();
-					return;
 				}
 			}
 		}).start();
-
 
 		// Log the velocity gains before starting the service
 		new Thread(new Runnable() {
@@ -478,27 +428,6 @@ public class AirboatService extends Service {
 			}
 		}).start();
 
-		// This is now a foreground service
-		{
-			// Set up the icon and ticker text
-			int icon = R.mipmap.ic_launcher;
-			CharSequence tickerText = "Running normally.";
-			long when = System.currentTimeMillis();
-
-			// Set up the actual title and text
-			CharSequence contentTitle = "Airboat Server";
-			CharSequence contentText = tickerText;
-			Intent notificationIntent = new Intent(this, AirboatActivity.class);
-			PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-					notificationIntent, 0);
-
-			// Add a notification to the menu
-			Notification notification = new Notification(icon, tickerText, when);
-			notification.setLatestEventInfo(context, contentTitle, contentText,
-					contentIntent);
-			startForeground(SERVICE_ID, notification);
-		}
-
 		// Prevent phone from sleeping or turning off wifi
 		{
 			// Acquire a WakeLock to keep the CPU running
@@ -516,8 +445,26 @@ public class AirboatService extends Service {
 			_wifiLock.acquire();
 		}
 
-		// Indicate that the service should not be stopped arbitrarily
+		// This is now a foreground service.  It should not be stopped by the system.
+		{
+			// Set up the notification to open main activity when clicked.
+			Intent notificationIntent = new Intent(this, MainActivity.class);
+			PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+					notificationIntent, 0);
+
+			// Add a notification to the menu.
+			Notification notification = new Notification.Builder(this)
+					.setSmallIcon(R.drawable.ic_notification)
+					.setContentTitle("Platypus Server")
+					.setContentText("Running normally.")
+					.setContentIntent(contentIntent)
+					.build();
+			startForeground(SERVICE_ID, notification);
+		}
+
+		// Indicate that the service should not be stopped arbitrarily.
 		Log.i(TAG, "AirboatService started.");
+		isRunning.set(true);
 		return Service.START_STICKY;
 	}
 
@@ -591,8 +538,14 @@ public class AirboatService extends Service {
 		stopForeground(true);
 
 		Log.i(TAG, "AirboatService stopped.");
-		isRunning = false;
+		isRunning.set(false);
 		super.onDestroy();
+	}
+
+	@Nullable
+	@Override
+	public IBinder onBind(Intent intent) {
+		return null;
 	}
 
 	public void sendNotification(CharSequence text) {

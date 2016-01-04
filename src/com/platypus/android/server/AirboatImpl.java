@@ -194,7 +194,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			sendState(_utmPose.clone());
 
             // Determine current vehicle type from ordinal value.
-            int vehicle_type_index = _prefs.getInt(AirboatActivity.KEY_VEHICLE_TYPE, VehicleType.UNKNOWN.ordinal());
+            int vehicle_type_index = VehicleType.UNKNOWN.ordinal();
             VehicleType vehicle_type = VehicleType.values()[vehicle_type_index];
 
             // Send vehicle command by converting raw command to appropriate vehicle model.
