@@ -46,9 +46,9 @@ proguard/
 .idea/dynamic.xml
 
 ## File-based project format
-*.ipr
-*.iml
-*.iws
+#*.ipr
+#*.iml
+#*.iws
 
 ## Additional for IntelliJ
 out/
