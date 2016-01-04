@@ -20,7 +20,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
-import android.os.Binder;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.IBinder;
@@ -43,17 +42,11 @@ import com.platypus.crw.udp.UdpVehicleService;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -67,114 +60,91 @@ import robotutils.Quaternion;
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
  * Contains a RosVehicleServer and a VehicleServer object.
- * 
+ *
  * @author pkv
  * @author kshaurya
- * 
  */
 public class AirboatService extends Service {
-	private static final int SERVICE_ID = 11312;
-	private static final String TAG = AirboatService.class.getName();
-	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
-			.getLogger();
+    private static final int SERVICE_ID = 11312;
+    private static final String TAG = AirboatService.class.getName();
+    private static final com.google.code.microlog4android.Logger logger = LoggerFactory
+            .getLogger();
 
-	// Default values for parameters
-	private static final String DEFAULT_LOG_PREFIX = "airboat_";
-	private static final int DEFAULT_UDP_PORT = 11411;
-	final int GPS_UPDATE_RATE = 200; // in milliseconds
+    // Default values for parameters
+    private static final String DEFAULT_LOG_PREFIX = "airboat_";
+    private static final int DEFAULT_UDP_PORT = 11411;
+    final int GPS_UPDATE_RATE = 200; // in milliseconds
+    // Variable storing the current started/stopped status of the service.
+    protected AtomicBoolean isRunning = new AtomicBoolean(false);
+    // Reference to USB accessory
+    private UsbManager mUsbManager;
+    private UsbAccessory mUsbAccessory;
+    private ParcelFileDescriptor mUsbDescriptor;
+    /**
+     * Listen for disconnection events for accessory and close connection.
+     */
+    BroadcastReceiver _usbStatusReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
 
-	// Reference to USB accessory
-	private UsbManager mUsbManager;
-	private UsbAccessory mUsbAccessory;
-	private ParcelFileDescriptor mUsbDescriptor;
+            // Retrieve the device that was just disconnected.
+            UsbAccessory accessory = intent
+                    .getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 
-	// Objects implementing actual functionality
-	private AirboatImpl _airboatImpl;
-	private UdpVehicleService _udpService;
+            // Check if this accessory matches the one we have open.
+            if (mUsbAccessory.equals(accessory)) {
+                try {
+                    // Close the descriptor for our accessory.
+                    // (This triggers server shutdown.)
+                    mUsbDescriptor.close();
+                    Log.e(TAG, "Closing accessory.");
+                } catch (IOException e) {
+                    Log.w(TAG, "Failed to close accessory cleanly.", e);
+                }
 
-	// Lock objects that prevent the phone from sleeping
-	private WakeLock _wakeLock = null;
-	private WifiLock _wifiLock = null;
+                stopSelf();
+            }
+        }
+    };
+    // Objects implementing actual functionality
+    private AirboatImpl _airboatImpl;
+    private UdpVehicleService _udpService;
+    // Lock objects that prevent the phone from sleeping
+    private WakeLock _wakeLock = null;
+    private WifiLock _wifiLock = null;
+    // Logger that pipes log information for airboat classes to file
+    private FileAppender _fileAppender;
+    // global variable to reference rotation vector values
+    private float[] rotationMatrix = new float[9];
+    private final SensorEventListener rotationVectorListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+                // TODO Auto-generated method stub
+                SensorManager.getRotationMatrixFromVector(rotationMatrix,
+                        event.values);
+                double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
 
-	// Logger that pipes log information for airboat classes to file
-	private FileAppender _fileAppender;
-
-	// global variable to reference rotation vector values
-	private float[] rotationMatrix = new float[9];
-
-	// Variable storing the current started/stopped status of the service.
-	protected AtomicBoolean isRunning = new AtomicBoolean(false);
-
-	/**
-	 * Handles GPS updates by calling the appropriate update.
-	 */
-	private LocationListener locationListener = new LocationListener() {
-		public void onStatusChanged(String provider, int status, Bundle extras) {
-		}
-		public void onProviderEnabled(String provider) {
-		}
-		public void onProviderDisabled(String provider) {
-		}
-
-		public void onLocationChanged(Location location) {
-
-			// Convert from lat/long to UTM coordinates
-			UTM utmLoc = UTM.latLongToUtm(
-					LatLong.valueOf(location.getLatitude(),
-							location.getLongitude(), NonSI.DEGREE_ANGLE),
-					ReferenceEllipsoid.WGS84);
-
-			// Convert to UTM data structure
-			Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
-					utmLoc.northingValue(SI.METER), (location.hasAltitude()
-							? location.getAltitude()
-							: 0.0), (location.hasBearing()
-							? Quaternion.fromEulerAngles(0.0, 0.0,
-									(90.0 - location.getBearing()) * Math.PI
-											/ 180.0)
-							: Quaternion.fromEulerAngles(0, 0, 0)));
-			Utm origin = new Utm(utmLoc.longitudeZone(),
-					utmLoc.latitudeZone() > 'O');
-			UtmPose utm = new UtmPose(pose, origin);
-
-			// Apply update using filter object
-			if (_airboatImpl != null) {
-				_airboatImpl.filter.gpsUpdate(utm, location.getTime());
-//				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
-//						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
-//						+ ", " + location.getBearing());
-			}
-		}
-	};
-	private final SensorEventListener rotationVectorListener = new SensorEventListener() {
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-				// TODO Auto-generated method stub
-				SensorManager.getRotationMatrixFromVector(rotationMatrix,
-						event.values);
-				double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
-
-				if (_airboatImpl != null) {
-					_airboatImpl.filter.compassUpdate(yaw,
-							System.currentTimeMillis());
+                if (_airboatImpl != null) {
+                    _airboatImpl.filter.compassUpdate(yaw,
+                            System.currentTimeMillis());
 //					logger.info("COMPASS: " + yaw);
-				}
-			}
-		}
+                }
+            }
+        }
 
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-	};
-	/**
-	 * UPDATE: 7/03/12 - Handles gyro updates by calling the appropriate update.
-	 */
-	private final SensorEventListener gyroListener = new SensorEventListener() {
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			// TODO Auto-generated method stub
-			/*
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+    };
+    /**
+     * UPDATE: 7/03/12 - Handles gyro updates by calling the appropriate update.
+     */
+    private final SensorEventListener gyroListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            // TODO Auto-generated method stub
+            /*
 			 * Convert phone coordinates to world coordinates. use magnetometer
 			 * and accelerometer to get orientation Simple rotation is 90�
 			 * clockwise about positive y axis. Thus, transformation is: // / M[
@@ -182,134 +152,178 @@ public class AirboatService extends Service {
 			 * M[ 5] | | values[1] | = gyroValues[1] // \ M[ 6] M[ 7] M[ 8] / \
 			 * values[2] / = gyroValues[2] //
 			 */
-			float[] gyroValues = new float[3];
-			gyroValues[0] = rotationMatrix[0] * event.values[0]
-					+ rotationMatrix[1] * event.values[1] + rotationMatrix[2]
-					* event.values[2];
-			gyroValues[1] = rotationMatrix[3] * event.values[0]
-					+ rotationMatrix[4] * event.values[1] + rotationMatrix[5]
-					* event.values[2];
-			gyroValues[2] = rotationMatrix[6] * event.values[0]
-					+ rotationMatrix[7] * event.values[1] + rotationMatrix[8]
-					* event.values[2];
+            float[] gyroValues = new float[3];
+            gyroValues[0] = rotationMatrix[0] * event.values[0]
+                    + rotationMatrix[1] * event.values[1] + rotationMatrix[2]
+                    * event.values[2];
+            gyroValues[1] = rotationMatrix[3] * event.values[0]
+                    + rotationMatrix[4] * event.values[1] + rotationMatrix[5]
+                    * event.values[2];
+            gyroValues[2] = rotationMatrix[6] * event.values[0]
+                    + rotationMatrix[7] * event.values[1] + rotationMatrix[8]
+                    * event.values[2];
 
-			if (_airboatImpl != null)
-				_airboatImpl.setPhoneGyro(gyroValues);
-		}
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-	};
+            if (_airboatImpl != null)
+                _airboatImpl.setPhoneGyro(gyroValues);
+        }
 
-	@Override
-	public void onCreate() {
-		super.onCreate();
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+    };
+    /**
+     * Handles GPS updates by calling the appropriate update.
+     */
+    private LocationListener locationListener = new LocationListener() {
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+        }
 
-		// Disable all DNS lookups (safer for private/ad-hoc networks)
-		CrwSecurityManager.loadIfDNSIsSlow();
+        public void onProviderEnabled(String provider) {
+        }
 
-		// Disable strict-mode (TODO: remove this and use handlers)
-		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
-				.permitAll().build();
-		StrictMode.setThreadPolicy(policy);
+        public void onProviderDisabled(String provider) {
+        }
 
-		// Get USB Manager to handle USB accessories.
-		mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        public void onLocationChanged(Location location) {
 
-		// TODO: optimize this to allocate resources up here and handle multiple
-		// start commands
-	}
+            // Convert from lat/long to UTM coordinates
+            UTM utmLoc = UTM.latLongToUtm(
+                    LatLong.valueOf(location.getLatitude(),
+                            location.getLongitude(), NonSI.DEGREE_ANGLE),
+                    ReferenceEllipsoid.WGS84);
 
-	/**
-	 * Access method to get underlying implementation of server functionality.
-	 * 
-	 * @return An interface allowing high-level control of the boat.
-	 */
-	public AirboatImpl getServer() {
-		return _airboatImpl;
-	}
+            // Convert to UTM data structure
+            Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
+                    utmLoc.northingValue(SI.METER), (location.hasAltitude()
+                    ? location.getAltitude()
+                    : 0.0), (location.hasBearing()
+                    ? Quaternion.fromEulerAngles(0.0, 0.0,
+                    (90.0 - location.getBearing()) * Math.PI
+                            / 180.0)
+                    : Quaternion.fromEulerAngles(0, 0, 0)));
+            Utm origin = new Utm(utmLoc.longitudeZone(),
+                    utmLoc.latitudeZone() > 'O');
+            UtmPose utm = new UtmPose(pose, origin);
 
-	/**
-	 * Constructs a default filename from the current date and time.
-	 * 
-	 * @return the default filename for the current time.
-	 */
-	private static String defaultLogFilename() {
-		Date d = new Date();
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-		return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
-	}
+            // Apply update using filter object
+            if (_airboatImpl != null) {
+                _airboatImpl.filter.gpsUpdate(utm, location.getTime());
+//				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
+//						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
+//						+ ", " + location.getBearing());
+            }
+        }
+    };
 
-	/**
-	 * Main service initialization: called whenever a request is made to start
-	 * the Airboat service.
-	 * 
-	 * This is where the vehicle implementation is started, sensors are
-	 * registered, and the update loop and RPC server are started.
-	 */
-	@Override
-	public int onStartCommand(final Intent intent, int flags, int startId) {
-		super.onStartCommand(intent, flags, startId);
+    /**
+     * Constructs a default filename from the current date and time.
+     *
+     * @return the default filename for the current time.
+     */
+    private static String defaultLogFilename() {
+        Date d = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
+        return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
+    }
 
-		// Ensure that we do not reinitialize if not necessary.
-		if (isRunning.get()) {
-			Log.w(TAG, "Attempted to start while running.");
-			return Service.START_STICKY;
-		}
+    @Override
+    public void onCreate() {
+        super.onCreate();
 
-		// start tracing to "/sdcard/trace_crw.trace"
-		// Debug.startMethodTracing("trace_crw");
+        // Disable all DNS lookups (safer for private/ad-hoc networks)
+        CrwSecurityManager.loadIfDNSIsSlow();
 
-		// Get context (used for system functions)
-		Context context = getApplicationContext();
+        // Disable strict-mode (TODO: remove this and use handlers)
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
+                .permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
-		// Set up logging format to include time, tag, and value
-		PropertyConfigurator.getConfigurator(this).configure();
-		PatternFormatter formatter = new PatternFormatter();
-		formatter.setPattern("%r %d %m %T");
+        // Get USB Manager to handle USB accessories.
+        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
-		// Set up and register data logger to a date-stamped file
-		String logFilename = defaultLogFilename();
-		_fileAppender = new FileAppender();
-		_fileAppender.setFileName(logFilename);
-		_fileAppender.setAppend(true);
-		_fileAppender.setFormatter(formatter);
-		try {
-			_fileAppender.open();
-		} catch (IOException e) {
-			Log.w(TAG, "Failed to open data log file: " + logFilename, e);
-			sendNotification("Failed to open log: " + e.getMessage());
-		}
-		logger.addAppender(_fileAppender);
+        // TODO: optimize this to allocate resources up here and handle multiple
+        // start commands
+    }
 
-		// Hook up to necessary Android sensors
-		SensorManager sm;
-		sm = (SensorManager) getSystemService(SENSOR_SERVICE);
-		Sensor gyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-		sm.registerListener(gyroListener, gyro,
-				SensorManager.SENSOR_DELAY_NORMAL);
-		Sensor rotation_vector = sm
-				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-		sm.registerListener(rotationVectorListener, rotation_vector,
-				SensorManager.SENSOR_DELAY_NORMAL);
+    /**
+     * Access method to get underlying implementation of server functionality.
+     *
+     * @return An interface allowing high-level control of the boat.
+     */
+    public AirboatImpl getServer() {
+        return _airboatImpl;
+    }
 
-		// Hook up to the GPS system
-		LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-		Criteria c = new Criteria();
-		c.setAccuracy(Criteria.ACCURACY_FINE);
-		c.setPowerRequirement(Criteria.NO_REQUIREMENT);
-		String provider = gps.getBestProvider(c, false);
-		gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0,
-				locationListener);
+    /**
+     * Main service initialization: called whenever a request is made to start
+     * the Airboat service.
+     * <p/>
+     * This is where the vehicle implementation is started, sensors are
+     * registered, and the update loop and RPC server are started.
+     */
+    @Override
+    public int onStartCommand(final Intent intent, int flags, int startId) {
+        super.onStartCommand(intent, flags, startId);
 
-		// Create an intent filter to listen for device disconnections
-		IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-		registerReceiver(_usbStatusReceiver, filter);
+        // Ensure that we do not reinitialize if not necessary.
+        if (isRunning.get()) {
+            Log.w(TAG, "Attempted to start while running.");
+            return Service.START_STICKY;
+        }
 
-		// Connect to control board.
-		// (Assume that we can only be launched by the ControllerLauncherActivity which
-		// provides a handle to the accessory.)
-		// TODO: fix this behavior.
+        // start tracing to "/sdcard/trace_crw.trace"
+        // Debug.startMethodTracing("trace_crw");
+
+        // Get context (used for system functions)
+        Context context = getApplicationContext();
+
+        // Set up logging format to include time, tag, and value
+        PropertyConfigurator.getConfigurator(this).configure();
+        PatternFormatter formatter = new PatternFormatter();
+        formatter.setPattern("%r %d %m %T");
+
+        // Set up and register data logger to a date-stamped file
+        String logFilename = defaultLogFilename();
+        _fileAppender = new FileAppender();
+        _fileAppender.setFileName(logFilename);
+        _fileAppender.setAppend(true);
+        _fileAppender.setFormatter(formatter);
+        try {
+            _fileAppender.open();
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to open data log file: " + logFilename, e);
+            sendNotification("Failed to open log: " + e.getMessage());
+        }
+        logger.addAppender(_fileAppender);
+
+        // Hook up to necessary Android sensors
+        SensorManager sm;
+        sm = (SensorManager) getSystemService(SENSOR_SERVICE);
+        Sensor gyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        sm.registerListener(gyroListener, gyro,
+                SensorManager.SENSOR_DELAY_NORMAL);
+        Sensor rotation_vector = sm
+                .getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        sm.registerListener(rotationVectorListener, rotation_vector,
+                SensorManager.SENSOR_DELAY_NORMAL);
+
+        // Hook up to the GPS system
+        LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Criteria c = new Criteria();
+        c.setAccuracy(Criteria.ACCURACY_FINE);
+        c.setPowerRequirement(Criteria.NO_REQUIREMENT);
+        String provider = gps.getBestProvider(c, false);
+        gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0,
+                locationListener);
+
+        // Create an intent filter to listen for device disconnections
+        IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+        registerReceiver(_usbStatusReceiver, filter);
+
+        // Connect to control board.
+        // (Assume that we can only be launched by the ControllerLauncherActivity which
+        // provides a handle to the accessory.)
+        // TODO: fix this behavior.
 		/*
 		mUsbAccessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 		mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
@@ -326,12 +340,16 @@ public class AirboatService extends Service {
 		final FileInputStream usbReader = new FileInputStream(mUsbDescriptor.getFileDescriptor());
 		*/
 
-		// TODO: remove this placeholder.
-		OutputStream nullOutputStream = new OutputStream() { @Override public void write(int b) { } };
-		PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(nullOutputStream));
+        // TODO: remove this placeholder.
+        OutputStream nullOutputStream = new OutputStream() {
+            @Override
+            public void write(int b) {
+            }
+        };
+        PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(nullOutputStream));
 
-		// Create the internal vehicle server implementation.
-		_airboatImpl = new AirboatImpl(this, usbWriter);
+        // Create the internal vehicle server implementation.
+        _airboatImpl = new AirboatImpl(this, usbWriter);
 		/*
 		new Thread(new Runnable() {
 			@Override
@@ -344,7 +362,7 @@ public class AirboatService extends Service {
 						int len = usbReader.read(buffer);
 						buffer[len] = '\0';
 						String line = new String(buffer, 0, len);
-						
+
 						try {
 							// TODO: proper threading here
 							if (_airboatImpl == null) {
@@ -368,15 +386,15 @@ public class AirboatService extends Service {
 		}).start();
 		*/
 
-		// Start up UDP vehicle service in the background
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
+        // Start up UDP vehicle service in the background
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
                     // Create a UdpVehicleService to expose the data object
-					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
-					// If given a UDP registry parameter, add registry to
-					// service
+                    _udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
+                    // If given a UDP registry parameter, add registry to
+                    // service
 					/*
 					String udpRegistryStr = intent
 							.getStringExtra(UDP_REGISTRY_ADDR);
@@ -394,209 +412,182 @@ public class AirboatService extends Service {
 
                     //((ApplicationGlobe)getApplicationContext()).setFailsafe_IPAddress(CrwNetworkUtils.getLocalhost(udpRegistryStr));
                 } catch (Exception e) {
-					Log.e(TAG, "UdpVehicleService failed to launch", e);
-					sendNotification("UdpVehicleService failed: " + e.getMessage());
-					stopSelf();
-				}
-			}
-		}).start();
+                    Log.e(TAG, "UdpVehicleService failed to launch", e);
+                    sendNotification("UdpVehicleService failed: " + e.getMessage());
+                    stopSelf();
+                }
+            }
+        }).start();
 
-		// Log the velocity gains before starting the service
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				do {
-					try {
-						Thread.sleep(5000);
-					} catch (InterruptedException ex) {
-					}
+        // Log the velocity gains before starting the service
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                do {
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException ex) {
+                    }
 
-					double[] velGains;
-					if (_airboatImpl != null) {
-						velGains = _airboatImpl.getGains(0);
-						logger.info("PIDGAINS: " + "0 " + velGains[0] + ","
-								+ velGains[1] + "," + velGains[2]);
-					}
+                    double[] velGains;
+                    if (_airboatImpl != null) {
+                        velGains = _airboatImpl.getGains(0);
+                        logger.info("PIDGAINS: " + "0 " + velGains[0] + ","
+                                + velGains[1] + "," + velGains[2]);
+                    }
 
-					if (_airboatImpl != null) {
-						velGains = _airboatImpl.getGains(5);
-						logger.info("PIDGAINS: " + "5 " + velGains[0] + ","
-								+ velGains[1] + "," + velGains[2]);
-					}
+                    if (_airboatImpl != null) {
+                        velGains = _airboatImpl.getGains(5);
+                        logger.info("PIDGAINS: " + "5 " + velGains[0] + ","
+                                + velGains[1] + "," + velGains[2]);
+                    }
 
-				} while (_airboatImpl == null);
-			}
-		}).start();
+                } while (_airboatImpl == null);
+            }
+        }).start();
 
-		// Prevent phone from sleeping or turning off wifi
-		{
-			// Acquire a WakeLock to keep the CPU running
-			PowerManager pm = (PowerManager) context
-					.getSystemService(Context.POWER_SERVICE);
-			_wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-					"AirboatWakeLock");
-			_wakeLock.acquire();
+        // Prevent phone from sleeping or turning off wifi
+        {
+            // Acquire a WakeLock to keep the CPU running
+            PowerManager pm = (PowerManager) context
+                    .getSystemService(Context.POWER_SERVICE);
+            _wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    "AirboatWakeLock");
+            _wakeLock.acquire();
 
-			// Acquire a WifiLock to keep the phone from turning off wifi
-			WifiManager wm = (WifiManager) context
-					.getSystemService(Context.WIFI_SERVICE);
-			_wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
-					"AirboatWifiLock");
-			_wifiLock.acquire();
-		}
+            // Acquire a WifiLock to keep the phone from turning off wifi
+            WifiManager wm = (WifiManager) context
+                    .getSystemService(Context.WIFI_SERVICE);
+            _wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                    "AirboatWifiLock");
+            _wifiLock.acquire();
+        }
 
-		// This is now a foreground service.  It should not be stopped by the system.
-		{
-			// Set up the notification to open main activity when clicked.
-			Intent notificationIntent = new Intent(this, MainActivity.class);
-			PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-					notificationIntent, 0);
+        // This is now a foreground service.  It should not be stopped by the system.
+        {
+            // Set up the notification to open main activity when clicked.
+            Intent notificationIntent = new Intent(this, MainActivity.class);
+            PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                    notificationIntent, 0);
 
-			// Add a notification to the menu.
-			Notification notification = new Notification.Builder(this)
-					.setSmallIcon(R.drawable.ic_notification)
-					.setContentTitle("Platypus Server")
-					.setContentText("Running normally.")
-					.setContentIntent(contentIntent)
-					.build();
-			startForeground(SERVICE_ID, notification);
-		}
+            // Add a notification to the menu.
+            Notification notification = new Notification.Builder(this)
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle("Platypus Server")
+                    .setContentText("Running normally.")
+                    .setContentIntent(contentIntent)
+                    .build();
+            startForeground(SERVICE_ID, notification);
+        }
 
-		// Indicate that the service should not be stopped arbitrarily.
-		Log.i(TAG, "AirboatService started.");
-		isRunning.set(true);
-		return Service.START_STICKY;
-	}
+        // Indicate that the service should not be stopped arbitrarily.
+        Log.i(TAG, "AirboatService started.");
+        isRunning.set(true);
+        return Service.START_STICKY;
+    }
 
-	/**
-	 * Called when there are no longer any consumers of the service and
-	 * stopService has been called.
-	 * 
-	 * This is where the RPC server and update loops are killed, the sensors are
-	 * unregistered, and the current vehicle implementation is unhooked from all
-	 * of its callbacks and discarded (allowing safe spawning of a new
-	 * implementation when the service is restarted).
-	 */
-	@Override
-	public void onDestroy() {
-		// Stop tracing to "/sdcard/trace_crw.trace"
-		Debug.stopMethodTracing();
+    /**
+     * Called when there are no longer any consumers of the service and
+     * stopService has been called.
+     * <p/>
+     * This is where the RPC server and update loops are killed, the sensors are
+     * unregistered, and the current vehicle implementation is unhooked from all
+     * of its callbacks and discarded (allowing safe spawning of a new
+     * implementation when the service is restarted).
+     */
+    @Override
+    public void onDestroy() {
+        // Stop tracing to "/sdcard/trace_crw.trace"
+        Debug.stopMethodTracing();
 
-		// Shutdown the vehicle services
-		if (_udpService != null) {
-			try {
-				_udpService.shutdown();
-			} catch (Exception e) {
-				Log.e(TAG, "UdpVehicleService shutdown error", e);
-			}
-			_udpService = null;
-		}
+        // Shutdown the vehicle services
+        if (_udpService != null) {
+            try {
+                _udpService.shutdown();
+            } catch (Exception e) {
+                Log.e(TAG, "UdpVehicleService shutdown error", e);
+            }
+            _udpService = null;
+        }
 
-		// Release locks on wifi and CPU
-		if (_wakeLock != null) {
-			_wakeLock.release();
-		}
-		if (_wifiLock != null) {
-			_wifiLock.release();
-		}
+        // Release locks on wifi and CPU
+        if (_wakeLock != null) {
+            _wakeLock.release();
+        }
+        if (_wifiLock != null) {
+            _wifiLock.release();
+        }
 
-		// Disconnect from USB event receiver
-		unregisterReceiver(_usbStatusReceiver);
+        // Disconnect from USB event receiver
+        unregisterReceiver(_usbStatusReceiver);
 
-		// Disconnect from the Android sensors
-		SensorManager sm;
-		sm = (SensorManager) getSystemService(SENSOR_SERVICE);
-		sm.unregisterListener(gyroListener);
-		sm.unregisterListener(rotationVectorListener);
+        // Disconnect from the Android sensors
+        SensorManager sm;
+        sm = (SensorManager) getSystemService(SENSOR_SERVICE);
+        sm.unregisterListener(gyroListener);
+        sm.unregisterListener(rotationVectorListener);
 
-		// Disconnect from GPS updates
-		LocationManager gps;
-		gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-		gps.removeUpdates(locationListener);
+        // Disconnect from GPS updates
+        LocationManager gps;
+        gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        gps.removeUpdates(locationListener);
 
-		// Disconnect the data object from this service
-		if (_airboatImpl != null) {
-			try {
-				mUsbDescriptor.close();
-			} catch (IOException e) {
-			}
-			_airboatImpl.setConnected(false);
-			_airboatImpl.shutdown();
-			_airboatImpl = null;
-		}
+        // Disconnect the data object from this service
+        if (_airboatImpl != null) {
+            try {
+                mUsbDescriptor.close();
+            } catch (IOException e) {
+            }
+            _airboatImpl.setConnected(false);
+            _airboatImpl.shutdown();
+            _airboatImpl = null;
+        }
 
-		// Remove the data log (a new one will be created on restart)
-		if (_fileAppender != null) {
-			try {
-				_fileAppender.close();
-			} catch (IOException e) {
-				Log.e(TAG, "Data log shutdown error", e);
-			}
-		}
+        // Remove the data log (a new one will be created on restart)
+        if (_fileAppender != null) {
+            try {
+                _fileAppender.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Data log shutdown error", e);
+            }
+        }
 
-		// Disable this as a foreground service
-		stopForeground(true);
+        // Disable this as a foreground service
+        stopForeground(true);
 
-		Log.i(TAG, "AirboatService stopped.");
-		isRunning.set(false);
-		super.onDestroy();
-	}
+        Log.i(TAG, "AirboatService stopped.");
+        isRunning.set(false);
+        super.onDestroy();
+    }
 
-	@Nullable
-	@Override
-	public IBinder onBind(Intent intent) {
-		return null;
-	}
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 
-	public void sendNotification(CharSequence text) {
-		String ns = Context.NOTIFICATION_SERVICE;
-		NotificationManager notificationManager = (NotificationManager) getSystemService(ns);
+    public void sendNotification(CharSequence text) {
+        String ns = Context.NOTIFICATION_SERVICE;
+        NotificationManager notificationManager = (NotificationManager) getSystemService(ns);
 
-		// Set up the icon and ticker text
-		int icon = R.mipmap.ic_launcher;
-		CharSequence tickerText = text;
-		long when = System.currentTimeMillis();
+        // Set up the icon and ticker text
+        int icon = R.mipmap.ic_launcher;
+        CharSequence tickerText = text;
+        long when = System.currentTimeMillis();
 
-		// Set up the actual title and text
-		Context context = getApplicationContext();
-		CharSequence contentTitle = "Airboat Server";
-		CharSequence contentText = text;
-		Intent notificationIntent = new Intent(this, AirboatService.class);
-		PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-				notificationIntent, 0);
+        // Set up the actual title and text
+        Context context = getApplicationContext();
+        CharSequence contentTitle = "Airboat Server";
+        CharSequence contentText = text;
+        Intent notificationIntent = new Intent(this, AirboatService.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                notificationIntent, 0);
 
-		Notification notification = new Notification(icon, tickerText, when);
-		notification.setLatestEventInfo(context, contentTitle, contentText,
-				contentIntent);
-		notification.flags |= Notification.FLAG_AUTO_CANCEL;
+        Notification notification = new Notification(icon, tickerText, when);
+        notification.setLatestEventInfo(context, contentTitle, contentText,
+                contentIntent);
+        notification.flags |= Notification.FLAG_AUTO_CANCEL;
 
-		notificationManager.notify(SERVICE_ID, notification);
-	}
-
-	/**
-	 * Listen for disconnection events for accessory and close connection.
-	 */
-	BroadcastReceiver _usbStatusReceiver = new BroadcastReceiver() {
-		@Override
-		public void onReceive(Context context, Intent intent) {
-
-			// Retrieve the device that was just disconnected.
-			UsbAccessory accessory = intent
-					.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-
-			// Check if this accessory matches the one we have open.
-			if (mUsbAccessory.equals(accessory)) {
-				try {
-					// Close the descriptor for our accessory.
-					// (This triggers server shutdown.)
-					mUsbDescriptor.close();
-					Log.e(TAG, "Closing accessory.");
-				} catch (IOException e) {
-					Log.w(TAG, "Failed to close accessory cleanly.", e);
-				}
-
-				stopSelf();
-			}
-		}
-	};
+        notificationManager.notify(SERVICE_ID, notification);
+    }
 }
