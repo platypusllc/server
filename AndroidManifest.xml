@@ -60,7 +60,7 @@
             android:label="Airboat Camera"
             android:screenOrientation="nosensor" />
         <activity
-            android:name="com.platypus.android.server.LauncherActivity"
+            android:name=".ControllerLauncherActivity"
             android:excludeFromRecents="true"
             android:label="Airboat Launcher Activity"
             android:launchMode="singleInstance"

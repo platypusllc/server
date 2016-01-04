@@ -343,7 +343,7 @@ public class AirboatService extends Service {
 		registerReceiver(_usbStatusReceiver, filter);
 
 		// Connect to control board.
-		// (Assume that we can only be launched by the LauncherActivity which
+		// (Assume that we can only be launched by the ControllerLauncherActivity which
 		// provides a handle to the accessory.)
 		mUsbAccessory = intent
 				.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);

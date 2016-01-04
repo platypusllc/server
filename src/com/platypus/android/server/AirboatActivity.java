@@ -162,7 +162,7 @@ public class AirboatActivity extends Activity {
                 connectToggle.setEnabled(false);
 
                 // Create an intent to properly start the vehicle server
-                Intent intent = new Intent(AirboatActivity.this, LauncherActivity.class);
+                Intent intent = new Intent(AirboatActivity.this, ControllerLauncherActivity.class);
                 intent.putExtra(AirboatService.UDP_REGISTRY_ADDR, masterAddress.getText().toString());
 
                 // Save the current preferences to the phone

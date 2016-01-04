@@ -21,8 +21,8 @@ import android.widget.Toast;
  * @see <a href="https://github.com/follower/android-background-service-usb-accessory">Android Background Service - USB accessory</a>
  * @author pkv
  */
-public class LauncherActivity extends Activity {
-    private String TAG = LauncherActivity.class.getName();
+public class ControllerLauncherActivity extends Activity {
+    private String TAG = ControllerLauncherActivity.class.getName();
     private static final String ACTION_USB_PERMISSION = "com.platypus.android.server.USB_PERMISSION";
 
     /**
@@ -101,7 +101,7 @@ public class LauncherActivity extends Activity {
                     // Permission was granted, if the device exists: open it.
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if (accessory != null) {
-                            Intent server_intent = new Intent(LauncherActivity.this,
+                            Intent server_intent = new Intent(ControllerLauncherActivity.this,
                                     AirboatService.class);
                             server_intent.fillIn(intent, 0);
                             server_intent.fillIn(getIntent(), 0);
