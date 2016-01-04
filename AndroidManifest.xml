@@ -27,10 +27,6 @@
             android:name="com.platypus.android.server.AirboatService"
             android:icon="@mipmap/ic_launcher"
             android:label="Airboat Service" />
-        <service
-            android:name="com.platypus.android.server.AirboatFailsafeService"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Failsafe" />
 
         <activity
             android:name="com.platypus.android.server.MainActivity"
@@ -49,11 +45,6 @@
                 android:resource="@xml/device_filter" />
         </activity>
         <activity
-            android:name="com.platypus.android.server.AirboatControlActivity"
-            android:icon="@mipmap/ic_launcher"
-            android:screenOrientation="portrait"
-            android:label="Airboat Control" />
-        <activity
             android:name="com.platypus.android.server.AirboatCameraActivity"
             android:configChanges="keyboardHidden|orientation"
             android:icon="@mipmap/ic_launcher"
@@ -65,15 +56,7 @@
             android:label="Airboat Launcher Activity"
             android:launchMode="singleInstance"
             android:theme="@android:style/Theme.NoDisplay" />
-        <activity
-            android:name="com.platypus.android.server.AirboatOfflineActivity"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Airboat offline"
-            android:screenOrientation="portrait"/>
-        <service
-            android:name="com.platypus.android.server.AirboatOfflineService"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Offline Service" />
+
     </application>
 
 </manifest>
