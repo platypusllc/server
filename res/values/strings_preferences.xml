@@ -1,17 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="pref_registry_category_title">Registry Service</string>
+    <string name="pref_registry_enable_title">Enable Registry</string>
+    <string name="pref_registry_enable_summary">Enable or disable the use of a vehicle registry service.</string>
     <string name="pref_registry_addr_title">Registry IP/Hostname</string>
     <string name="pref_registry_addr_summary">Set the IP/Hostname of a Platypus Vehicle Registry.</string>
+    <string name="pref_failsafe_category_title">Failsafe Service</string>
     <string name="pref_failsafe_enable_title">Enable Failsafe</string>
     <string name="pref_failsafe_enable_summary">Enable or disable the use of a connectivity failsafe behavior.</string>
     <string name="pref_failsafe_addr_title">Failsafe IP/Hostname</string>
     <string name="pref_failsafe_addr_summary">Set the IP/Hostname of an address that must have connectivity.</string>
-    <string name="pref_home_title">Set Home</string>
-    <string name="pref_home_summary">Sets the GPS location of the vehicle home.</string>
+    <string name="pref_vehicle_category_title">Vehicle Configuration</string>
     <string name="pref_vehicle_type_title">Vehicle Type</string>
     <string name="pref_vehicle_type_summary">Set the type of Platypus vehicle that is in use.</string>
-    <string-array name="pref_vehicle_type_list">
-        <item>Differential</item>
-        <item>Vectored</item>
+    <string name="pref_vehicle_type_default">Differential</string>
+    <string-array name="pref_vehicle_type_entries">
+        <item>Differential (Dual Thrust)</item>
+        <item>Vectored (Rotating Thrust)</item>
+    </string-array>
+    <string-array name="pref_vehicle_type_values">
+        <item>DIFFERENTIAL</item>
+        <item>VECTORED</item>
     </string-array>
 </resources>
