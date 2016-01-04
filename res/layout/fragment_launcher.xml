@@ -1,12 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <Button
+        android:id="@+id/launcher_start_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/launcher_button_start_text"
-        android:id="@+id/launcher_button_start"
-        android:layout_gravity="center_horizontal" />
+        android:layout_gravity="center_horizontal"
+        android:text="@string/launcher_start_button_title" />
+
+    <Button
+        android:id="@+id/launcher_stop_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="@string/launcher_stop_button_title" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/launcher_home_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/launcher_home_button_title" />
+
+        <TextView
+            android:id="@+id/launcher_home_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:text="@string/launcher_home_text_content"
+            android:textAlignment="center" />
+
+    </LinearLayout>
 </LinearLayout>

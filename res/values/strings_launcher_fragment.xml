@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="launcher_button_start_text">Start Platypus Server</string>
-    <string name="launcher_button_stop_text">Stop Platypus Server</string>
+    <string name="launcher_start_button_title">Start Platypus Server</string>
+    <string name="launcher_stop_button_title">Stop Platypus Server</string>
+    <string name="launcher_home_button_title">Set Home Position</string>
+    <string name="launcher_home_text_content">[No Home Position]</string>
 </resources>
