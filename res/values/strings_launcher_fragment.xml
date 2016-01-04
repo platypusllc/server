@@ -4,4 +4,5 @@
     <string name="launcher_stop_button_title">Stop Platypus Server</string>
     <string name="launcher_home_button_title">Set Home Position</string>
     <string name="launcher_home_text_content">[No Home Position]</string>
+    <string name="launcher_home_text_format">Lat: <b>%1$f</b>, Lon: <b>%2$f</b></string>
 </resources>
