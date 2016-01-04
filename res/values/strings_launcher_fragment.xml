@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="launcher_launch_button_title">Start/Stop Platypus Server</string>
+    <string name="launcher_launch_button_start">Press and hold to start</string>
+    <string name="launcher_launch_button_stop">Press and hold to stop</string>
     <string name="launcher_home_button_title">Set Home Position</string>
     <string name="launcher_home_text_content">[No Home Position]</string>
     <string name="launcher_home_text_format">Lat: <b>%1$f</b>, Lon: <b>%2$f</b></string>

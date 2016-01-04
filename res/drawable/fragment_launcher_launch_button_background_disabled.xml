@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#444"/>
+            <size android:width="240dp" android:height="240dp"/>
+        </shape>
+    </item>
+    <item android:drawable="@drawable/ic_notification"
+        android:width="120dp" android:height="120dp"
+        android:left="60dp" android:top="40dp">
+    </item>
+</layer-list>
+

@@ -94,9 +94,9 @@ public class LauncherFragment extends Fragment
     protected void updateLaunchStatus() {
         // TODO: improve this UI.
         if (isVehicleServiceRunning()) {
-            mLaunchButton.setText("Stop server.");
+            mLaunchButton.setText(getResources().getString(R.string.launcher_launch_button_stop));
         } else {
-            mLaunchButton.setText("Start server.");
+            mLaunchButton.setText(getResources().getString(R.string.launcher_launch_button_start));
         }
     }
 

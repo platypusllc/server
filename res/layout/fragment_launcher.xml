@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -8,29 +8,32 @@
         android:id="@+id/launcher_launch_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:text="@string/launcher_launch_button_title" />
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/fragment_launcher_launch_button_background"
+        android:paddingTop="110dp"
+        android:text="@string/launcher_launch_button_start" />
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+        android:layout_alignParentTop="true"
         android:orientation="vertical">
 
         <Button
             android:id="@+id/launcher_home_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
+            android:layout_centerHorizontal="true"
             android:text="@string/launcher_home_button_title" />
 
         <TextView
             android:id="@+id/launcher_home_text"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:text="@string/launcher_home_text_content"
-            android:textAlignment="center" />
+            android:layout_below="@id/launcher_home_button"
+            android:layout_centerHorizontal="true"
+            android:text="@string/launcher_home_text_content" />
 
-    </LinearLayout>
-</LinearLayout>
+    </RelativeLayout>
+</RelativeLayout>
