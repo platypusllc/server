@@ -11,6 +11,7 @@
             android:title="@string/pref_registry_enable_title" />
         <EditTextPreference
             android:defaultValue="registry.senseplatypus.com"
+            android:dependency="pref_registry_enable"
             android:key="pref_registry_addr"
             android:summary="@string/pref_registry_addr_summary"
             android:title="@string/pref_registry_addr_title" />
@@ -26,6 +27,7 @@
             android:title="@string/pref_failsafe_enable_title" />
         <EditTextPreference
             android:defaultValue="10.0.0.1"
+            android:dependency="pref_failsafe_enable"
             android:key="pref_failsafe_addr"
             android:summary="@string/pref_failsafe_addr_summary"
             android:title="@string/pref_failsafe_addr_title" />
@@ -36,11 +38,10 @@
         android:title="@string/pref_vehicle_category_title">
         <ListPreference
             android:defaultValue="@string/pref_vehicle_type_default"
-            android:dependency="pref_sync"
             android:dialogTitle="@string/pref_vehicle_type_title"
             android:entries="@array/pref_vehicle_type_entries"
             android:entryValues="@array/pref_vehicle_type_values"
-            android:key="pref_syncConnectionType"
+            android:key="pref_vehicle_type"
             android:title="@string/pref_vehicle_type_title" />
     </PreferenceCategory>
 </PreferenceScreen>

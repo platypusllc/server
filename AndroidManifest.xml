@@ -33,9 +33,9 @@
             android:label="Airboat Failsafe" />
 
         <activity
-            android:name="com.platypus.android.server.AirboatActivity"
+            android:name="com.platypus.android.server.MainActivity"
             android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Setup"
+            android:label="Platypus Server"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
