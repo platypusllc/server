@@ -5,7 +5,7 @@
     android:versionName="4.2.1">
 
     <uses-sdk
-        android:minSdkVersion="19"
+        android:minSdkVersion="21"
         android:targetSdkVersion="21" />
 
     <uses-feature android:name="android.hardware.usb.accessory" />
@@ -32,7 +32,8 @@
             android:name="com.platypus.android.server.MainActivity"
             android:icon="@mipmap/ic_launcher"
             android:label="Platypus Server"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

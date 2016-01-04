@@ -16,6 +16,8 @@ import java.util.List;
  */
 public class MainActivity extends Activity {
 
+    protected ViewPager mPager;
+
     /**
      * Statically constructs a list of the fragments that are used by the pager.
      * The order of these entries determines the order that pages appear in the pager.
@@ -48,12 +50,12 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         // Instantiate a ViewPager and a PagerAdapter.
-        ViewPager pager = (ViewPager) findViewById(R.id.pager);
+        mPager = (ViewPager) findViewById(R.id.pager);
         PagerAdapter pagerAdapter = new MainPageAdapter(getFragmentManager(), getFragments());
-        pager.setAdapter(pagerAdapter);
+        mPager.setAdapter(pagerAdapter);
 
         // Start on the middle page (the launcher fragment).
-        pager.setCurrentItem(1);
+        mPager.setCurrentItem(1);
     }
 
     /**
@@ -76,5 +78,13 @@ public class MainActivity extends Activity {
         public int getCount() {
             return mFragments.size();
         }
+    }
+
+    /**
+     * Overrides the back-button to *always* just go to the launcher screen.
+     */
+    @Override
+    public void onBackPressed() {
+        mPager.setCurrentItem(1);
     }
 }

@@ -5,4 +5,6 @@
     <string name="launcher_home_button_title">Set Home Position</string>
     <string name="launcher_home_text_content">[No Home Position]</string>
     <string name="launcher_home_text_format">Lat: <b>%1$f</b>, Lon: <b>%2$f</b></string>
+    <string name="launcher_swipe_left_text_content">Swipe left for settings.</string>
+    <string name="launcher_swipe_right_text_content">Swipe right for debugging.</string>
 </resources>
