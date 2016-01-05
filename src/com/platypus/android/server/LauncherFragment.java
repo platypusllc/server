@@ -94,8 +94,12 @@ public class LauncherFragment extends Fragment
     protected void updateLaunchStatus() {
         // TODO: improve this UI.
         if (isVehicleServiceRunning()) {
+            mLaunchButton.setBackground(getResources().getDrawable(
+                    R.drawable.fragment_launcher_launch_button_background_green));
             mLaunchButton.setText(getResources().getString(R.string.launcher_launch_button_stop));
         } else {
+            mLaunchButton.setBackground(getResources().getDrawable(
+                    R.drawable.fragment_launcher_launch_button_background_red));
             mLaunchButton.setText(getResources().getString(R.string.launcher_launch_button_start));
         }
     }
