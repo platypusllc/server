@@ -102,7 +102,7 @@ public class ControllerLauncherActivity extends Activity {
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if (accessory != null) {
                             Intent server_intent = new Intent(ControllerLauncherActivity.this,
-                                    AirboatService.class);
+                                    VehicleService.class);
                             server_intent.fillIn(intent, 0);
                             server_intent.fillIn(getIntent(), 0);
                             startService(server_intent);

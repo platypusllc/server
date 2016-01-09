@@ -164,11 +164,11 @@ public class LauncherFragment extends Fragment
 
             if (!isVehicleServiceRunning()) {
                 // If the service is not running, start it.
-                getActivity().startService(new Intent(getActivity(), AirboatService.class));
+                getActivity().startService(new Intent(getActivity(), VehicleService.class));
                 Log.i(TAG, "Vehicle service started.");
             } else {
                 // If the service is running, stop it.
-                getActivity().stopService(new Intent(getActivity(), AirboatService.class));
+                getActivity().stopService(new Intent(getActivity(), VehicleService.class));
                 Log.i(TAG, "Vehicle service stopped.");
             }
 
@@ -193,7 +193,7 @@ public class LauncherFragment extends Fragment
                 (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service :
                 manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (AirboatService.class.getName().equals(service.service.getClassName())) {
+            if (VehicleService.class.getName().equals(service.service.getClassName())) {
                 return true;
             }
         }
