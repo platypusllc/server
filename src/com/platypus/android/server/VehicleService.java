@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -27,6 +28,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.platypus.crw.CrwSecurityManager;
@@ -72,14 +74,8 @@ public class VehicleService extends Service {
     // Variable storing the current started/stopped status of the service.
     protected AtomicBoolean isRunning = new AtomicBoolean(false);
 
-    // Reference to USB accessory
-    private static Object mUsbLock = new Object();
-    private static UsbManager mUsbManager;
-    private static UsbAccessory mUsbAccessory;
-    private static ParcelFileDescriptor mUsbDescriptor;
-
     // Reference to vehicle logfile.
-    private static VehicleLogger mLogger;
+    private VehicleLogger mLogger;
 
     // Objects implementing actual functionality
     private AirboatImpl _airboatImpl;
@@ -188,33 +184,6 @@ public class VehicleService extends Service {
         }
     };
 
-    /**
-     * Listen for disconnection events for accessory and close connection.
-     */
-    BroadcastReceiver _usbStatusReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            // Retrieve the device that was just disconnected.
-            UsbAccessory accessory = intent
-                    .getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-
-            // Check if this accessory matches the one we have open.
-            if (mUsbAccessory.equals(accessory)) {
-                try {
-                    // Close the descriptor for our accessory.
-                    // (This triggers server shutdown.)
-                    mUsbDescriptor.close();
-                    Log.e(TAG, "Closing accessory.");
-                } catch (IOException e) {
-                    Log.w(TAG, "Failed to close accessory cleanly.", e);
-                }
-
-                stopSelf();
-            }
-        }
-    };
-
     @Override
     public void onCreate() {
         super.onCreate();
@@ -291,30 +260,6 @@ public class VehicleService extends Service {
         gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0,
                 locationListener);
 
-        // Create an intent filter to listen for device disconnections
-        IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-        registerReceiver(_usbStatusReceiver, filter);
-
-        // Connect to control board.
-        // (Assume that we can only be launched by the ControllerLauncherActivity which
-        // provides a handle to the accessory.)
-        // TODO: fix this behavior.
-		/*
-		mUsbAccessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-		mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
-		if (mUsbDescriptor == null) {
-			// If the accessory fails to connect, terminate service.
-			Log.e(TAG, "Failed to open accessory.");
-			stopSelf();
-			return Service.START_STICKY;
-		}
-
-		// Create writer for output over USB
-		PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(
-				new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
-		final FileInputStream usbReader = new FileInputStream(mUsbDescriptor.getFileDescriptor());
-		*/
-
         // TODO: remove this placeholder.
         OutputStream nullOutputStream = new OutputStream() {
             @Override
@@ -365,6 +310,9 @@ public class VehicleService extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                SharedPreferences sharedPreferences =
+                        PreferenceManager.getDefaultSharedPreferences(VehicleService.this);
+
                 try {
                     // Create a UdpVehicleService to expose the data object
                     _udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);

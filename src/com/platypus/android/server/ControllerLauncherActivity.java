@@ -13,81 +13,25 @@ import android.util.Log;
 import android.widget.Toast;
 
 /**
- * Launcher that starts Server if accessory is plugged in. This
- * is required because Android does not allow USB connection events to be
+ * Launcher that sets reference to USB peripheral when it connects.
+ * <p/>
+ * This is required because Android does not allow USB connection events to be
  * received by services directly. Instead, this activity is launched, which does
- * nothing but use the USB connection event to start the vehicle server.
- * 
- * @see <a href="https://github.com/follower/android-background-service-usb-accessory">Android Background Service - USB accessory</a>
+ * nothing but use the USB connection event to set the accessory reference.
+ *
  * @author pkv
+ * @see <a href="https://github.com/follower/android-background-service-usb-accessory">Android Background Service - USB accessory</a>
  */
 public class ControllerLauncherActivity extends Activity {
-    private String TAG = ControllerLauncherActivity.class.getName();
     private static final String ACTION_USB_PERMISSION = "com.platypus.android.server.USB_PERMISSION";
-
+    private String TAG = ControllerLauncherActivity.class.getSimpleName();
     /**
-     * Called when the activity is first created.
-     * 
-     * @param savedInstanceState If the activity is being re-initialized after
-     *            previously being shut down then this Bundle contains the data
-     *            it most recently supplied in onSaveInstanceState(Bundle).
-     *            <b>Note: Otherwise it is null.</b>
+     * Wait for the return from a USB permission request.
+     *
+     * If the request is granted, it updates the accessory reference used by the Platypus Server,
+     * if not, it simply ends this launcher activity without updating anything.
      */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        
-        // Defer to superclass
-        super.onCreate(savedInstanceState);
-//        ((ApplicationGlobe)getApplicationContext()).setFailsafe_IPAddress("123ss");
-//        final ApplicationGlobe globe = (ApplicationGlobe)getApplication();
-//        globe.setFailsafe_IPAddress("123ss");
-
-        Log.d(TAG, "Starting vehicle service launcher.");
-
-        // Register a listener for USB permission events.
-        // (This is cleaned up when the launcher is destroyed, but we might need
-        // it if we have to search for an accessory.)
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        //IntentFilter filter = new IntentFilter("");
-        registerReceiver(usbReceiver_, filter);
-        
-        // Request permission for ANY connected devices.
-        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        UsbAccessory[] usbAccessoryList = usbManager.getAccessoryList();
-
-
-
-
-        if (usbAccessoryList != null && usbAccessoryList.length > 0) {
-            // TODO: only detect Platypus Hardware!
-            // At the moment, just use the first accessory (only one is
-            // supported in android right now).
-            PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(
-                    ACTION_USB_PERMISSION), 0);
-            usbManager.requestPermission(usbAccessoryList[0], permissionIntent);
-            //usbManager.requestPermission(, permissionIntent);
-        } else {
-            Log.d(TAG, "Exiting vehicle service launcher: No devices found.");
-            Toast.makeText(this, "No devices found.", Toast.LENGTH_SHORT).show();
-            finish();
-        }
-    }
-    
-    @Override
-    protected void onDestroy() {
-        // Unregister the receiver for USB permission responses.
-        unregisterReceiver(usbReceiver_);
-        
-        // Defer to superclass
-        super.onDestroy();
-    }
-
-    /**
-     * Waits for the return from a USB permission request. If the request is
-     * granted, it starts the Platypus Server, if not, it simply ends the
-     * Launcher activity.
-     */
-    private final BroadcastReceiver usbReceiver_ = new BroadcastReceiver() {
+    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
 
@@ -101,26 +45,70 @@ public class ControllerLauncherActivity extends Activity {
                     // Permission was granted, if the device exists: open it.
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if (accessory != null) {
-                            Intent server_intent = new Intent(ControllerLauncherActivity.this,
-                                    VehicleService.class);
-                            server_intent.fillIn(intent, 0);
-                            server_intent.fillIn(getIntent(), 0);
-                            startService(server_intent);
-                            Log.d(TAG, "Exiting vehicle service launcher.");
+                            Controller.getInstance().setConnection(accessory);
+                            Log.d(TAG, "Set new accessory to: " + accessory.getDescription());
                         } else {
-                            // This is weird, we got permission, but to which
-                            // device?
-                            Log.w(TAG, "Exiting vehicle service launcher: No device returned.");
+                            // This is weird, we got permission, but to which device?
+                            Log.w(TAG, "No device returned.");
                         }
                     }
                     // Permission was not granted, don't open anything.
                     else {
-                        Log.d(TAG, "Exiting vehicle service launcher: Permission denied.");
+                        Log.d(TAG, "Accessory permission denied.");
                     }
 
+                    // End this activity.
                     finish();
                 }
             }
         }
     };
+
+    /**
+     * Called when the activity is first created.
+     *
+     * @param savedInstanceState If the activity is being re-initialized after
+     *                           previously being shut down then this Bundle contains the data
+     *                           it most recently supplied in onSaveInstanceState(Bundle).
+     *                           <b>Note: Otherwise it is null.</b>
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        // Defer to superclass.
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "Starting controller launcher.");
+
+        // Register a listener for USB permission events.
+        // (This is cleaned up when the launcher is destroyed, but we might need
+        // it if we have to search for an accessory.)
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        registerReceiver(mUsbReceiver, filter);
+
+        // Request permission for ANY connected devices.
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        UsbAccessory[] usbAccessoryList = usbManager.getAccessoryList();
+
+        if (usbAccessoryList != null && usbAccessoryList.length > 0) {
+            // TODO: only detect Platypus Hardware!
+            // At the moment, request permission to use the first accessory.
+            // (Only one is supported at a time in Android.)
+            PendingIntent permissionIntent = PendingIntent.getBroadcast(
+                    this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+            usbManager.requestPermission(usbAccessoryList[0], permissionIntent);
+        } else {
+            Log.d(TAG, "Exiting controller launcher: No devices found.");
+            Toast.makeText(this, "No Platypus devices found.", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        // Unregister the receiver for USB permission responses.
+        unregisterReceiver(mUsbReceiver);
+
+        // Defer to superclass.
+        Log.d(TAG, "Exiting controller launcher.");
+        super.onDestroy();
+    }
 }

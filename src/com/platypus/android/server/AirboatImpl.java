@@ -37,8 +37,8 @@ import robotutils.Pose3D;
  */
 public class AirboatImpl extends AbstractVehicleServer {
 
-	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
-			.getLogger();
+	// Reference to the vehicle controller connection.
+	private final Controller mController = Controller.getInstance();
 
 	private static final String logTag = AirboatImpl.class.getName();
 	public static final int UPDATE_INTERVAL_MS = 100;
@@ -46,7 +46,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.STOP.controller;
 //	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.SHOOT_ON_MOVE;
 
-    protected final SharedPreferences _prefs;
+	protected final SharedPreferences _prefs;
 
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
 	protected UtmPose[] _waypoints = new UtmPose[0];
@@ -68,12 +68,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 	private double _lastTemp = 20.0; // Deg C
 	private double _lastEC = 0.0; // uS/cm
 
-    public enum VehicleType {
-        DIFFERENTIAL_THRUST,
-        VECTORED_THRUST,
-        UNKNOWN
-    }
-
     /**
 	 * Defines the PID gains that will be returned if there is an error.
 	 */
@@ -86,7 +80,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	// Internal data structures for Amarino callbacks
 	final Context _context;
-	final PrintWriter _usbWriter;
 	public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
 
 	/**
