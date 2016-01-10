@@ -4,6 +4,7 @@ import collections
 import json
 import serial
 import threading
+import time
 from . import util
 
 class ControllerDict(collections.MutableMapping):
@@ -36,6 +37,9 @@ class ControllerDict(collections.MutableMapping):
 
     def __len__(self):
         return len(self._dict)
+
+    def merge(self, d):
+        self._dict.merge(d)
 
     @staticmethod
     def path_to_dict(key, value, path):
@@ -84,40 +88,56 @@ class Controller(ControllerDict):
         observable_dict = util.ObservableDict(entries=data)
         ControllerDict.__init__(self, controller=self, obs_dict=observable_dict)
 
-        self._port = port
-        self._baud = baud
-
         self._device_lock = threading.Lock()
-        self._device = None
+        self._device = serial.serial_for_url(port, do_not_open=True)
+        self._device.baudrate = baud
+        self._last_timestamp = float('-inf')
 
-        self._timeout = timeout
-        if self._timeout is not None:
-            # TODO: implement connectivity timeout.
-            raise NotImplementedError("Timeout is not yet supported.")
+        # Start a thread to receive data from the port.
+        self._running = True
+        t = threading.Thread(target=self._receive)
+        t.setDaemon(True)
+        t.start()
 
-    @property
-    def timeout(self):
-        return self._timeout
+        # Set a connectivity timeout.
+        self.timeout = timeout
 
-    @timeout.setter
-    def timeout(self, value):
-        self._timeout = value
+    def shutdown(self):
+        """
+        Closes hardware connection and shuts down listening thread.
+        """
+        with self._device_lock:
+            self._running = False
+            self._device.close()
 
     @property
     def connected(self):
+        """
+        Returns whether the device is currently connected.
+
+        This checks whether the port is open, and if a timeout is set, also
+        whether data was received as recently as the timeout window.
+        """
         with self._device_lock:
-            return self._device is not None
+            if not self._device._isOpen:
+                return False
+            else:
+                return ((self.timeout is None) or
+                    (self._last_timestamp + self.timeout > time.clock()))
 
     @property
     def port(self):
-        return self._port
+        with self._device_lock:
+            return self._device.port
 
     @port.setter
     def port(self, value):
         # Disconnect existing port.
         with self._device_lock:
-            self._device = None
-        self._port = value
+            try:
+                self._device.port = value
+            except OSError:
+                pass
 
     def _write(self, value):
         """
@@ -127,16 +147,19 @@ class Controller(ControllerDict):
         :type  value: dict-like object
         """
         with self._device_lock:
-            if not self._device:
-                self._device.port = serial.Serial(self._port, self._baud)
+            if not self._device._isOpen:
+                try:
+                    self._device.open()
+                except OSError:
+                    raise IOError("Port could not be opened.")
 
             try:
                 self._device.write(json.dumps(value))
                 self._device.write('\n')
-                self._device.flush()
-            except IOError:
-                self._device = None
-                raise Exception("Write failed.")
+                self._device.flushOutput()
+            except serial.SerialException:
+                self._device.close()
+                raise IOError("Write failed.")
 
     def _read(self):
         """
@@ -149,9 +172,27 @@ class Controller(ControllerDict):
         :rtype: dict
         """
         with self._device_lock:
+            if not self._device._isOpen:
+                try:
+                    self._device.open()
+                except OSError:
+                    raise IOError("Port could not be opened.")
+            device = self._device
+
+        try:
+            line = device.readline()
+            update = json.loads(line)
+            self.merge(update)
+        except Exception as e:
+            raise IOError("Read failed.")
+
+    def _receive(self):
+        """
+        Loops to receive data from the controller hardware.
+        """
+        while self._running:
             try:
-                line = self._device.readline()
-                update = json.parse(line)
-                self.merge(update)
-            except Exception as e:
-                print("Exception: {:s}".format(e))
+                self._read()
+                self._last_timestamp = time.clock()
+            except IOError:
+                pass

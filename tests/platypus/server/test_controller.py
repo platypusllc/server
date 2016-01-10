@@ -1,4 +1,5 @@
 import platypus.server.controller
+import time
 from unittest import TestCase
 
 
@@ -20,10 +21,7 @@ class ControllerTest(TestCase):
             "s0": "test_sensor"
         }
 
-        c = platypus.server.controller.Controller(port='/dev/null', data=data)
-
-        # The server has never received data, so it should not be connected.
-        self.assertFalse(c.connected)
+        c = platypus.server.controller.Controller(port='loop://', data=data)
 
         # Check that initial data is accessible.
         self.assertItemsEqual(c.keys(), ('m0', 'm1', 'm2', 's0'))
@@ -41,7 +39,23 @@ class ControllerTest(TestCase):
         self.assertEqual(c['m2'], 'test_motor')
         self.assertEqual(c['s0'], 'test_sensor')
 
+        # The server has not received data, so 'disconnected' if we set a timeout.
+        c.timeout = 0.1
+        self.assertFalse(c.connected)
+
         # Run a setter to confirm that the data is sent to the serial port and not
         # immediately set on this object.
         c['m1']['v'] = 0.0
         self.assertEqual(c['m1']['v'], 1.0)
+
+        # The server has received data now, so it should be connected.
+        time.sleep(0.05)
+        self.assertTrue(c.connected)
+
+        # Wait for the timeout to cause the server to report disconnection.
+        time.sleep(0.2)
+        self.assertFalse(c.connected)
+
+        # If we disable the timeout, the server should report connection again.
+        c.timeout = None
+        self.assertTrue(c.connected)
