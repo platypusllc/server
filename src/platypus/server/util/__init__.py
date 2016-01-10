@@ -48,7 +48,7 @@ class ObservableDict(dict):
     functionality.
     """
     def __init__(self, parent=None, key=None, entries=None):
-        dict.__init__(self)
+        super(ObservableDict, self).__init__(self)
 
         if parent is None and key is not None:
             raise ValueError("Cannot specify a key without a parent dict.")
@@ -67,7 +67,11 @@ class ObservableDict(dict):
     def __setitem__(self, key, value):
         if isinstance(value, dict):
             value = ObservableDict(parent=self, key=key, entries=value.items())
-        dict.__setitem__(self, key, value)
+        super(ObservableDict, self).__setitem__(key, value)
+        self.dirty(key)
+
+    def __delitem__(self, key):
+        super(ObservableDict, self).__delitem__(key)
         self.dirty(key)
 
     def update(self, *args, **kwargs):

@@ -1,12 +1,54 @@
 from __future__ import print_function
 
+import collections
 import json
 import serial
 import threading
 from . import util
 
+class ControllerDict(collections.MutableMapping):
+    """
+    Wrapper class for ObservableDict that intercepts setter calls.
+    """
+    def __init__(self, controller, obs_dict):
+        self._controller = controller
+        self._dict = obs_dict
 
-class Controller(util.ObservableDict):
+    def __delitem__(self, key):
+        self.__setitem__(key, None)
+
+    def __setitem__(self, key, value):
+        d = self.path_to_dict(key, value, self._dict.path)
+        self._controller._write(d)
+
+    def __getitem__(self, key):
+        value = self._dict[key]
+        if isinstance(value, util.ObservableDict):
+            return ControllerDict(controller=self._controller, obs_dict=value)
+        else:
+            return value
+
+    def __iter__(self):
+        return iter(self._dict)
+
+    def __len__(self):
+        return len(self._dict)
+
+    @staticmethod
+    def path_to_dict(key, value, path):
+        """
+        Recursively creates dicts to represent a nested key-value.
+        """
+        root = collections.defaultdict(lambda: collections.defaultdict())
+        d = root
+        if path is not None:
+            for element in path:
+                d = d[element]
+        d[key] = value
+        return root
+
+
+class Controller(ControllerDict):
     """
     Interface to vehicle controller over serial.
 
@@ -36,7 +78,8 @@ class Controller(util.ObservableDict):
         :type  data: dict
         """
         # Create an internal data dictionary that stores controller state.
-        util.ObservableDict.__init__(self, entries=data)
+        observable_dict = util.ObservableDict(entries=data)
+        ControllerDict.__init__(self, controller=self, obs_dict=observable_dict)
 
         self._port = port
         self._baud = baud
