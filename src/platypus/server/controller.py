@@ -91,6 +91,10 @@ class Controller(ControllerDict):
         self._device_lock = threading.Lock()
         self._device = serial.serial_for_url(port, do_not_open=True)
         self._device.baudrate = baud
+        try:
+            self._device.open()
+        except:
+            self._device.close()
         self._last_timestamp = float('-inf')
 
         # Start a thread to receive data from the port.
@@ -119,7 +123,7 @@ class Controller(ControllerDict):
         whether data was received as recently as the timeout window.
         """
         with self._device_lock:
-            if not self._device._isOpen:
+            if not self._device.isOpen:
                 return False
             else:
                 return ((self.timeout is None) or
@@ -147,19 +151,20 @@ class Controller(ControllerDict):
         :type  value: dict-like object
         """
         with self._device_lock:
-            if not self._device._isOpen:
+            if not self._device.isOpen:
                 try:
                     self._device.open()
-                except OSError:
+                except:
+                    self._device.close()
                     raise IOError("Port could not be opened.")
 
             try:
                 self._device.write(json.dumps(value))
                 self._device.write('\n')
                 self._device.flushOutput()
-            except serial.SerialException:
+            except serial.SerialException as e:
                 self._device.close()
-                raise IOError("Write failed.")
+                raise IOError("Write failed.", e)
 
     def _read(self):
         """
@@ -172,10 +177,11 @@ class Controller(ControllerDict):
         :rtype: dict
         """
         with self._device_lock:
-            if not self._device._isOpen:
+            if not self._device.isOpen:
                 try:
                     self._device.open()
-                except OSError:
+                except:
+                    self._device.close()
                     raise IOError("Port could not be opened.")
             device = self._device
 
@@ -183,8 +189,9 @@ class Controller(ControllerDict):
             line = device.readline()
             update = json.loads(line)
             self.merge(update)
+            self._last_timestamp = time.clock()
         except Exception as e:
-            raise IOError("Read failed.")
+            raise IOError("Read failed.", e)
 
     def _receive(self):
         """
@@ -193,6 +200,5 @@ class Controller(ControllerDict):
         while self._running:
             try:
                 self._read()
-                self._last_timestamp = time.clock()
             except IOError:
                 pass

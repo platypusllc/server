@@ -59,3 +59,8 @@ class ControllerTest(TestCase):
         # If we disable the timeout, the server should report connection again.
         c.timeout = None
         self.assertTrue(c.connected)
+
+        # Change the port to an invalid settings.
+        d = platypus.server.controller.Controller(port='/dev/tty_invalid', data=data)
+        with self.assertRaises(IOError):
+            d['m1']['v'] = 3.0
