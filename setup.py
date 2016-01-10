@@ -36,7 +36,7 @@ setup(
     },
     install_requires=[
         'pyserial',
-        'utm'
+        'utm',
         'six'
     ],
     test_suite="tests",
