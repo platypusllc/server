@@ -9,6 +9,9 @@ from . import util
 class ControllerDict(collections.MutableMapping):
     """
     Wrapper class for ObservableDict that intercepts setter calls.
+
+    Instead of directly applying these changes, they are sent to the controller
+    to be dispatched to the connected hardware.
     """
     def __init__(self, controller, obs_dict):
         self._controller = controller

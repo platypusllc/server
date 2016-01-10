@@ -81,32 +81,40 @@ class UtilTest(TestCase):
         self.assertEqual(c['m2'], 'test_motor')
         self.assertEqual(c['s0'], 'test_sensor')
 
-        # Clear notification for the initial entries.
-        c.notify()
-
         # Create observers and try to change some data.
         base_was_updated = [False]
         leaf_was_updated = [False]
         should_not_be_updated = [False]
 
-        def base_observer(key, new_value):
+        def base_observer(key, old_value, new_value):
             base_was_updated[0] = True
+            self.assertEqual(key, ('m1', 'meta', 'min'))
+            self.assertEqual(old_value, 0.0)
+            self.assertEqual(new_value, -1.0)
 
-        def leaf_observer(key, new_value):
+        def leaf_observer(key, old_value, new_value):
             leaf_was_updated[0] = True
+            self.assertEqual(key, ('min',))
+            self.assertEqual(old_value, 0.0)
+            self.assertEqual(new_value, -1.0)
 
-        def unobserver(key, new_value):
-            should_not_be_updated[0] = True
+        def unobserver(key, old_value, new_value):
+            self.fail("This observer should not have been called.")
 
         c.observe('m1', base_observer)
         c['m1']['meta'].observe('min', leaf_observer)
         c.observe('m1', unobserver)
         c.unobserve('m1', unobserver)
 
+        # Change the value using the merge mechanism.
         c.merge({'m1': {'meta': {'min': -1.0}}})
-        c.notify()
 
         self.assertEqual(c['m1']['meta']['min'], -1.0)
         self.assertTrue(base_was_updated[0])
         self.assertTrue(leaf_was_updated[0])
         self.assertFalse(should_not_be_updated[0])
+
+        # Reset the observer flags.
+        base_was_updated = [False]
+        leaf_was_updated = [False]
+        should_not_be_updated = [False]

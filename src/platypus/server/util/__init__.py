@@ -55,7 +55,6 @@ class ObservableDict(dict):
         self._parent = parent
         self._key = key
 
-        self._dirty = set()
         self._observer_lock = threading.Lock()
         self._observers = collections.defaultdict(lambda: set())
 
@@ -64,15 +63,21 @@ class ObservableDict(dict):
         # So we override this behavior with the following manual update.
         self.update(entries)
 
-    def __setitem__(self, key, value):
-        if isinstance(value, dict):
-            value = ObservableDict(parent=self, key=key, entries=value.items())
-        super(ObservableDict, self).__setitem__(key, value)
-        self.dirty(key)
+    def __setitem__(self, key, new_value):
+        # Convert dict() objects to ObservableDict to give them observe()/notify().
+        if isinstance(new_value, dict):
+            new_value = ObservableDict(parent=self, key=key, entries=new_value)
+
+        # Perform the change and notify observers that it has happened.
+        old_value = self.get(key, None)
+        super(ObservableDict, self).__setitem__(key, new_value)
+        self._notify(key, old_value, new_value)
 
     def __delitem__(self, key):
+        # Perform the change and notify observers that it has happened.
+        old_value = self.get(key)
         super(ObservableDict, self).__delitem__(key)
-        self.dirty(key)
+        self._notify(key, old_value, None)
 
     def update(self, *args, **kwargs):
         # The builtin dict.update method does not call dict.__setitem__, which
@@ -107,22 +112,7 @@ class ObservableDict(dict):
         # If there are no remaining references, flag this object as empty.
         return not self.keys() and not len(self._observers)
 
-    def dirty(self, key):
-        """
-        Indicate that this key in the observer dict has been dirtied.
-
-        This will trigger notifications on any observers of this subtree on
-        the next notify() call.
-
-        :param key: the key that has been modified
-        :type  key: any
-        """
-        with self._observer_lock:
-            self._dirty.add(key)
-            if self._parent:
-                self._parent.dirty(self._key)
-
-    def notify(self):
+    def _notify(self, key, old_value, new_value, path=tuple()):
         """
         Notify callbacks on all dirtied subtrees of this branch.
 
@@ -130,17 +120,16 @@ class ObservableDict(dict):
         modified since the last notify call.
         """
         with self._observer_lock:
-            for key in self._dirty:
-                value = self[key]
+            # Concatenate key to create a relative path to the change.
+            path = (key,) + path
 
-                # Allow child subtrees to perform notification.
-                if isinstance(value, ObservableDict):
-                    value.notify()
+            # Perform notification for observers of this entry.
+            for observer in self._observers.get(key, ()):
+                observer(path, old_value, new_value)
 
-                # Perform notification for observers of this entry.
-                path = self.path + (key,)
-                for observer in self._observers[key]:
-                    observer(path, value)
+            # Notify parents of this subtree.
+            if self._parent is not None:
+                self._parent._notify(self._key, old_value, new_value, path=path)
 
     def observe(self, key, callback):
         """
@@ -148,7 +137,7 @@ class ObservableDict(dict):
         :param key: the key in this dict to observe
         :type  key: any
         :param callback: a function that will be called if the key changes
-        :type  callback: (key, value) -> None
+        :type  callback: (key, old_value, new_value) -> None
         """
         with self._observer_lock:
             self._observers[key].add(callback)
@@ -159,7 +148,7 @@ class ObservableDict(dict):
         :param key: the key in this dict to stop observing
         :type  key: any
         :param callback: a function that will not be called if the key changes
-        :type  callback: (key, value) -> None
+        :type  callback: (key, old_value, new_value) -> None
         """
         with self._observer_lock:
             try:
