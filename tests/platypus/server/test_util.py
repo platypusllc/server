@@ -4,6 +4,8 @@ from unittest import TestCase
 
 class UtilTest(TestCase):
     def test_merge(self):
+
+        # Create test datasets to use in the merge operation.
         A = {
             "m0": {"type": "HobbyKing"},
             "m1": {
@@ -26,6 +28,7 @@ class UtilTest(TestCase):
             "s1": {"type": "sensor"}
         }
 
+        # Merge B into A using utility function.
         platypus.server.util.merge(A, B)
 
         # Make sure the correct keys are in the result.

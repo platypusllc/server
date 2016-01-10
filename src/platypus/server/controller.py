@@ -35,8 +35,18 @@ class _ControllerAttribute(object):
 class Controller(object):
     """
     Interface to vehicle controller over serial.
+
+    The protocol to this device is assumed to be sending and receiving
+    properly escaped JSON, with each packet being a full JSON object
+    terminated by a single newline ('\n') character.
+
+    Received JSON packets are collated into a dict-like, with conflicting
+    entries replacing old ones.  To remove an entry in this dict, the
+    device can transmit a message in which the corresponding key is set to
+    the JSON value `null`.
     """
-    def __init__(self, port='/dev/ttyACM0', baud=250000):
+    def __init__(self, port='/dev/ttyACM0', baud=250000,
+                 timeout=None, data=dict()):
         """
         Create an interface to a vehicle controller over serial.
 
@@ -44,14 +54,38 @@ class Controller(object):
         :type  port: str
         :param baud: baud rate of serial connection
         :type  baud: int
+        :param timeout: if this is not None, a message must be have been
+            received within this time (in seconds) for the controller to
+            be considered `connected`
+        :type  timeout: float or None
+        :param data: optional initial data to use in the controller
+        :type  data: dict
         """
         # Create an internal data dictionary that stores controller state.
-        self._data = dict()
+        self._data = data
         self._port = port
         self._baud = baud
 
         self._device_lock = threading.Lock()
         self._device = None
+
+        self._timeout = timeout
+        if self._timeout is not None:
+            # TODO: implement connectivity timeout.
+            raise NotImplementedError("Timeout is not yet supported.")
+
+    @property
+    def timeout(self):
+        return self._timeout
+
+    @timeout.setter
+    def timeout(self, value):
+        self._timeout = value
+
+    @property
+    def connected(self):
+        with self._device_lock:
+            return self._device is not None
 
     @property
     def port(self):
