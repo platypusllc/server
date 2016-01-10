@@ -1,38 +1,12 @@
 from __future__ import print_function
 
-import serial
 import json
+import serial
 import threading
 from . import util
 
 
-class _ControllerAttribute(object):
-    """
-    Lazily-evaluated proxy to a controller attribute.
-    """
-    def __init__(self, controller, path=[]):
-        self._controller = controller
-        self._path = path
-
-    def __setitem__(self, key, value):
-        root = dict()
-
-        d = root
-        for element in self._path:
-            d[element] = dict()
-            d = root[element]
-        d[key] = value
-
-        self._controller._write(root)
-
-    def __getitem__(self, key):
-        d = self._controller._data
-        for element in self._path:
-            d = d.get(element)
-        return d.get(key)
-
-
-class Controller(object):
+class Controller(util.ObservableDict):
     """
     Interface to vehicle controller over serial.
 
@@ -62,7 +36,8 @@ class Controller(object):
         :type  data: dict
         """
         # Create an internal data dictionary that stores controller state.
-        self._data = data
+        util.ObservableDict.__init__(self, entries=data)
+
         self._port = port
         self._baud = baud
 
@@ -112,6 +87,7 @@ class Controller(object):
             try:
                 self._device.write(json.dumps(value))
                 self._device.write('\n')
+                self._device.flush()
             except IOError:
                 self._device = None
                 raise Exception("Write failed.")
@@ -130,12 +106,6 @@ class Controller(object):
             try:
                 line = self._device.readline()
                 update = json.parse(line)
-                util.merge(self._data, update)
+                self.merge(update)
             except Exception as e:
                 print("Exception: {:s}".format(e))
-
-    def __getattr__(self, key):
-        return _ControllerAttribute(self)[key]
-
-    def __setattr__(self, key, value):
-        _ControllerAttribute(self)[key] = value
