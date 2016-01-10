@@ -17,4 +17,3 @@ def main():
     while True:
         import time
         time.sleep(0.1)
-        print controller

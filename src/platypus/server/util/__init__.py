@@ -117,7 +117,6 @@ class ObservableDict(dict):
             self._dirty.add(key)
             if self._parent:
                 self._parent.dirty(self._key)
-            print(('dirty: ', self.path, '>', key))
 
     def notify(self):
         """
