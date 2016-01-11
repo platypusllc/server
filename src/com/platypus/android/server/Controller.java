@@ -9,6 +9,7 @@ import android.hardware.usb.UsbManager;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.FileInputStream;
@@ -18,7 +19,7 @@ import java.nio.charset.Charset;
 
 /**
  * Wrapper for interfacing with the Platypus Controller board.
- *
+ * <p/>
  * This singleton class provides simple JSON-based send and receive functionality to a
  * Platypus controller board.  The class is automatically kept up to date with
  * accessories through the controller launcher activity.
@@ -27,24 +28,38 @@ public class Controller {
     private static final String TAG = VehicleService.class.getSimpleName();
     private static final Charset ASCII = Charset.forName("US-ASCII");
 
+    /**
+     * Maximum packet size that can be received.
+     */
+    private static final int MAX_PACKET_SIZE = 1024;
+    private static final Controller mInstance = new Controller();
     // References to USB accessory device.
+    private Context mUsbContext = null;
     private UsbAccessory mUsbAccessory = null;
     private ParcelFileDescriptor mUsbDescriptor = null;
     private FileInputStream mUsbInputStream = null;
     private FileOutputStream mUsbOutputStream = null;
+    /**
+     * Listen for disconnection events for accessory and close connection.
+     */
+    final BroadcastReceiver mUsbStatusReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
 
-    private static final Controller mInstance = new Controller();
+            // Retrieve the device that was just disconnected.
+            UsbAccessory accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
+
+            // Close this connection if this accessory matches the one we have open.
+            if (mUsbAccessory.equals(accessory))
+                close();
+        }
+    };
+
+    private Controller() {
+    }
 
     public static Controller getInstance() {
         return mInstance;
-    }
-
-    private Controller() {
-
-
-        // Create an intent filter to listen for device disconnections
-        IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-        context.registerReceiver(mUsbStatusReceiver, filter);
     }
 
     /**
@@ -53,20 +68,26 @@ public class Controller {
      * @param usbAccessory the USB accessory that should be used to connect to the controller.
      */
     public synchronized void setConnection(Context context, UsbAccessory usbAccessory) {
+
         // Get a reference to the system USB management service.
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
 
         // Connect to control board.
-        ParcelFileDescriptor usbDescriptor = mUsbManager.openAccessory(usbAccessory);
-		if (usbDescriptor == null) {
-			Log.e(TAG, "Failed to open accessory: " + usbAccessory.getDescription());
+        ParcelFileDescriptor usbDescriptor = usbManager.openAccessory(usbAccessory);
+        if (usbDescriptor == null) {
+            Log.e(TAG, "Failed to open accessory: " + usbAccessory.getDescription());
             return;
-		}
+        }
 
         // Clear references to old connection if it exists.
         close();
 
-		// Store references to new usb device reference.
+        // Create an intent filter to listen for device disconnections
+        IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+        context.registerReceiver(mUsbStatusReceiver, filter);
+
+        // Store references to new usb device reference.
+        mUsbContext = context;
         mUsbAccessory = usbAccessory;
         mUsbDescriptor = usbDescriptor;
         mUsbInputStream = new FileInputStream(usbDescriptor.getFileDescriptor());
@@ -77,6 +98,11 @@ public class Controller {
      * Close existing device references.
      */
     public synchronized void close() {
+        if (mUsbContext != null) {
+            mUsbContext.unregisterReceiver(mUsbStatusReceiver);
+        }
+        mUsbContext = null;
+
         if (mUsbInputStream != null) {
             try {
                 mUsbInputStream.close();
@@ -136,50 +162,28 @@ public class Controller {
      * @throws IOException if there is not a valid connection to a controller board.
      */
     public JSONObject receive() throws IOException {
-        if (mUsbInputStream == null)
-            throw new IOException("Not connected to hardware.");
+        // Allocate a buffer for the data packet.
+        byte[] buffer = new byte[MAX_PACKET_SIZE];
+        int len;
 
-        // Start a loop to receive data from accessory.
-        while (true) {
-            // Handle this response
-            byte[] buffer = new byte[1024];
-            int len = usbReader.read(buffer);
-            buffer[len] = '\0';
-            String line = new String(buffer, 0, len);
-
-            try {
-                // TODO: proper threading here
-                if (_airboatImpl == null) {
-                    return;
-                } else {
-                    _airboatImpl.onCommand(new JSONObject(line));
-                }
-            } catch (JSONException e) {
-                Log.w(TAG, "Failed to parse response '" + line + "'.", e);
-            }
+        // Try to read a line from the device.
+        // If the stream is not open, just wait longer.
+        synchronized (this) {
+            if (mUsbInputStream == null)
+                throw new IOException("Not connected to hardware.");
+            len = mUsbInputStream.read(buffer);
         }
 
+        // Terminate and convert the buffers to an ASCII string.
+        buffer[len] = '\0';
+        String line = new String(buffer, 0, len, ASCII);
 
+        // Turn the line into a JSON object and return it.
+        // If the line is malformed, wait for the next line.
         try {
-            usbReader.close();
-        } catch (IOException e) {
+            return new JSONObject(line);
+        } catch (JSONException e) {
+            throw new IOException("Failed to parse response '" + line + "'.", e);
         }
-        throw new IOException("Not connected to hardware.");
     }
-
-    /**
-     * Listen for disconnection events for accessory and close connection.
-     */
-    final BroadcastReceiver mUsbStatusReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            // Retrieve the device that was just disconnected.
-            UsbAccessory accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-
-            // Close this connection if this accessory matches the one we have open.
-            if (mUsbAccessory.equals(accessory))
-                close();
-        }
-    };
 }
