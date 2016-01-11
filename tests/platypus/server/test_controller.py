@@ -41,7 +41,7 @@ class ControllerTest(TestCase):
         self.assertEqual(c['s0'], 'test_sensor')
 
         # The server has not received data, so 'disconnected' if we set a timeout.
-        c.timeout = 0.3
+        c.timeout = 2.0
         self.assertFalse(c.connected)
 
         # Run a setter to confirm that the data is sent to the serial port and not
@@ -50,11 +50,12 @@ class ControllerTest(TestCase):
         self.assertEqual(c['m1']['v'], 1.0)
 
         # The server has received data now, so it should be connected.
-        time.sleep(0.2)
+        time.sleep(1.0)
+        self.assertEqual(c['m1']['v'], 0.0)
         self.assertTrue(c.connected)
 
         # Wait for the timeout to cause the server to report disconnection.
-        time.sleep(0.1)
+        time.sleep(1.5)
         self.assertFalse(c.connected)
 
         # If we disable the timeout, the server should report connection again.
