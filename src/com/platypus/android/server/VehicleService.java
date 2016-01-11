@@ -184,6 +184,18 @@ public class VehicleService extends Service {
         }
     };
 
+    /**
+     * A shared preference listener that changes settings on the implementation if
+     * settings are changed.
+     */
+    private SharedPreferences.OnSharedPreferenceChangeListener mPreferenceListener =
+            new SharedPreferences.OnSharedPreferenceChangeListener() {
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            // TODO: fill this in to update preferences.
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -198,6 +210,10 @@ public class VehicleService extends Service {
 
         // Get USB Manager to handle USB accessories.
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+        // Register a shared preference listener to listen for updates.
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .registerOnSharedPreferenceChangeListener(mPreferenceListener);
 
         // TODO: optimize this to allocate resources up here and handle multiple
         // start commands
@@ -428,6 +444,10 @@ public class VehicleService extends Service {
         // Stop the vehicle log for this run.
         mLogger.close();
         mLogger = null;
+
+        // Unregister shared preference listener to listen for updates.
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(mPreferenceListener);
 
         // Shutdown the vehicle services
         if (_udpService != null) {
