@@ -159,7 +159,7 @@ class Controller(ControllerDict):
                     raise IOError("Port could not be opened.")
 
             try:
-                self._device.write(json.dumps(value))
+                self._device.write(json.dumps(value).encode('ascii'))
                 self._device.write('\n')
                 self._device.flushOutput()
             except serial.SerialException as e:
@@ -186,7 +186,7 @@ class Controller(ControllerDict):
             device = self._device
 
         try:
-            line = device.readline()
+            line = device.readline().decode('ascii')
             update = json.loads(line)
             self.merge(update)
             self._last_timestamp = time.clock()
