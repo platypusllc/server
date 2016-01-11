@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -27,13 +28,9 @@ import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
-import android.support.annotation.Nullable;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.google.code.microlog4android.LoggerFactory;
-import com.google.code.microlog4android.appender.FileAppender;
-import com.google.code.microlog4android.config.PropertyConfigurator;
-import com.google.code.microlog4android.format.PatternFormatter;
 import com.platypus.crw.CrwSecurityManager;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
@@ -42,13 +39,13 @@ import com.platypus.crw.udp.UdpVehicleService;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.measure.unit.NonSI;
@@ -57,6 +54,8 @@ import javax.measure.unit.SI;
 import robotutils.Pose3D;
 import robotutils.Quaternion;
 
+import android.support.annotation.Nullable;
+
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
  * Contains a RosVehicleServer and a VehicleServer object.
@@ -64,56 +63,26 @@ import robotutils.Quaternion;
  * @author pkv
  * @author kshaurya
  */
-public class AirboatService extends Service {
+public class VehicleService extends Service {
     private static final int SERVICE_ID = 11312;
-    private static final String TAG = AirboatService.class.getName();
-    private static final com.google.code.microlog4android.Logger logger = LoggerFactory
-            .getLogger();
+    private static final String TAG = VehicleService.class.getSimpleName();
 
     // Default values for parameters
-    private static final String DEFAULT_LOG_PREFIX = "airboat_";
     private static final int DEFAULT_UDP_PORT = 11411;
     final int GPS_UPDATE_RATE = 200; // in milliseconds
+
     // Variable storing the current started/stopped status of the service.
     protected AtomicBoolean isRunning = new AtomicBoolean(false);
-    // Reference to USB accessory
-    private UsbManager mUsbManager;
-    private UsbAccessory mUsbAccessory;
-    private ParcelFileDescriptor mUsbDescriptor;
-    /**
-     * Listen for disconnection events for accessory and close connection.
-     */
-    BroadcastReceiver _usbStatusReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
 
-            // Retrieve the device that was just disconnected.
-            UsbAccessory accessory = intent
-                    .getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
+    // Reference to vehicle logfile.
+    private VehicleLogger mLogger;
 
-            // Check if this accessory matches the one we have open.
-            if (mUsbAccessory.equals(accessory)) {
-                try {
-                    // Close the descriptor for our accessory.
-                    // (This triggers server shutdown.)
-                    mUsbDescriptor.close();
-                    Log.e(TAG, "Closing accessory.");
-                } catch (IOException e) {
-                    Log.w(TAG, "Failed to close accessory cleanly.", e);
-                }
-
-                stopSelf();
-            }
-        }
-    };
     // Objects implementing actual functionality
     private AirboatImpl _airboatImpl;
     private UdpVehicleService _udpService;
     // Lock objects that prevent the phone from sleeping
     private WakeLock _wakeLock = null;
     private WifiLock _wifiLock = null;
-    // Logger that pipes log information for airboat classes to file
-    private FileAppender _fileAppender;
     // global variable to reference rotation vector values
     private float[] rotationMatrix = new float[9];
     private final SensorEventListener rotationVectorListener = new SensorEventListener() {
@@ -215,17 +184,6 @@ public class AirboatService extends Service {
         }
     };
 
-    /**
-     * Constructs a default filename from the current date and time.
-     *
-     * @return the default filename for the current time.
-     */
-    private static String defaultLogFilename() {
-        Date d = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-        return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
-    }
-
     @Override
     public void onCreate() {
         super.onCreate();
@@ -274,27 +232,13 @@ public class AirboatService extends Service {
         // start tracing to "/sdcard/trace_crw.trace"
         // Debug.startMethodTracing("trace_crw");
 
+        // Create a new vehicle log file for this service.
+        if (mLogger != null)
+            mLogger.close();
+        mLogger = new VehicleLogger();
+
         // Get context (used for system functions)
         Context context = getApplicationContext();
-
-        // Set up logging format to include time, tag, and value
-        PropertyConfigurator.getConfigurator(this).configure();
-        PatternFormatter formatter = new PatternFormatter();
-        formatter.setPattern("%r %d %m %T");
-
-        // Set up and register data logger to a date-stamped file
-        String logFilename = defaultLogFilename();
-        _fileAppender = new FileAppender();
-        _fileAppender.setFileName(logFilename);
-        _fileAppender.setAppend(true);
-        _fileAppender.setFormatter(formatter);
-        try {
-            _fileAppender.open();
-        } catch (IOException e) {
-            Log.w(TAG, "Failed to open data log file: " + logFilename, e);
-            sendNotification("Failed to open log: " + e.getMessage());
-        }
-        logger.addAppender(_fileAppender);
 
         // Hook up to necessary Android sensors
         SensorManager sm;
@@ -315,30 +259,6 @@ public class AirboatService extends Service {
         String provider = gps.getBestProvider(c, false);
         gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0,
                 locationListener);
-
-        // Create an intent filter to listen for device disconnections
-        IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-        registerReceiver(_usbStatusReceiver, filter);
-
-        // Connect to control board.
-        // (Assume that we can only be launched by the ControllerLauncherActivity which
-        // provides a handle to the accessory.)
-        // TODO: fix this behavior.
-		/*
-		mUsbAccessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-		mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
-		if (mUsbDescriptor == null) {
-			// If the accessory fails to connect, terminate service.
-			Log.e(TAG, "Failed to open accessory.");
-			stopSelf();
-			return Service.START_STICKY;
-		}
-
-		// Create writer for output over USB
-		PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(
-				new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
-		final FileInputStream usbReader = new FileInputStream(mUsbDescriptor.getFileDescriptor());
-		*/
 
         // TODO: remove this placeholder.
         OutputStream nullOutputStream = new OutputStream() {
@@ -390,6 +310,9 @@ public class AirboatService extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                SharedPreferences sharedPreferences =
+                        PreferenceManager.getDefaultSharedPreferences(VehicleService.this);
+
                 try {
                     // Create a UdpVehicleService to expose the data object
                     _udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
@@ -429,19 +352,21 @@ public class AirboatService extends Service {
                     } catch (InterruptedException ex) {
                     }
 
-                    double[] velGains;
                     if (_airboatImpl != null) {
-                        velGains = _airboatImpl.getGains(0);
-                        logger.info("PIDGAINS: " + "0 " + velGains[0] + ","
-                                + velGains[1] + "," + velGains[2]);
+                        int [] axes = {0, 5};
+                        for (int axis : axes) {
+                            double[] gains = _airboatImpl.getGains(axis);
+                            try {
+                                JSONObject entry = new JSONObject()
+                                        .put("gain", new JSONObject()
+                                                .put("axis", axis)
+                                                .put("values", gains));
+                                mLogger.info(entry);
+                            } catch (JSONException e) {
+                                Log.w(TAG, "Failed to serialize gains.");
+                            }
+                        }
                     }
-
-                    if (_airboatImpl != null) {
-                        velGains = _airboatImpl.getGains(5);
-                        logger.info("PIDGAINS: " + "5 " + velGains[0] + ","
-                                + velGains[1] + "," + velGains[2]);
-                    }
-
                 } while (_airboatImpl == null);
             }
         }).start();
@@ -481,7 +406,7 @@ public class AirboatService extends Service {
         }
 
         // Indicate that the service should not be stopped arbitrarily.
-        Log.i(TAG, "AirboatService started.");
+        Log.i(TAG, "VehicleService started.");
         isRunning.set(true);
         return Service.START_STICKY;
     }
@@ -499,6 +424,10 @@ public class AirboatService extends Service {
     public void onDestroy() {
         // Stop tracing to "/sdcard/trace_crw.trace"
         Debug.stopMethodTracing();
+
+        // Stop the vehicle log for this run.
+        mLogger.close();
+        mLogger = null;
 
         // Shutdown the vehicle services
         if (_udpService != null) {
@@ -543,19 +472,10 @@ public class AirboatService extends Service {
             _airboatImpl = null;
         }
 
-        // Remove the data log (a new one will be created on restart)
-        if (_fileAppender != null) {
-            try {
-                _fileAppender.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Data log shutdown error", e);
-            }
-        }
-
         // Disable this as a foreground service
         stopForeground(true);
 
-        Log.i(TAG, "AirboatService stopped.");
+        Log.i(TAG, "VehicleService stopped.");
         isRunning.set(false);
         super.onDestroy();
     }
@@ -567,27 +487,24 @@ public class AirboatService extends Service {
     }
 
     public void sendNotification(CharSequence text) {
-        String ns = Context.NOTIFICATION_SERVICE;
-        NotificationManager notificationManager = (NotificationManager) getSystemService(ns);
-
-        // Set up the icon and ticker text
-        int icon = R.mipmap.ic_launcher;
-        CharSequence tickerText = text;
-        long when = System.currentTimeMillis();
-
-        // Set up the actual title and text
-        Context context = getApplicationContext();
-        CharSequence contentTitle = "Airboat Server";
-        CharSequence contentText = text;
-        Intent notificationIntent = new Intent(this, AirboatService.class);
+        // Create an intent that refers to this service.
+        Intent notificationIntent = new Intent(this, VehicleService.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
                 notificationIntent, 0);
 
-        Notification notification = new Notification(icon, tickerText, when);
-        notification.setLatestEventInfo(context, contentTitle, contentText,
-                contentIntent);
-        notification.flags |= Notification.FLAG_AUTO_CANCEL;
+        // Build a notification with the specified text.
+        Notification notification = new Notification.Builder(getApplicationContext())
+                .setContentText(text)
+                .setWhen(System.currentTimeMillis())
+                .setContentTitle("Platypus Server")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(contentIntent)
+                .setAutoCancel(true)
+                .build();
 
+        // Send the notification to the manager for display.
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(SERVICE_ID, notification);
     }
 }
