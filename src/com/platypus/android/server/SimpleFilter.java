@@ -1,4 +1,4 @@
-package edu.cmu.ri.airboat.server;
+package com.platypus.android.server;
 
 import com.platypus.crw.VehicleFilter;
 import com.platypus.crw.data.Twist;

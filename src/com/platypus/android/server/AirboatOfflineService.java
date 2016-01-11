@@ -1,4 +1,4 @@
-package edu.cmu.ri.airboat.server;
+package com.platypus.android.server;
 
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -88,7 +88,7 @@ public class AirboatOfflineService extends Service {
         // This is now a foreground service
         {
             // Set up the icon and ticker text
-            int icon = R.drawable.icon; // TODO: change this to notification icon
+            int icon = R.mipmap.ic_launcher;
             CharSequence tickerText = "Running normally.";
             long when = System.currentTimeMillis();
 
