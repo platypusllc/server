@@ -1,4 +1,5 @@
 import platypus.server.controller
+import six
 import time
 from unittest import TestCase
 
@@ -24,12 +25,12 @@ class ControllerTest(TestCase):
         c = platypus.server.controller.Controller(port='loop://', data=data)
 
         # Check that initial data is accessible.
-        self.assertItemsEqual(c.keys(), ('m0', 'm1', 'm2', 's0'))
+        six.assertCountEqual(self, c.keys(), ('m0', 'm1', 'm2', 's0'))
 
-        self.assertItemsEqual(c['m0'].keys(), ('type',))
+        six.assertCountEqual(self, c['m0'].keys(), ('type',))
         self.assertEqual(c['m0']['type'], 'HobbyKing')
 
-        self.assertItemsEqual(c['m1'].keys(), ('v', 'type', 'enabled', 'meta'))
+        six.assertCountEqual(self, c['m1'].keys(), ('v', 'type', 'enabled', 'meta'))
         self.assertEqual(c['m1']['v'], 1.0)
         self.assertEqual(c['m1']['type'], 'SeaKing')
         self.assertEqual(c['m1']['enabled'], False)
