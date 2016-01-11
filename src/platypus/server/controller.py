@@ -160,7 +160,7 @@ class Controller(ControllerDict):
 
             try:
                 self._device.write(json.dumps(value).encode('ascii'))
-                self._device.write('\n')
+                self._device.write(b'\n')
                 self._device.flushOutput()
             except serial.SerialException as e:
                 self._device.close()
