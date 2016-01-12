@@ -23,6 +23,9 @@ import java.nio.charset.Charset;
  * This singleton class provides simple JSON-based send and receive functionality to a
  * Platypus controller board.  The class is automatically kept up to date with
  * accessories through the controller launcher activity.
+ * <p/>
+ * The `open()` and `close()` methods can be used to open device peripherals when they
+ * are detected and forward the data to the `send()/receive()` commands.
  */
 public class Controller {
     private static final String TAG = VehicleService.class.getSimpleName();
@@ -51,9 +54,10 @@ public class Controller {
 
             // Close this connection if this accessory matches the one we have open.
             if (mUsbAccessory.equals(accessory))
-                close();
+                disconnect();
         }
     };
+    private boolean mIsOpen = false;
 
     private Controller() {
     }
@@ -68,41 +72,80 @@ public class Controller {
      * @param usbAccessory the USB accessory that should be used to connect to the controller.
      */
     public synchronized void setConnection(Context context, UsbAccessory usbAccessory) {
+        // Clear references to old connection if it exists.
+        disconnect();
 
+        // Store references to new USB device reference.
+        mUsbContext = context;
+        mUsbAccessory = usbAccessory;
+
+        // If the connection was originally open, reopen it now.
+        if (mIsOpen)
+            connect();
+    }
+
+    /**
+     * Indicate that devices should be opened when they are detected.
+     */
+    public synchronized void open() {
+        // Mark this connection as open.
+        if (mIsOpen)
+            return;
+        mIsOpen = true;
+        connect();
+    }
+
+    /**
+     * Indicate that devices should no longer be opened.
+     */
+    public synchronized void close() {
+        // Mark this connection as closed.
+        if (!mIsOpen)
+            return;
+        mIsOpen = false;
+        disconnect();
+    }
+
+    public synchronized boolean isOpen() {
+        return mIsOpen;
+    }
+
+    /**
+     * Open existing device reference.
+     */
+    public synchronized void connect() {
         // Get a reference to the system USB management service.
-        UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+        UsbManager usbManager = (UsbManager) mUsbContext.getSystemService(Context.USB_SERVICE);
 
         // Connect to control board.
-        ParcelFileDescriptor usbDescriptor = usbManager.openAccessory(usbAccessory);
+        ParcelFileDescriptor usbDescriptor = usbManager.openAccessory(mUsbAccessory);
         if (usbDescriptor == null) {
-            Log.e(TAG, "Failed to open accessory: " + usbAccessory.getDescription());
+            Log.e(TAG, "Failed to open accessory: " + mUsbAccessory.getDescription());
             return;
         }
 
-        // Clear references to old connection if it exists.
-        close();
-
         // Create an intent filter to listen for device disconnections
         IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-        context.registerReceiver(mUsbStatusReceiver, filter);
+        mUsbContext.registerReceiver(mUsbStatusReceiver, filter);
 
-        // Store references to new usb device reference.
-        mUsbContext = context;
-        mUsbAccessory = usbAccessory;
+        // Make a connection to the USB descriptor.
         mUsbDescriptor = usbDescriptor;
         mUsbInputStream = new FileInputStream(usbDescriptor.getFileDescriptor());
         mUsbOutputStream = new FileOutputStream(usbDescriptor.getFileDescriptor());
     }
 
     /**
-     * Close existing device references.
+     * Close existing device reference.
      */
-    public synchronized void close() {
+    protected synchronized void disconnect() {
+        // Clear context and accessory references.
         if (mUsbContext != null) {
             mUsbContext.unregisterReceiver(mUsbStatusReceiver);
         }
         mUsbContext = null;
+        mUsbAccessory = null;
 
+        // Clear input stream if it exists.
         if (mUsbInputStream != null) {
             try {
                 mUsbInputStream.close();
@@ -112,6 +155,7 @@ public class Controller {
         }
         mUsbInputStream = null;
 
+        // Clear output stream if it exists.
         if (mUsbOutputStream != null) {
             try {
                 mUsbOutputStream.close();
@@ -121,6 +165,7 @@ public class Controller {
         }
         mUsbOutputStream = null;
 
+        // Clear descriptor reference after input and output are cleared.
         if (mUsbDescriptor != null) {
             try {
                 mUsbDescriptor.close();
