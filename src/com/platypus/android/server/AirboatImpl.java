@@ -5,7 +5,6 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.google.code.microlog4android.LoggerFactory;
 import com.platypus.crw.AbstractVehicleServer;
 import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleFilter;
@@ -18,7 +17,7 @@ import com.platypus.crw.data.UtmPose;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.PrintWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Timer;
@@ -37,14 +36,10 @@ import robotutils.Pose3D;
  */
 public class AirboatImpl extends AbstractVehicleServer {
 
-	// Reference to the vehicle controller connection.
-	private final Controller mController = Controller.getInstance();
-
-	private static final String logTag = AirboatImpl.class.getName();
+	private static final String TAG = AirboatImpl.class.getName();
 	public static final int UPDATE_INTERVAL_MS = 100;
 	public static final int NUM_SENSORS = 5;
 	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.STOP.controller;
-//	public static final VehicleController DEFAULT_CONTROLLER = AirboatController.SHOOT_ON_MOVE;
 
 	protected final SharedPreferences _prefs;
 
@@ -75,11 +70,13 @@ public class AirboatImpl extends AbstractVehicleServer {
 			Double.NaN, Double.NaN };
 
 	// Status information
-	final AtomicBoolean _isConnected = new AtomicBoolean(true);
+	final AtomicBoolean _isConnected = new AtomicBoolean(false);
 	final AtomicBoolean _isAutonomous = new AtomicBoolean(false);
+	final AtomicBoolean _isRunning = new AtomicBoolean(true);
 
 	// Internal data structures for Amarino callbacks
 	final Context _context;
+	final Controller mController = Controller.getInstance();
 	public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
 
 	/**
@@ -92,7 +89,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * Filter used internally to update the current pose estimate
 	 */
 	VehicleFilter filter = new SimpleFilter();
-
 
 	/**
 	 * Inertial velocity vector, containing a 6D angular velocity estimate: [rx,
@@ -150,20 +146,32 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * 
 	 * @param context
 	 *            the application context to use
-	 * @param usbWriter
-	 *            the USB device for the vehicle controller
 	 */
 
-	protected AirboatImpl(Context context, PrintWriter usbWriter) {
+	protected AirboatImpl(Context context) {
 		_context = context;
-		_usbWriter = usbWriter;
 
-        // Connect to the Shared Preferences for this process.
+		// Connect to the Shared Preferences for this process.
         _prefs = PreferenceManager.getDefaultSharedPreferences(_context);
 
         // Start a regular update function
 		_updateTimer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
 
+		// Create a thread to read data from the controller board.
+		Thread receiveThread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				// Start a loop to receive data from accessory.
+				while (_isRunning.get()) {
+					try {
+						onCommand(mController.receive());
+						Thread.yield();
+					} catch (IOException e) {}
+				}
+			}
+		});
+		receiveThread.setDaemon(true);
+		receiveThread.start();
 	}
 
 	/**
@@ -222,7 +230,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                         logger.info("CMD: " + command.toString());
                     } catch (JSONException e) {
-                        Log.w(logTag, "Failed to serialize command.", e); // TODO: remove this.
+                        Log.w(TAG, "Failed to serialize command.", e); // TODO: remove this.
                     }
                     break;
 
@@ -254,11 +262,11 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                         logger.info("CMD: " + command.toString());
                     } catch (JSONException e) {
-                        Log.w(logTag, "Failed to serialize command.", e); // TODO: remove this.
+                        Log.w(TAG, "Failed to serialize command.", e); // TODO: remove this.
                     }
                     break;
                 default:
-                    Log.w(logTag, "Unknown vehicle type: " + vehicle_type);
+                    Log.w(TAG, "Unknown vehicle type: " + vehicle_type);
             }
         }
 	};
@@ -311,7 +319,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 					_usbWriter.flush();
 					logger.info("WINCH CMD: " + command.toString());
 				} catch (Exception e) {
-					Log.w(logTag, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
+					Log.w(TAG, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
 				}
 			}
         }
@@ -334,14 +342,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * @see com.platypus.crw.VehicleServer#isConnected()
 	 */
 	public boolean isConnected() {
-		return _isConnected.get();
-	}
-	/**
-	 * Internal function used to set the connection status of this object
-	 * (indicating whether currently in contact with vehicle controller).
-	 */
-	protected void setConnected(boolean isConnected) {
-		_isConnected.set(isConnected);
+		return mController.isConnected();
 	}
 
 	/**
@@ -386,7 +387,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 							reading.channel = sensor;
                             reading.type = SensorType.ES2;
 							reading.data = new double[] { ecData, tempData};
-							//Log.i(logTag, "ES2: " + data);
+							//Log.i(TAG, "ES2: " + data);
 
 							sendSensor(sensor, reading);
 							logger.info("EC2: "+ sensor + " " + reading );
@@ -420,14 +421,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                                     sendSensor(sensor, reading);
                                 } catch(Exception e) {
-                                    Log.w(logTag, "Failed to parse depth reading: " + nmea);
+                                    Log.w(TAG, "Failed to parse depth reading: " + nmea);
                                 }
                             }else if (nmea.startsWith("$SDMTW")){ //Water Temperature
 
 							}else if (nmea.startsWith("$SDRMC")){ //GPS
 
 							}else{
-								Log.w(logTag, "Unknown NMEA String: " + nmea);
+								Log.w(TAG, "Unknown NMEA String: " + nmea);
 							}
                         } else if (type.equalsIgnoreCase("battery")){
 							// Parse out voltage and motor velocity values
@@ -459,10 +460,10 @@ public class AirboatImpl extends AbstractVehicleServer {
                         }
                     }
 				} else {
-					Log.w(logTag, "Received unknown param '" + cmd + "'.");
+					Log.w(TAG, "Received unknown param '" + cmd + "'.");
 				}
 			} catch (JSONException e) {
-				Log.w(logTag, "Malformed JSON command '" + cmd + "'.", e);
+				Log.w(TAG, "Malformed JSON command '" + cmd + "'.", e);
 			}
 		}
 	}
@@ -475,27 +476,27 @@ public class AirboatImpl extends AbstractVehicleServer {
 			_usbWriter.println("{\"s0\":{ \"sample\": true }");
 			_usbWriter.flush();
 		}
-		Log.i(logTag, "Triggering sampler.");
+		Log.i(TAG, "Triggering sampler.");
 		logger.info("SMP: NOW");
 		return new byte[1];
 	}
 	
 	public synchronized byte[] captureImageInternal(int width, int height) {
 		byte[] bytes = AirboatCameraActivity.takePhoto(_context, width, height);
-		Log.i(logTag, "Sending image [" + bytes.length + "]");
+		Log.i(TAG, "Sending image [" + bytes.length + "]");
 		return bytes;
 	}
 
 	public synchronized boolean saveImage() {
 		AirboatCameraActivity.savePhoto(_context);
-		Log.i(logTag, "Saving image.");
+		Log.i(TAG, "Saving image.");
 		return true;
 	}
 
 	@Override
 	public void startCamera(final int numFrames, final double interval,
 			final int width, final int height) {
-		Log.i(logTag, "Starting capture: " + numFrames + "(" + width + "x"
+		Log.i(TAG, "Starting capture: " + numFrames + "(" + width + "x"
 				+ height + ") frames @ " + interval + "s");
 
 		// Create a camera capture task
@@ -604,7 +605,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	@Override
 	public void startWaypoints(final UtmPose[] waypoints,
 			final String controller) {
-		Log.i(logTag,
+		Log.i(TAG,
 				"Starting waypoints with " + controller + ": "
 						+ Arrays.toString(waypoints));
 		if (controller.equalsIgnoreCase("PRIMITIVES"))
@@ -613,7 +614,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
 			VehicleController vc = AirboatController.valueOf(controller).controller;
 			vc.update(AirboatImpl.this, (double) UPDATE_INTERVAL_MS / 1000.0);
-			Log.i(logTag, "Waypoint Status: PRIMITIVES");
+			Log.i(TAG, "Waypoint Status: PRIMITIVES");
 		}
 		else
 		{
@@ -626,9 +627,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 				{
 					try {
 						vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
-						//Log.i(logTag, "vc:"+ vc.toString() + "controller" + controller );
+						//Log.i(TAG, "vc:"+ vc.toString() + "controller" + controller );
 					} catch (IllegalArgumentException e) {
-						Log.w(logTag, "Unknown controller specified (using " + vc
+						Log.w(TAG, "Unknown controller specified (using " + vc
 								+ " instead): " + controller);
 					}
 				}
@@ -636,15 +637,15 @@ public class AirboatImpl extends AbstractVehicleServer {
 				@Override
 				public void run() {
 					synchronized (_navigationLock) {
-						//Log.i(logTag, "Synchronized");
+						//Log.i(TAG, "Synchronized");
 
 						if (!_isAutonomous.get()) {
 							// If we are not autonomous, do nothing
-							Log.i(logTag,"Paused");
+							Log.i(TAG,"Paused");
 							sendWaypointUpdate(WaypointState.PAUSED);
 						} else if (_waypoints.length == 0) {
 							// If we are finished with waypoints, stop in place
-							Log.i(logTag, "Done");
+							Log.i(TAG, "Done");
 							sendWaypointUpdate(WaypointState.DONE);
 							setVelocity(new Twist(DEFAULT_TWIST));
 							this.cancel();
@@ -654,10 +655,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 							// If we are still executing waypoints, use a
 							// controller to figure out how to get to waypoint
 							// TODO: measure dt directly instead of approximating
-							Log.i(logTag,"controller :" + controller);
+							Log.i(TAG,"controller :" + controller);
 							vc.update(AirboatImpl.this, dt);
 							sendWaypointUpdate(WaypointState.GOING);
-							//Log.i(logTag, "Waypoint Status: POINT_AND_SHOOT");
+							//Log.i(TAG, "Waypoint Status: POINT_AND_SHOOT");
 						}
 					}
 				}
@@ -692,7 +693,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				_navigationTask = null;
 				_waypoints = new UtmPose[0];
 				setVelocity(new Twist(DEFAULT_TWIST));
-				Log.i(logTag, "StopWaypoint");
+				Log.i(TAG, "StopWaypoint");
 			}
 		}
 		sendWaypointUpdate(WaypointState.CANCELLED);
@@ -754,13 +755,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 		_isAutonomous.set(false);
 		_isConnected.set(false);
+		_isRunning.set(false);
 
 		_updateTimer.cancel();
 		_updateTimer.purge();
 		
 		_navigationTimer.cancel();
 		_navigationTimer.purge();
-		
+
 		_captureTimer.cancel();
 		_captureTimer.purge();
 	}

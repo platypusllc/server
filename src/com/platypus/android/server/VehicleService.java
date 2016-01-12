@@ -208,9 +208,6 @@ public class VehicleService extends Service {
                 .permitAll().build();
         StrictMode.setThreadPolicy(policy);
 
-        // Get USB Manager to handle USB accessories.
-        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-
         // Register a shared preference listener to listen for updates.
         PreferenceManager.getDefaultSharedPreferences(this)
                 .registerOnSharedPreferenceChangeListener(mPreferenceListener);
@@ -276,51 +273,8 @@ public class VehicleService extends Service {
         gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0,
                 locationListener);
 
-        // TODO: remove this placeholder.
-        OutputStream nullOutputStream = new OutputStream() {
-            @Override
-            public void write(int b) {
-            }
-        };
-        PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(nullOutputStream));
-
         // Create the internal vehicle server implementation.
-        _airboatImpl = new AirboatImpl(this, usbWriter);
-		/*
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				// Start a loop to receive data from accessory.
-				try {
-					while (true) {
-						// Handle this response
-						byte[] buffer = new byte[1024];
-						int len = usbReader.read(buffer);
-						buffer[len] = '\0';
-						String line = new String(buffer, 0, len);
-
-						try {
-							// TODO: proper threading here
-							if (_airboatImpl == null) {
-								return;
-							} else {
-								_airboatImpl.onCommand(new JSONObject(line));
-							}
-						} catch (JSONException e) {
-							Log.w(TAG, "Failed to parse response '" + line + "'.", e);
-						}
-					}
-				} catch (IOException e) {
-					Log.d(TAG, "Accessory connection closed.", e);
-				}
-
-				try {
-					usbReader.close();
-				} catch (IOException e) {
-				}
-			}
-		}).start();
-		*/
+        _airboatImpl = new AirboatImpl(this);
 
         // Start up UDP vehicle service in the background
         new Thread(new Runnable() {
@@ -467,9 +421,6 @@ public class VehicleService extends Service {
             _wifiLock.release();
         }
 
-        // Disconnect from USB event receiver
-        unregisterReceiver(_usbStatusReceiver);
-
         // Disconnect from the Android sensors
         SensorManager sm;
         sm = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -483,14 +434,12 @@ public class VehicleService extends Service {
 
         // Disconnect the data object from this service
         if (_airboatImpl != null) {
-            try {
-                mUsbDescriptor.close();
-            } catch (IOException e) {
-            }
-            _airboatImpl.setConnected(false);
             _airboatImpl.shutdown();
             _airboatImpl = null;
         }
+
+        // Disconnect from the vehicle controller.
+        Controller.getInstance().close();
 
         // Disable this as a foreground service
         stopForeground(true);
