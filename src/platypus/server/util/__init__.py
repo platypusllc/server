@@ -64,7 +64,7 @@ class ObservableDict(dict):
         self.update(entries)
 
     def __setitem__(self, key, new_value):
-        # Convert dict() objects to ObservableDict to give them observe()/notify().
+        # Convert dict() objects to ObservableDict to add observe()/notify().
         if isinstance(new_value, dict):
             new_value = ObservableDict(parent=self, key=key, entries=new_value)
 
@@ -96,7 +96,7 @@ class ObservableDict(dict):
 
         Note: This process will orphan references to subtrees of this
         dictionary that no longer contain data.  Do not call this method
-        unless you are sure no references to intermediate subtrees are 
+        unless you are sure no references to intermediate subtrees are
         still being used.
 
         :return: True if this key no longer contains any data
@@ -129,7 +129,7 @@ class ObservableDict(dict):
 
             # Notify parents of this subtree.
             if self._parent is not None:
-                self._parent._notify(self._key, old_value, new_value, path=path)
+                self._parent._notify(self._key, old_value, new_value, path)
 
     def observe(self, key, callback):
         """
