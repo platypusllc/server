@@ -7,6 +7,7 @@ import threading
 import time
 from . import util
 
+
 class ControllerDict(collections.MutableMapping):
     """
     Wrapper class for ObservableDict that intercepts setter calls.
@@ -86,7 +87,8 @@ class Controller(ControllerDict):
         """
         # Create an internal data dictionary that stores controller state.
         observable_dict = util.ObservableDict(entries=data)
-        ControllerDict.__init__(self, controller=self, obs_dict=observable_dict)
+        ControllerDict.__init__(self, controller=self,
+                                obs_dict=observable_dict)
 
         self._device_lock = threading.Lock()
         self._device = serial.serial_for_url(port, do_not_open=True)
@@ -127,7 +129,7 @@ class Controller(ControllerDict):
                 return False
             else:
                 return ((self.timeout is None) or
-                    (self._last_timestamp + self.timeout > time.clock()))
+                        (self._last_timestamp + self.timeout > time.clock()))
 
     @property
     def port(self):
