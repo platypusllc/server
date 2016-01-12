@@ -45,7 +45,7 @@ public class ControllerLauncherActivity extends Activity {
                     // Permission was granted, if the device exists: open it.
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if (accessory != null) {
-                            Controller.getInstance().setConnection(accessory);
+                            Controller.getInstance().setConnection(context, accessory);
                             Log.d(TAG, "Set new accessory to: " + accessory.getDescription());
                         } else {
                             // This is weird, we got permission, but to which device?

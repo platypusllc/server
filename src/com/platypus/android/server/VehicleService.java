@@ -4,17 +4,13 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.hardware.usb.UsbAccessory;
-import android.hardware.usb.UsbManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -24,11 +20,11 @@ import android.net.wifi.WifiManager.WifiLock;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.IBinder;
-import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.platypus.crw.CrwSecurityManager;
@@ -42,10 +38,6 @@ import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.measure.unit.NonSI;
@@ -53,8 +45,6 @@ import javax.measure.unit.SI;
 
 import robotutils.Pose3D;
 import robotutils.Quaternion;
-
-import android.support.annotation.Nullable;
 
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
@@ -78,7 +68,7 @@ public class VehicleService extends Service {
     private VehicleLogger mLogger;
 
     // Objects implementing actual functionality
-    private AirboatImpl _airboatImpl;
+    private VehicleServerImpl _vehicleServerImpl;
     private UdpVehicleService _udpService;
     // Lock objects that prevent the phone from sleeping
     private WakeLock _wakeLock = null;
@@ -94,8 +84,8 @@ public class VehicleService extends Service {
                         event.values);
                 double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
 
-                if (_airboatImpl != null) {
-                    _airboatImpl.filter.compassUpdate(yaw,
+                if (_vehicleServerImpl != null) {
+                    _vehicleServerImpl.filter.compassUpdate(yaw,
                             System.currentTimeMillis());
 //					logger.info("COMPASS: " + yaw);
                 }
@@ -114,7 +104,7 @@ public class VehicleService extends Service {
         public void onSensorChanged(SensorEvent event) {
             // TODO Auto-generated method stub
             /*
-			 * Convert phone coordinates to world coordinates. use magnetometer
+             * Convert phone coordinates to world coordinates. use magnetometer
 			 * and accelerometer to get orientation Simple rotation is 90�
 			 * clockwise about positive y axis. Thus, transformation is: // / M[
 			 * 0] M[ 1] M[ 2] \ / values[0] \ = gyroValues[0] // | M[ 3] M[ 4]
@@ -132,8 +122,8 @@ public class VehicleService extends Service {
                     + rotationMatrix[7] * event.values[1] + rotationMatrix[8]
                     * event.values[2];
 
-            if (_airboatImpl != null)
-                _airboatImpl.setPhoneGyro(gyroValues);
+            if (_vehicleServerImpl != null)
+                _vehicleServerImpl.setPhoneGyro(gyroValues);
         }
 
         @Override
@@ -175,8 +165,8 @@ public class VehicleService extends Service {
             UtmPose utm = new UtmPose(pose, origin);
 
             // Apply update using filter object
-            if (_airboatImpl != null) {
-                _airboatImpl.filter.gpsUpdate(utm, location.getTime());
+            if (_vehicleServerImpl != null) {
+                _vehicleServerImpl.filter.gpsUpdate(utm, location.getTime());
 //				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
 //						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
 //						+ ", " + location.getBearing());
@@ -190,11 +180,11 @@ public class VehicleService extends Service {
      */
     private SharedPreferences.OnSharedPreferenceChangeListener mPreferenceListener =
             new SharedPreferences.OnSharedPreferenceChangeListener() {
-        @Override
-        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-            // TODO: fill this in to update preferences.
-        }
-    };
+                @Override
+                public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                    // TODO: fill this in to update preferences.
+                }
+            };
 
     @Override
     public void onCreate() {
@@ -221,8 +211,8 @@ public class VehicleService extends Service {
      *
      * @return An interface allowing high-level control of the boat.
      */
-    public AirboatImpl getServer() {
-        return _airboatImpl;
+    public VehicleServerImpl getServer() {
+        return _vehicleServerImpl;
     }
 
     /**
@@ -274,7 +264,7 @@ public class VehicleService extends Service {
                 locationListener);
 
         // Create the internal vehicle server implementation.
-        _airboatImpl = new AirboatImpl(this);
+        _vehicleServerImpl = new VehicleServerImpl(this, mLogger);
 
         // Start up UDP vehicle service in the background
         new Thread(new Runnable() {
@@ -285,7 +275,7 @@ public class VehicleService extends Service {
 
                 try {
                     // Create a UdpVehicleService to expose the data object
-                    _udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
+                    _udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _vehicleServerImpl);
                     // If given a UDP registry parameter, add registry to
                     // service
 					/*
@@ -322,22 +312,21 @@ public class VehicleService extends Service {
                     } catch (InterruptedException ex) {
                     }
 
-                    if (_airboatImpl != null) {
-                        int [] axes = {0, 5};
+                    if (_vehicleServerImpl != null) {
+                        int[] axes = {0, 5};
                         for (int axis : axes) {
-                            double[] gains = _airboatImpl.getGains(axis);
+                            double[] gains = _vehicleServerImpl.getGains(axis);
                             try {
-                                JSONObject entry = new JSONObject()
+                                mLogger.info(new JSONObject()
                                         .put("gain", new JSONObject()
                                                 .put("axis", axis)
-                                                .put("values", gains));
-                                mLogger.info(entry);
+                                                .put("values", gains)));
                             } catch (JSONException e) {
                                 Log.w(TAG, "Failed to serialize gains.");
                             }
                         }
                     }
-                } while (_airboatImpl == null);
+                } while (_vehicleServerImpl == null);
             }
         }).start();
 
@@ -433,9 +422,9 @@ public class VehicleService extends Service {
         gps.removeUpdates(locationListener);
 
         // Disconnect the data object from this service
-        if (_airboatImpl != null) {
-            _airboatImpl.shutdown();
-            _airboatImpl = null;
+        if (_vehicleServerImpl != null) {
+            _vehicleServerImpl.shutdown();
+            _vehicleServerImpl = null;
         }
 
         // Disconnect from the vehicle controller.
