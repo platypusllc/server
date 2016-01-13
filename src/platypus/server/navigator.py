@@ -3,7 +3,6 @@ Platypus vehicle navigation library.
 """
 from .util import spatial
 import numpy
-import threading
 
 # TODO: use python enum34 here.
 
