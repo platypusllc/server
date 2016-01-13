@@ -1,5 +1,5 @@
 import argparse
-from platypus.server.controller import Controller
+from . import Controller, Navigator
 
 
 def main():
@@ -13,7 +13,14 @@ def main():
     args = argparse.parse_args()
 
     controller = Controller(port=args.port)
+    navigator = Navigator(controller)
+    ws_server = WebsocketServer(controller, navigator)
 
     while True:
         import time
         time.sleep(0.1)
+
+        # TODO: Implement web server interface.
+
+        # Run the navigator control loop.
+        navigator.control()
