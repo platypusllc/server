@@ -1,5 +1,6 @@
 import argparse
 from . import Controller, Navigator
+from . import io
 
 
 def main():
@@ -14,7 +15,9 @@ def main():
 
     controller = Controller(port=args.port)
     navigator = Navigator(controller)
-    ws_server = WebsocketServer(controller, navigator)
+
+    ws_server = io.WebsocketServer(controller, navigator)
+    ws_server.start()
 
     while True:
         import time
