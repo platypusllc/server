@@ -18,7 +18,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:name="com.platypus.android.server.ApplicationGlobe"
+        android:name=".ApplicationGlobe"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name">
@@ -26,10 +26,10 @@
         <service
             android:name=".VehicleService"
             android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Service" />
+            android:label="Platypus Vehicle Service" />
 
         <activity
-            android:name="com.platypus.android.server.MainActivity"
+            android:name=".MainActivity"
             android:icon="@mipmap/ic_launcher"
             android:label="Platypus Server"
             android:screenOrientation="portrait"
@@ -38,25 +38,27 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".AirboatCameraActivity"
+            android:configChanges="keyboardHidden|orientation"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Platypus Vehicle Camera"
+            android:screenOrientation="nosensor" />
+        <activity
+            android:name=".ControllerLauncherActivity"
+            android:excludeFromRecents="true"
+            android:label="Platypus Controller Launcher"
+            android:launchMode="singleInstance"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />
             </intent-filter>
             <meta-data
                 android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
-        <activity
-            android:name="com.platypus.android.server.AirboatCameraActivity"
-            android:configChanges="keyboardHidden|orientation"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Camera"
-            android:screenOrientation="nosensor" />
-        <activity
-            android:name=".ControllerLauncherActivity"
-            android:excludeFromRecents="true"
-            android:label="Airboat Launcher Activity"
-            android:launchMode="singleInstance"
-            android:theme="@android:style/Theme.NoDisplay" />
 
     </application>
 
