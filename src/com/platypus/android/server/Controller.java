@@ -37,6 +37,7 @@ public class Controller {
     private static final int MAX_PACKET_SIZE = 1024;
     private static final Controller mInstance = new Controller();
     // References to USB accessory device.
+    // TODO: convert this away from singleton architecture.
     private Context mUsbContext = null;
     private UsbAccessory mUsbAccessory = null;
     private ParcelFileDescriptor mUsbDescriptor = null;
@@ -71,12 +72,11 @@ public class Controller {
      *
      * @param usbAccessory the USB accessory that should be used to connect to the controller.
      */
-    public synchronized void setConnection(Context context, UsbAccessory usbAccessory) {
+    public synchronized void setConnection(UsbAccessory usbAccessory) {
         // Clear references to old connection if it exists.
         disconnect();
 
         // Store references to new USB device reference.
-        mUsbContext = context;
         mUsbAccessory = usbAccessory;
 
         // If the connection was originally open, reopen it now.
@@ -87,12 +87,40 @@ public class Controller {
     /**
      * Indicate that devices should be opened when they are detected.
      */
-    public synchronized void open() {
+    public synchronized void open(Context context) {
+        // Store the context within which this device should be opened.
+        // If the context is changed, reopen the USB accessory.
+        if (mUsbContext != context) {
+            disconnect();
+            mUsbContext = context;
+        }
+
         // Mark this connection as open.
         if (mIsOpen)
             return;
         mIsOpen = true;
         connect();
+    }
+
+    /**
+     * Call this if the opening context is paused.
+     * This is only needed if the controller is opened by an Activity.
+     */
+    public synchronized void pause() {
+        if (mUsbContext != null) {
+            mUsbContext.unregisterReceiver(mUsbStatusReceiver);
+        }
+    }
+
+    /**
+     * Call this if the opening context is resumed.
+     * This is only needed if the controller is opened by an Activity.
+     */
+    public synchronized void resume() {
+        if (mUsbContext != null) {
+            IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+            mUsbContext.registerReceiver(mUsbStatusReceiver, filter);
+        }
     }
 
     /**
@@ -114,7 +142,15 @@ public class Controller {
      * Attempt to open existing device reference.
      */
     public synchronized boolean connect() {
-        if (mUsbContext == null || mUsbAccessory == null) {
+
+        // If no one is listening, don't connect.
+        if (mUsbContext == null) {
+            Log.e(TAG, "Failed to connect, no context available.");
+            return false;
+        }
+
+        // If nothing is connected, don't connect.
+        if (mUsbAccessory == null) {
             Log.e(TAG, "Failed to connect, no accessory available.");
             return false;
         }
@@ -145,7 +181,7 @@ public class Controller {
      */
     protected synchronized void disconnect() {
         // Clear context and accessory references.
-        if (mUsbContext != null) {
+        if (mUsbContext != null && mUsbAccessory != null) {
             mUsbContext.unregisterReceiver(mUsbStatusReceiver);
         }
         mUsbContext = null;

@@ -247,7 +247,7 @@ public class VehicleService extends Service {
         mLogger = new VehicleLogger();
 
         // Connect to a vehicle controller.
-        mController.open();
+        mController.open(this);
 
         // Get context (used for system functions)
         Context context = getApplicationContext();
@@ -312,32 +312,18 @@ public class VehicleService extends Service {
         }).start();
 
         // Log the velocity gains before starting the service
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                do {
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException ex) {
-                    }
-
-                    if (_vehicleServerImpl != null) {
-                        int[] axes = {0, 5};
-                        for (int axis : axes) {
-                            double[] gains = _vehicleServerImpl.getGains(axis);
-                            try {
-                                mLogger.info(new JSONObject()
-                                        .put("gain", new JSONObject()
-                                                .put("axis", axis)
-                                                .put("values", gains)));
-                            } catch (JSONException e) {
-                                Log.w(TAG, "Failed to serialize gains.");
-                            }
-                        }
-                    }
-                } while (_vehicleServerImpl == null);
+        int[] axes = {0, 5};
+        for (int axis : axes) {
+            double[] gains = _vehicleServerImpl.getGains(axis);
+            try {
+                mLogger.info(new JSONObject()
+                        .put("gain", new JSONObject()
+                                .put("axis", axis)
+                                .put("values", gains)));
+            } catch (JSONException e) {
+                Log.w(TAG, "Failed to serialize gains.");
             }
-        }).start();
+        }
 
         // Prevent phone from sleeping or turning off wifi
         {
@@ -345,14 +331,14 @@ public class VehicleService extends Service {
             PowerManager pm = (PowerManager) context
                     .getSystemService(Context.POWER_SERVICE);
             _wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                    "AirboatWakeLock");
+                    "PlatypusVehicleWakeLock");
             _wakeLock.acquire();
 
             // Acquire a WifiLock to keep the phone from turning off wifi
             WifiManager wm = (WifiManager) context
                     .getSystemService(Context.WIFI_SERVICE);
             _wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
-                    "AirboatWifiLock");
+                    "PlatypusVehicleWifiLock");
             _wifiLock.acquire();
         }
 
