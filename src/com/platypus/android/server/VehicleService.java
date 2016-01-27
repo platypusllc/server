@@ -67,6 +67,9 @@ public class VehicleService extends Service {
     // Reference to vehicle logfile.
     private VehicleLogger mLogger;
 
+    // Reference to vehicle controller;
+    private Controller mController;
+
     // Objects implementing actual functionality
     private VehicleServerImpl _vehicleServerImpl;
     private UdpVehicleService _udpService;
@@ -202,6 +205,9 @@ public class VehicleService extends Service {
         PreferenceManager.getDefaultSharedPreferences(this)
                 .registerOnSharedPreferenceChangeListener(mPreferenceListener);
 
+        // Get reference to vehicle controller service.
+        mController = Controller.getInstance();
+
         // TODO: optimize this to allocate resources up here and handle multiple
         // start commands
     }
@@ -240,6 +246,9 @@ public class VehicleService extends Service {
             mLogger.close();
         mLogger = new VehicleLogger();
 
+        // Connect to a vehicle controller.
+        mController.open();
+
         // Get context (used for system functions)
         Context context = getApplicationContext();
 
@@ -264,7 +273,7 @@ public class VehicleService extends Service {
                 locationListener);
 
         // Create the internal vehicle server implementation.
-        _vehicleServerImpl = new VehicleServerImpl(this, mLogger);
+        _vehicleServerImpl = new VehicleServerImpl(this, mLogger, mController);
 
         // Start up UDP vehicle service in the background
         new Thread(new Runnable() {
@@ -364,6 +373,11 @@ public class VehicleService extends Service {
             startForeground(SERVICE_ID, notification);
         }
 
+        // Request permission to existing controller devices if connected.
+        Intent controllerIntent = new Intent(this, ControllerLauncherActivity.class);
+        controllerIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(controllerIntent);
+
         // Indicate that the service should not be stopped arbitrarily.
         Log.i(TAG, "VehicleService started.");
         isRunning.set(true);
@@ -385,8 +399,16 @@ public class VehicleService extends Service {
         Debug.stopMethodTracing();
 
         // Stop the vehicle log for this run.
-        mLogger.close();
-        mLogger = null;
+        if (mLogger != null) {
+            mLogger.close();
+            mLogger = null;
+        }
+
+        // Disconnect from the vehicle controller.
+        if (mController != null) {
+            mController.close();
+            mController = null;
+        }
 
         // Unregister shared preference listener to listen for updates.
         PreferenceManager.getDefaultSharedPreferences(this)

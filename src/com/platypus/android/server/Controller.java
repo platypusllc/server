@@ -111,9 +111,14 @@ public class Controller {
     }
 
     /**
-     * Open existing device reference.
+     * Attempt to open existing device reference.
      */
-    public synchronized void connect() {
+    public synchronized boolean connect() {
+        if (mUsbContext == null || mUsbAccessory == null) {
+            Log.e(TAG, "Failed to connect, no accessory available.");
+            return false;
+        }
+
         // Get a reference to the system USB management service.
         UsbManager usbManager = (UsbManager) mUsbContext.getSystemService(Context.USB_SERVICE);
 
@@ -121,7 +126,7 @@ public class Controller {
         ParcelFileDescriptor usbDescriptor = usbManager.openAccessory(mUsbAccessory);
         if (usbDescriptor == null) {
             Log.e(TAG, "Failed to open accessory: " + mUsbAccessory.getDescription());
-            return;
+            return false;
         }
 
         // Create an intent filter to listen for device disconnections
@@ -132,6 +137,7 @@ public class Controller {
         mUsbDescriptor = usbDescriptor;
         mUsbInputStream = new FileInputStream(usbDescriptor.getFileDescriptor());
         mUsbOutputStream = new FileOutputStream(usbDescriptor.getFileDescriptor());
+        return true;
     }
 
     /**

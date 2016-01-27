@@ -59,7 +59,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     // Internal references.
     final Context _context;
     final VehicleLogger mLogger;
-    final Controller mController = Controller.getInstance();
+    final Controller mController;
     /**
      * Raw gyroscopic readings from the phone gyro.
      */
@@ -154,7 +154,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         command.put("m1", velocity1);
 
                         // Send and log the transmitted command.
-                        mController.send(command);
+                        if (mController.isConnected())
+                            mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
                     } catch (JSONException e) {
                         Log.w(TAG, "Failed to serialize command.", e);
@@ -187,7 +188,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         command.put("s0", rudder);
 
                         // Send and log the transmitted command.
-                        mController.send(command);
+                        if (mController.isConnected())
+                            mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
                     } catch (JSONException e) {
                         Log.w(TAG, "Failed to serialize command.", e);
@@ -209,9 +211,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * @param context the application context to use
      */
 
-    protected VehicleServerImpl(Context context, VehicleLogger logger) {
+    protected VehicleServerImpl(Context context, VehicleLogger logger, Controller controller) {
         _context = context;
         mLogger = logger;
+        mController = controller;
 
         // Connect to the Shared Preferences for this process.
         mPrefs = PreferenceManager.getDefaultSharedPreferences(_context);
@@ -307,8 +310,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                 mController.send(command);
                 mLogger.info(new JSONObject().put("winch", command));
-            } catch (Exception e) {
+            } catch (JSONException e) {
                 Log.w(TAG, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
+            } catch (IOException e) {
+                Log.w(TAG, "Unable to send winch command.", e);
             }
             return;
         } else if (axis == 5) {
@@ -777,5 +782,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         _captureTimer.cancel();
         _captureTimer.purge();
+
+        mController.close();
     }
 }
