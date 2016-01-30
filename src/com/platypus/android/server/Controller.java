@@ -1,5 +1,6 @@
 package com.platypus.android.server;
 
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -7,6 +8,7 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.os.ParcelFileDescriptor;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -20,33 +22,47 @@ import java.nio.charset.Charset;
 /**
  * Wrapper for interfacing with the Platypus Controller board.
  * <p/>
- * This singleton class provides simple JSON-based send and receive functionality to a
+ * This class provides simple JSON-based send and receive functionality to a
  * Platypus controller board.  The class is automatically kept up to date with
- * accessories through the controller launcher activity.
- * <p/>
- * The `open()` and `close()` methods can be used to open device peripherals when they
- * are detected and forward the data to the `send()/receive()` commands.
+ * accessories by listening to USB connection and disconnection Intents.
  */
 public class Controller {
+    private static final String ACTION_USB_PERMISSION = "com.platypus.android.server.USB_PERMISSION";
     private static final String TAG = VehicleService.class.getSimpleName();
     private static final Charset ASCII = Charset.forName("US-ASCII");
 
     /**
-     * Maximum packet size that can be received.
+     * Maximum packet size that can be received from the board.
      */
     private static final int MAX_PACKET_SIZE = 1024;
-    private static final Controller mInstance = new Controller();
-    // References to USB accessory device.
-    // TODO: convert this away from singleton architecture.
-    private Context mUsbContext = null;
+
+    private final Context mContext;
+    /**
+     * Listen for connection events for accessory and request permission to connect to it.
+     */
+    final BroadcastReceiver mUsbAttachedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Retrieve the device that was just connected.
+            UsbAccessory accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
+
+            // Request permission to connect to this device.
+            // TODO: only detect Platypus Hardware!
+            UsbManager usbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
+            PendingIntent permissionIntent = PendingIntent.getBroadcast(
+                    mContext, 0, new Intent(ACTION_USB_PERMISSION), 0);
+            usbManager.requestPermission(accessory, permissionIntent);
+        }
+    };
+    private final Object mUsbLock = new Object();
     private UsbAccessory mUsbAccessory = null;
     private ParcelFileDescriptor mUsbDescriptor = null;
     private FileInputStream mUsbInputStream = null;
     private FileOutputStream mUsbOutputStream = null;
     /**
-     * Listen for disconnection events for accessory and close connection.
+     * Listen for disconnection events for accessory and close connection if we were using it.
      */
-    final BroadcastReceiver mUsbStatusReceiver = new BroadcastReceiver() {
+    final BroadcastReceiver mUsbDetachedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
 
@@ -54,168 +70,157 @@ public class Controller {
             UsbAccessory accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 
             // Close this connection if this accessory matches the one we have open.
-            if (mUsbAccessory.equals(accessory))
-                disconnect();
+            synchronized (mUsbLock) {
+                if (accessory.equals(mUsbAccessory))
+                    disconnect();
+            }
         }
     };
-    private boolean mIsOpen = false;
 
-    private Controller() {
-    }
+    /**
+     * Listen for permission events for a connected device and open connection if we got access.
+     */
+    final BroadcastReceiver mUsbPermissionReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Ignore unrelated permission responses.
+            String action = intent.getAction();
+            if (!ACTION_USB_PERMISSION.equals(action))
+                return;
 
-    public static Controller getInstance() {
-        return mInstance;
+            // Get the accessory to which we are responding.
+            UsbAccessory accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
+
+            // Ignore the permission response if access was denied.
+            if (!intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false))
+                return;
+
+            // Connect to the new USB accessory.
+            synchronized (mUsbLock) {
+                disconnect();
+                mUsbAccessory = accessory;
+                connect();
+            }
+        }
+    };
+
+    public Controller(Context context) {
+        // Store the context of the calling activity or service.
+        mContext = context;
+
+        // Register listeners for various USB device events.
+        mContext.registerReceiver(mUsbPermissionReceiver,
+                new IntentFilter(ACTION_USB_PERMISSION));
+
+        mContext.registerReceiver(mUsbDetachedReceiver,
+                new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED));
+
+        LocalBroadcastManager.getInstance(mContext).registerReceiver(mUsbAttachedReceiver,
+                new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_ATTACHED));
+
+        // Connect to any existing devices if they are already available.
+        searchDevices();
     }
 
     /**
-     * Sets the controller interface to use the specified USB accessory.
-     *
-     * @param usbAccessory the USB accessory that should be used to connect to the controller.
+     * Destroys and cleans up this controller object.
+     * After this is called, the controller object cannot be used again.
      */
-    public synchronized void setConnection(UsbAccessory usbAccessory) {
-        // Clear references to old connection if it exists.
+    public void shutdown() {
         disconnect();
-
-        // Store references to new USB device reference.
-        mUsbAccessory = usbAccessory;
-
-        // If the connection was originally open, reopen it now.
-        if (mIsOpen)
-            connect();
+        LocalBroadcastManager.getInstance(mContext).unregisterReceiver(mUsbAttachedReceiver);
+        mContext.unregisterReceiver(mUsbDetachedReceiver);
+        mContext.unregisterReceiver(mUsbPermissionReceiver);
     }
 
     /**
-     * Indicate that devices should be opened when they are detected.
+     * Searches for existing accessory devices and requests permission to access them.
      */
-    public synchronized void open(Context context) {
-        // Store the context within which this device should be opened.
-        // If the context is changed, reopen the USB accessory.
-        if (mUsbContext != context) {
-            disconnect();
-            mUsbContext = context;
-        }
+    protected void searchDevices() {
+        // Request permission for ANY connected device.
+        UsbManager usbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
+        UsbAccessory[] usbAccessoryList = usbManager.getAccessoryList();
 
-        // Mark this connection as open.
-        if (mIsOpen)
-            return;
-        mIsOpen = true;
-        connect();
-    }
-
-    /**
-     * Call this if the opening context is paused.
-     * This is only needed if the controller is opened by an Activity.
-     */
-    public synchronized void pause() {
-        if (mUsbContext != null) {
-            mUsbContext.unregisterReceiver(mUsbStatusReceiver);
+        if (usbAccessoryList != null && usbAccessoryList.length > 0) {
+            // TODO: only detect Platypus Hardware!
+            // At the moment, request permission to use the first accessory.
+            // (Only one is supported at a time in Android.)
+            PendingIntent permissionIntent = PendingIntent.getBroadcast(
+                    mContext, 0, new Intent(ACTION_USB_PERMISSION), 0);
+            usbManager.requestPermission(usbAccessoryList[0], permissionIntent);
         }
     }
 
     /**
-     * Call this if the opening context is resumed.
-     * This is only needed if the controller is opened by an Activity.
+     * Attempt to open the USB accessory.
      */
-    public synchronized void resume() {
-        if (mUsbContext != null) {
-            IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-            mUsbContext.registerReceiver(mUsbStatusReceiver, filter);
-        }
-    }
-
-    /**
-     * Indicate that devices should no longer be opened.
-     */
-    public synchronized void close() {
-        // Mark this connection as closed.
-        if (!mIsOpen)
-            return;
-        mIsOpen = false;
-        disconnect();
-    }
-
-    public synchronized boolean isOpen() {
-        return mIsOpen;
-    }
-
-    /**
-     * Attempt to open existing device reference.
-     */
-    public synchronized boolean connect() {
-
-        // If no one is listening, don't connect.
-        if (mUsbContext == null) {
-            Log.e(TAG, "Failed to connect, no context available.");
-            return false;
-        }
-
-        // If nothing is connected, don't connect.
-        if (mUsbAccessory == null) {
-            Log.e(TAG, "Failed to connect, no accessory available.");
-            return false;
-        }
-
-        // Get a reference to the system USB management service.
-        UsbManager usbManager = (UsbManager) mUsbContext.getSystemService(Context.USB_SERVICE);
-
-        // Connect to control board.
-        ParcelFileDescriptor usbDescriptor = usbManager.openAccessory(mUsbAccessory);
-        if (usbDescriptor == null) {
-            Log.e(TAG, "Failed to open accessory: " + mUsbAccessory.getDescription());
-            return false;
-        }
-
-        // Create an intent filter to listen for device disconnections
-        IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-        mUsbContext.registerReceiver(mUsbStatusReceiver, filter);
-
-        // Make a connection to the USB descriptor.
-        mUsbDescriptor = usbDescriptor;
-        mUsbInputStream = new FileInputStream(usbDescriptor.getFileDescriptor());
-        mUsbOutputStream = new FileOutputStream(usbDescriptor.getFileDescriptor());
-        return true;
-    }
-
-    /**
-     * Close existing device reference.
-     */
-    protected synchronized void disconnect() {
-        // Clear context and accessory references.
-        if (mUsbContext != null && mUsbAccessory != null) {
-            mUsbContext.unregisterReceiver(mUsbStatusReceiver);
-        }
-        mUsbContext = null;
-        mUsbAccessory = null;
-
-        // Clear input stream if it exists.
-        if (mUsbInputStream != null) {
-            try {
-                mUsbInputStream.close();
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to close accessory input stream.");
+    public boolean connect() {
+        synchronized (mUsbLock) {
+            // If nothing is connected, don't connect.
+            if (mUsbAccessory == null) {
+                Log.e(TAG, "Failed to connect, no accessory available.");
+                return false;
             }
-        }
-        mUsbInputStream = null;
 
-        // Clear output stream if it exists.
-        if (mUsbOutputStream != null) {
-            try {
-                mUsbOutputStream.close();
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to close accessory output stream.");
-            }
-        }
-        mUsbOutputStream = null;
+            // Get a reference to the system USB management service.
+            UsbManager usbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
 
-        // Clear descriptor reference after input and output are cleared.
-        if (mUsbDescriptor != null) {
-            try {
-                mUsbDescriptor.close();
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to close accessory device descriptor.");
+            // Connect to control board.
+            ParcelFileDescriptor usbDescriptor = usbManager.openAccessory(mUsbAccessory);
+            if (usbDescriptor == null) {
+                Log.e(TAG, "Failed to open accessory: " + mUsbAccessory.getDescription());
+                return false;
             }
+
+            // Make a connection to the USB descriptor.
+            mUsbDescriptor = usbDescriptor;
+            mUsbInputStream = new FileInputStream(usbDescriptor.getFileDescriptor());
+            mUsbOutputStream = new FileOutputStream(usbDescriptor.getFileDescriptor());
+
+            Log.i(TAG, "Opened " + mUsbAccessory);
+            return true;
         }
-        mUsbDescriptor = null;
+    }
+
+    /**
+     * Close existing USB accessory.
+     */
+    protected void disconnect() {
+        synchronized (mUsbLock) {
+            // Clear input stream if it exists.
+            if (mUsbInputStream != null) {
+                try {
+                    mUsbInputStream.close();
+                } catch (IOException e) {
+                    Log.w(TAG, "Failed to close accessory input stream.");
+                }
+            }
+            mUsbInputStream = null;
+
+            // Clear output stream if it exists.
+            if (mUsbOutputStream != null) {
+                try {
+                    mUsbOutputStream.close();
+                } catch (IOException e) {
+                    Log.w(TAG, "Failed to close accessory output stream.");
+                }
+            }
+            mUsbOutputStream = null;
+
+            // Clear descriptor reference after input and output are cleared.
+            if (mUsbDescriptor != null) {
+                try {
+                    mUsbDescriptor.close();
+                } catch (IOException e) {
+                    Log.w(TAG, "Failed to close accessory device descriptor.");
+                }
+            }
+            mUsbDescriptor = null;
+
+            // Clear old accessory references.
+            Log.e(TAG, "Closed " + mUsbAccessory);
+            mUsbAccessory = null;
+        }
     }
 
     /**
@@ -223,8 +228,10 @@ public class Controller {
      *
      * @return true if a controller board is currently connected
      */
-    public synchronized boolean isConnected() {
-        return (mUsbDescriptor != null);
+    public boolean isConnected() {
+        synchronized (mUsbLock) {
+            return (mUsbDescriptor != null);
+        }
     }
 
     /**
@@ -232,14 +239,23 @@ public class Controller {
      *
      * @throws IOException if there is not a valid connection to a controller board.
      */
-    public synchronized void send(JSONObject obj) throws IOException {
-        if (mUsbOutputStream == null)
-            throw new IOException("Not connected to hardware.");
+    public void send(JSONObject obj) throws IOException {
+        byte[] message = obj.toString().getBytes(ASCII);
 
-        mUsbOutputStream.write(obj.toString().getBytes(ASCII));
-        mUsbOutputStream.write('\r');
-        mUsbOutputStream.write('\n');
-        mUsbOutputStream.flush();
+        synchronized (mUsbLock) {
+            if (mUsbOutputStream == null)
+                throw new IOException("Not connected to hardware.");
+
+            try {
+                mUsbOutputStream.write(message);
+                mUsbOutputStream.write('\r');
+                mUsbOutputStream.write('\n');
+                mUsbOutputStream.flush();
+            } catch (IOException e) {
+                disconnect();
+                throw e;
+            }
+        }
     }
 
     /**
@@ -255,10 +271,15 @@ public class Controller {
 
         // Try to read a line from the device.
         // If the stream is not open, just wait longer.
-        synchronized (this) {
+        synchronized (mUsbLock) {
             if (mUsbInputStream == null)
                 throw new IOException("Not connected to hardware.");
-            len = mUsbInputStream.read(buffer);
+            try {
+                len = mUsbInputStream.read(buffer);
+            } catch (IOException e) {
+                disconnect();
+                throw e;
+            }
         }
 
         // Terminate and convert the buffers to an ASCII string.

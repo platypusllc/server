@@ -782,7 +782,5 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         _captureTimer.cancel();
         _captureTimer.purge();
-
-        mController.close();
     }
 }

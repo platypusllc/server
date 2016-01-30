@@ -18,7 +18,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:name=".ApplicationGlobe"
+        android:name=".PlatypusApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name">
@@ -47,10 +47,10 @@
             android:label="Platypus Vehicle Camera"
             android:screenOrientation="nosensor" />
         <activity
-            android:name=".ControllerLauncherActivity"
+            android:name=".ControllerActivity"
             android:excludeFromRecents="true"
-            android:label="Platypus Controller Launcher"
-            android:launchMode="singleInstance"
+            android:label="Platypus Hardware Detector"
+            android:launchMode="singleTask"
             android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />

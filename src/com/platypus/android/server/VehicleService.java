@@ -206,7 +206,7 @@ public class VehicleService extends Service {
                 .registerOnSharedPreferenceChangeListener(mPreferenceListener);
 
         // Get reference to vehicle controller service.
-        mController = Controller.getInstance();
+        mController = new Controller(this);
 
         // TODO: optimize this to allocate resources up here and handle multiple
         // start commands
@@ -245,9 +245,6 @@ public class VehicleService extends Service {
         if (mLogger != null)
             mLogger.close();
         mLogger = new VehicleLogger();
-
-        // Connect to a vehicle controller.
-        mController.open(this);
 
         // Get context (used for system functions)
         Context context = getApplicationContext();
@@ -296,13 +293,13 @@ public class VehicleService extends Service {
 						_udpService.addRegistry(_udpRegistryAddr);
 
                     } else {
-                        //((ApplicationGlobe)getApplicationContext()).setFailsafe_IPAddress(_udpRegistryAddr.getHostName());
+                        //((PlatypusApplication)getApplicationContext()).setFailsafe_IPAddress(_udpRegistryAddr.getHostName());
                         Log.w(TAG, "Unable to parse '" + udpRegistryStr
 								+ "' into UDP address.");
 					}
 					*/
 
-                    //((ApplicationGlobe)getApplicationContext()).setFailsafe_IPAddress(CrwNetworkUtils.getLocalhost(udpRegistryStr));
+                    //((PlatypusApplication)getApplicationContext()).setFailsafe_IPAddress(CrwNetworkUtils.getLocalhost(udpRegistryStr));
                 } catch (Exception e) {
                     Log.e(TAG, "UdpVehicleService failed to launch", e);
                     sendNotification("UdpVehicleService failed: " + e.getMessage());
@@ -359,11 +356,6 @@ public class VehicleService extends Service {
             startForeground(SERVICE_ID, notification);
         }
 
-        // Request permission to existing controller devices if connected.
-        Intent controllerIntent = new Intent(this, ControllerLauncherActivity.class);
-        controllerIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(controllerIntent);
-
         // Indicate that the service should not be stopped arbitrarily.
         Log.i(TAG, "VehicleService started.");
         isRunning.set(true);
@@ -392,7 +384,7 @@ public class VehicleService extends Service {
 
         // Disconnect from the vehicle controller.
         if (mController != null) {
-            mController.close();
+            mController.shutdown();
             mController = null;
         }
 
@@ -434,9 +426,6 @@ public class VehicleService extends Service {
             _vehicleServerImpl.shutdown();
             _vehicleServerImpl = null;
         }
-
-        // Disconnect from the vehicle controller.
-        Controller.getInstance().close();
 
         // Disable this as a foreground service
         stopForeground(true);
