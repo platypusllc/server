@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.hardware.usb.UsbManager;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 
 /**
  * Launcher that sets reference to USB peripheral when it connects.
@@ -17,8 +18,11 @@ import android.support.v4.content.LocalBroadcastManager;
  */
 public class ControllerActivity extends Activity {
     @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
+    protected void onResume() {
+        super.onResume();
+
+        // Forward this intent to other receivers in this application.
+        Intent intent = getIntent();
         if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(intent.getAction())) {
             LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         }
