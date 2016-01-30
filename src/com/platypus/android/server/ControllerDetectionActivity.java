@@ -7,7 +7,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 /**
- * Launcher that sets reference to USB peripheral when it connects.
+ * Launcher that propagates a connection event to USB peripheral when it is detected.
  * <p/>
  * This is required because Android does not allow USB connection events to be
  * received by services directly. Instead, this activity is launched, which does
@@ -16,7 +16,7 @@ import android.util.Log;
  * @author pkv
  * @see <a href="https://github.com/follower/android-background-service-usb-accessory">Android Background Service - USB accessory</a>
  */
-public class ControllerActivity extends Activity {
+public class ControllerDetectionActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
