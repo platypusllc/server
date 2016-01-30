@@ -218,7 +218,7 @@ public class Controller {
             mUsbDescriptor = null;
 
             // Clear old accessory references.
-            Log.e(TAG, "Closed " + mUsbAccessory);
+            Log.i(TAG, "Closed " + mUsbAccessory);
             mUsbAccessory = null;
         }
     }
