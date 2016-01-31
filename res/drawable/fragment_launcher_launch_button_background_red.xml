@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#B11"/>
+            <size android:width="240dp" android:height="240dp"/>
+        </shape>
+    </item>
     <item android:drawable="@drawable/ic_notification"
         android:width="140dp" android:height="140dp"
         android:left="50dp" android:top="50dp">
     </item>
     <item>
         <shape android:shape="oval">
-            <solid android:color="#D814"/>
+            <solid android:color="#8B11"/>
             <size android:width="240dp" android:height="240dp"/>
         </shape>
     </item>

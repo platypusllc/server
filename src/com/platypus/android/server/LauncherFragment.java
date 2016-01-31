@@ -165,6 +165,8 @@ public class LauncherFragment extends Fragment
         public boolean onLongClick(View v) {
             // Disable the launch button temporarily (until the service is done processing).
             mLaunchButton.setEnabled(false);
+            mLaunchButton.setBackground(getResources().getDrawable(
+                    R.drawable.fragment_launcher_launch_button_background_yellow));
 
             if (!isVehicleServiceRunning()) {
                 // If the service is not running, start it.
@@ -183,7 +185,7 @@ public class LauncherFragment extends Fragment
                     updateLaunchStatus();
                     mLaunchButton.setEnabled(true);
                 }
-            }, 3000);
+            }, 2000);
             return true;
         }
     }
