@@ -2,7 +2,7 @@
 <resources>
     <string name="launcher_launch_button_start">Press and hold to start</string>
     <string name="launcher_launch_button_stop">Press and hold to stop</string>
-    <string name="launcher_home_button_title">Set Home Position</string>
+    <string name="launcher_home_button_title">Press and hold to set home</string>
     <string name="launcher_home_text_content">[No Home Position]</string>
     <string name="launcher_home_text_format">Lat: <b>%1$f</b>, Lon: <b>%2$f</b></string>
     <string name="launcher_swipe_left_text_content">Swipe left for settings.</string>
