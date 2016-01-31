@@ -25,6 +25,7 @@ import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.platypus.crw.CrwSecurityManager;
@@ -56,6 +57,8 @@ import robotutils.Quaternion;
 public class VehicleService extends Service {
     private static final int SERVICE_ID = 11312;
     private static final String TAG = VehicleService.class.getSimpleName();
+    public static final String START_ACTION = "com.platypus.android.server.SERVICE_START";
+    public static final String STOP_ACTION = "com.platypus.android.server.SERVICE_STOP";
 
     // Default values for parameters
     private static final int DEFAULT_UDP_PORT = 11411;
@@ -339,6 +342,7 @@ public class VehicleService extends Service {
             _wifiLock.acquire();
         }
 
+        // Indicate that the service should not be stopped arbitrarily.
         // This is now a foreground service.  It should not be stopped by the system.
         {
             // Set up the notification to open main activity when clicked.
@@ -356,9 +360,12 @@ public class VehicleService extends Service {
             startForeground(SERVICE_ID, notification);
         }
 
-        // Indicate that the service should not be stopped arbitrarily.
-        Log.i(TAG, "VehicleService started.");
+        // Report successful initialization of the service.
+        Intent startupIntent = new Intent().setAction(START_ACTION);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(startupIntent);
         isRunning.set(true);
+
+        Log.i(TAG, "VehicleService started.");
         return Service.START_STICKY;
     }
 
@@ -430,8 +437,12 @@ public class VehicleService extends Service {
         // Disable this as a foreground service
         stopForeground(true);
 
-        Log.i(TAG, "VehicleService stopped.");
+        // Report successful destruction of the service.
+        Intent startupIntent = new Intent().setAction(STOP_ACTION);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(startupIntent);
         isRunning.set(false);
+
+        Log.i(TAG, "VehicleService stopped.");
         super.onDestroy();
     }
 
