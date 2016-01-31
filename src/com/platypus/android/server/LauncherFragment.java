@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,6 +18,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Fragment that controls the starting and stopping of the vehicle server.
@@ -35,6 +38,14 @@ public class LauncherFragment extends Fragment
     protected TextView mHomeText;
     protected Button mLaunchButton;
     protected Button mSetHomeButton;
+    protected LocationManager mLocationManager;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mLocationManager =
+                (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -115,45 +126,91 @@ public class LauncherFragment extends Fragment
     /**
      * Listens for long-click events on "Set Home" button and updates home location.
      */
-    class SetHomeListener implements View.OnLongClickListener {
+    class SetHomeListener implements View.OnLongClickListener, LocationListener {
         @Override
         public boolean onLongClick(View v) {
-            // Get last-known GPS location recorded on this phone.
-            LocationManager manager =
-                    (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-            Location home = manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            final AtomicInteger countdown = new AtomicInteger(30); // Timeout in seconds.
 
-            // If there is no fix, alert the user.
-            if (home == null) {
-                Toast.makeText(getActivity().getApplicationContext(),
-                        "No location available. Try opening Google Maps or starting the server " +
-                                "to acquire an up-to-date GPS update.",
-                        Toast.LENGTH_SHORT).show();
-                Log.w(TAG, "Home location not set: location was unavailable.");
-                return true;
-            }
+            // Disable this button until a timeout or a location lock.
+            mSetHomeButton.setEnabled(false);
+            mSetHomeButton.setText(
+                    getResources().getString(
+                            R.string.launcher_home_button_title_disabled, countdown.get()));
 
-            // If the fix is older than 10 minutes (600000 milliseconds), reject it.
-            if (System.currentTimeMillis() - home.getTime() > 600000) {
-                Toast.makeText(getActivity().getApplicationContext(),
-                        "Location was older than 10 minutes. Try opening Google Maps or starting " +
-                                "the server to acquire an up-to-date GPS update.",
-                        Toast.LENGTH_SHORT).show();
-                Log.w(TAG, "Home location not set: location was too old.");
-                return true;
-            }
+            // Register for GPS updates (until one of sufficient accuracy, or a timeout).
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, this);
+
+            // Create a timeout which cancels the homing command.
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // If button is re-enabled, we are done here.
+                    if (mSetHomeButton.isEnabled())
+                        return;
+
+                    // Decrement the counter, update text if not at zero.
+                    int count = countdown.decrementAndGet();
+                    if (count > 0) {
+                        mSetHomeButton.setText(
+                                getResources().getString(
+                                        R.string.launcher_home_button_title_disabled, count));
+                        mHandler.postDelayed(this, 1000);
+                        return;
+                    }
+
+                    // Remove listener and restore button.
+                    mLocationManager.removeUpdates(SetHomeListener.this);
+                    mSetHomeButton.setEnabled(true);
+                    mSetHomeButton.setText(R.string.launcher_home_button_title);
+
+                    // Alert the user to the failure.
+                    Toast.makeText(getActivity().getApplicationContext(),
+                            "No location available. Try opening Google Maps or starting the server " +
+                                    "to acquire an up-to-date GPS update.",
+                            Toast.LENGTH_SHORT).show();
+                    Log.w(TAG, "Home location not set: location was unavailable.");
+                }
+            }, 1000);
+
+            return true;
+        }
+
+        @Override
+        public void onLocationChanged(Location location) {
+            // Ignore inaccurate updates (typical during GPS startup).
+            if (location.getAccuracy() > 20.0f)
+                return;
 
             // Change the home location in the shared preferences.
             Toast.makeText(getActivity().getApplicationContext(),
                     "Home location successfully updated.",
                     Toast.LENGTH_SHORT).show();
             PreferenceManager.getDefaultSharedPreferences(getActivity()).edit()
-                    .putFloat("pref_home_latitude", (float) home.getLatitude())
-                    .putFloat("pref_home_longitude", (float) home.getLongitude())
+                    .putFloat("pref_home_latitude", (float) location.getLatitude())
+                    .putFloat("pref_home_longitude", (float) location.getLongitude())
                     .commit();
             Log.i(TAG, "Home location was set to " +
-                       "[" + home.getLatitude() + "," + home.getLongitude() + "]");
-            return true;
+                    "[" + location.getLatitude() + "," + location.getLongitude() + "]");
+
+            // Re-enable home button and cleanup location updates.
+            mLocationManager.removeUpdates(SetHomeListener.this);
+            mSetHomeButton.setEnabled(true);
+            mSetHomeButton.setText(R.string.launcher_home_button_title);
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            // Do nothing.
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            // Do nothing.
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            // Do nothing.
         }
     }
 
