@@ -1,4 +1,4 @@
-import platypus.server.util
+import platypus.vehicle.util
 import six
 from unittest import TestCase
 
@@ -30,7 +30,7 @@ class UtilTest(TestCase):
         }
 
         # Merge B into A using utility function.
-        platypus.server.util.merge(A, B)
+        platypus.vehicle.util.merge(A, B)
 
         # Make sure the correct keys are in the result.
         self.assertEqual(A["m0"]["type"], "HobbyKing")
@@ -64,7 +64,7 @@ class UtilTest(TestCase):
         }
 
         # Create the controller object.
-        c = platypus.server.util.ObservableDict(entries=data)
+        c = platypus.vehicle.util.ObservableDict(entries=data)
 
         # Check that initial data is accessible.
         six.assertCountEqual(self, c.keys(), ('m0', 'm1', 'm2', 's0'))

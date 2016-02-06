@@ -1,5 +1,6 @@
 import argparse
-from . import Controller, Navigator
+from .controller import Controller
+from .navigator import Navigator
 from . import io
 
 

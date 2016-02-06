@@ -16,7 +16,7 @@ class Navigator(object):
         Create a new vehicle navigation system.
 
         :param controller: a Platypus vehicle controller
-        :type  controller: platypus.server.Controller
+        :type  controller: platypus.vehicle.Controller
         """
         # TODO: implement a navigation lock?
         self._controller = controller

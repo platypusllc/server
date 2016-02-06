@@ -1,4 +1,4 @@
-import platypus.server.controller
+import platypus.vehicle.controller
 import six
 import time
 from unittest import TestCase
@@ -22,7 +22,7 @@ class ControllerTest(TestCase):
             "s0": "test_sensor"
         }
 
-        c = platypus.server.controller.Controller(port='loop://', data=data)
+        c = platypus.vehicle.controller.Controller(port='loop://', data=data)
 
         # Check that initial data is accessible.
         six.assertCountEqual(self, c.keys(), ('m0', 'm1', 'm2', 's0'))
@@ -65,7 +65,7 @@ class ControllerTest(TestCase):
         self.assertTrue(c.connected)
 
         # Change the port to an invalid setting and check for an error on send.
-        d = platypus.server.controller.Controller(
+        d = platypus.vehicle.controller.Controller(
             port='/dev/tty_invalid', data=data)
         with self.assertRaises(IOError):
             d['m1']['v'] = 3.0

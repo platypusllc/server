@@ -11,11 +11,11 @@ with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
 
 # Configure python distribution package.
 setup(
-    name='platypus-server',
+    name='platypus-vehicle',
     version='0.1.0.dev',
-    description='Vehicle Server for Platypus LLC',
+    description='Autonomous Vehicle for Platypus LLC',
     long_description=long_description,
-    url='https://github.com/platypusllc/server',
+    url='https://github.com/platypusllc/vehicle',
     author='Pras Velagapudi',
     author_email='pras@senseplatypus.com',
     license='Platypus LLC CONFIDENTIAL',
@@ -31,7 +31,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'platypus_server=platypus.server:main'
+            'platypus_vehicle=platypus.vehicle:main'
         ]
     },
     install_requires=[

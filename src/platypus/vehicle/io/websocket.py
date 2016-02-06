@@ -12,9 +12,9 @@ class WebsocketServer(object):
         Create a websocket server that controls a vehicle.
 
         :param controller: a Platypus vehicle controller
-        :type  controller: platypus.server.Controller
+        :type  controller: platypus.vehicle.Controller
         :param navigator: a Platypus navigation system
-        :type  navigator: platypus.server.Navigation
+        :type  navigator: platypus.vehicle.Navigation
         """
         self._controller = controller
         self._navigator = navigator
