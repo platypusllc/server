@@ -72,7 +72,8 @@ class UtilTest(TestCase):
         six.assertCountEqual(self, c['m0'].keys(), ('type',))
         self.assertEqual(c['m0']['type'], 'HobbyKing')
 
-        six.assertCountEqual(self, c['m1'].keys(), ('v', 'type', 'enabled', 'meta'))
+        six.assertCountEqual(self, c['m1'].keys(),
+                             ('v', 'type', 'enabled', 'meta'))
         self.assertEqual(c['m1']['v'], 1.0)
         self.assertEqual(c['m1']['type'], 'SeaKing')
         self.assertEqual(c['m1']['enabled'], False)

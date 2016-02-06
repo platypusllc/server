@@ -30,7 +30,8 @@ class ControllerTest(TestCase):
         six.assertCountEqual(self, c['m0'].keys(), ('type',))
         self.assertEqual(c['m0']['type'], 'HobbyKing')
 
-        six.assertCountEqual(self, c['m1'].keys(), ('v', 'type', 'enabled', 'meta'))
+        six.assertCountEqual(self, c['m1'].keys(),
+                             ('v', 'type', 'enabled', 'meta'))
         self.assertEqual(c['m1']['v'], 1.0)
         self.assertEqual(c['m1']['type'], 'SeaKing')
         self.assertEqual(c['m1']['enabled'], False)
@@ -40,12 +41,13 @@ class ControllerTest(TestCase):
         self.assertEqual(c['m2'], 'test_motor')
         self.assertEqual(c['s0'], 'test_sensor')
 
-        # The server has not received data, so 'disconnected' if we set a timeout.
+        # The server has not received data, so we expect it to report
+        # 'disconnected' if the timeout is set.
         c.timeout = 0.3
         self.assertFalse(c.connected)
 
-        # Run a setter to confirm that the data is sent to the serial port and not
-        # immediately set on this object.
+        # Run a setter to confirm that the data is sent to the serial port and
+        # not immediately set on this object.
         c['m1']['v'] = 0.0
         self.assertEqual(c['m1']['v'], 1.0)
 
@@ -62,7 +64,8 @@ class ControllerTest(TestCase):
         c.timeout = None
         self.assertTrue(c.connected)
 
-        # Change the port to an invalid settings.
-        d = platypus.server.controller.Controller(port='/dev/tty_invalid', data=data)
+        # Change the port to an invalid setting and check for an error on send.
+        d = platypus.server.controller.Controller(
+            port='/dev/tty_invalid', data=data)
         with self.assertRaises(IOError):
             d['m1']['v'] = 3.0
