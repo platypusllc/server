@@ -1,6 +1,8 @@
 import argparse
 from .controller import Controller
-from .navigator import Navigator
+from .behavior.navigator import Navigator
+from .behavior.failsafe import Failsafe
+from .vehicle import Vehicle
 from . import io
 
 
@@ -14,17 +16,24 @@ def main():
                         default='/dev/ttyACM0')
     args = argparse.parse_args()
 
+    # Create a hardware controller on the specified port.
     controller = Controller(port=args.port)
-    navigator = Navigator(controller)
 
-    ws_server = io.WebsocketServer(controller, navigator)
+    # Create a default waypoint navigation behavior.
+    navigator = Navigator()
+
+    # Create a vehicle using the the controller and navigator.
+    vehicle = Vehicle(controller, {
+        'navigator': navigator,
+    })
+
+    # Add a new behavior to return to a failsafe location after 30s
+    # without connectivity.
+    vehicle.behaviors['failsafe'] = Failsafe('192.168.1.1', 30.0)
+
+    # Start a websocket server to control the vehicle.
+    ws_server = io.WebsocketServer(vehicle)
     ws_server.start()
 
-    while True:
-        import time
-        time.sleep(0.1)
-
-        # TODO: Implement web server interface.
-
-        # Run the navigator control loop.
-        navigator.control()
+    # Block until the vehicle is shutdown.
+    vehicle.spin()

@@ -1,26 +1,31 @@
-"""
-Platypus vehicle navigation library.
-"""
+from . import Behavior
 from .util import spatial
-import numpy
+import enum
+import numpy as np
+
 
 # TODO: use python enum34 here.
+@enum.unique
+class VehicleType(enum.Enum):
+    differential = 'differential'
+    vectored = 'vectored'
 
 
-class Navigator(object):
+class Navigator(Behavior):
     """
     Implements a vehicle navigation system that attempts to follow waypoints.
     """
-    def __init__(self, controller):
+    def __init__(self, vehicle_type=VehicleType.differential, **kwargs):
         """
         Create a new vehicle navigation system.
 
-        :param controller: a Platypus vehicle controller
-        :type  controller: platypus.vehicle.Controller
+        :param controller: a Platypus vehicle
+        :type  controller: platypus.vehicle.Vehicle
         """
+        super(Navigator, self).__init__(**kwargs)
+
         # TODO: implement a navigation lock?
-        self._controller = controller
-        self.vehicle = 'DIFFERENTIAL'
+        self.vehicle_type = vehicle_type
         self.waypoints = []
         self.enabled = True
 
@@ -60,13 +65,13 @@ class Navigator(object):
         delta_yaw = spatial.subtract_angle(angle - yaw)
 
         # Apply simple waypoint following rules here:
-        if self.vehicle == 'DIFFERENTIAL':
+        if self.vehicle_type == VehicleType.differential:
             # Create differential thrust command for the vehicle.
             # M0 = Left, M1 = Right
-            self._controller['m0']['v'] = numpy.clip(-delta_yaw, -1.0, 1.0)
-            self._controller['m1']['v'] = numpy.clip(delta_yaw, -1.0, 1.0)
-        elif self.vehicle == 'VECTORED':
+            self.vehicle.controller['m0']['v'] = np.clip(-delta_yaw, -1.0, 1.0)
+            self.vehicle.controller['m1']['v'] = np.clip(delta_yaw, -1.0, 1.0)
+        elif self.vehicle_type == VehicleType.vectored:
             # Create vectored thrust command for the vehicle.
             # M0 = Thrust, M1 = Rudder
-            self._controller['m0']['v'] = numpy.clip(distance, -1.0, 1.0)
-            self._controller['m1']['v'] = numpy.clip(delta_yaw, -1.0, 1.0)
+            self.vehicle.controller['m0']['v'] = np.clip(distance, -1.0, 1.0)
+            self.vehicle.controller['m1']['v'] = np.clip(delta_yaw, -1.0, 1.0)

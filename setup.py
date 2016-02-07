@@ -35,6 +35,7 @@ setup(
         ]
     },
     install_requires=[
+        'enum34',
         'pyserial',
         'utm',
         'six'
