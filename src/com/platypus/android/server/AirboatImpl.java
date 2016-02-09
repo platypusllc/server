@@ -209,16 +209,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                     // Send velocities as a JSON command
                     try {
-                        double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -1.0, 1.0);
-                        double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -1.0, 1.0);
-
-                        // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
-                        constrainedV0 = map(constrainedV0,
-                                -1.0, 1.0, // Original range.
-                                -AirboatImpl.SAFE_DIFFERENTIAL_THRUST, AirboatImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
-                        constrainedV1 = map(constrainedV1,
-                                -1.0, 1.0, // Original range.
-                                -AirboatImpl.SAFE_DIFFERENTIAL_THRUST, AirboatImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                        double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -AirboatImpl.SAFE_DIFFERENTIAL_THRUST, AirboatImpl.SAFE_DIFFERENTIAL_THRUST);
+                        double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -AirboatImpl.SAFE_DIFFERENTIAL_THRUST, AirboatImpl.SAFE_DIFFERENTIAL_THRUST);
 
                         velocity0.put("v", (float) constrainedV0);
                         velocity1.put("v", (float) constrainedV1);
@@ -242,12 +234,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
                     // Send velocities as a JSON command
                     try {
-                        double constrainedV = clip(_velocities.dx(), -1.0, 1.0);
-
-                        // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
-                        constrainedV = map(constrainedV,
-                                -1.0, 1.0, // Original range.
-                                -1.0, AirboatImpl.SAFE_VECTORED_THRUST); // New range.
+                        double constrainedV = clip(_velocities.dx(), -AirboatImpl.SAFE_VECTORED_THRUST, AirboatImpl.SAFE_VECTORED_THRUST);
 
                         // Rudder is constrained to +/-1.0
                         double constrainedP = clip(_velocities.drz(), -1.0, 1.0);

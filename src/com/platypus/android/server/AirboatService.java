@@ -327,7 +327,7 @@ public class AirboatService extends Service {
 				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 		sm.registerListener(rotationVectorListener, rotation_vector,
 				SensorManager.SENSOR_DELAY_NORMAL);
-
+		sm.unregisterListener(rotationVectorListener);
 		// Hook up to the GPS system
 		LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		Criteria c = new Criteria();
