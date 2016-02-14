@@ -116,13 +116,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             try {
                 mLogger.info(new JSONObject()
                         .put("pose", new JSONObject()
-                                .put("p", _utmPose.pose.getPosition())
-                                .put("q", _utmPose.pose.getRotation().getArray())
+                                .put("p", new JSONArray(_utmPose.pose.getPosition()))
+                                .put("q", new JSONArray(_utmPose.pose.getRotation().getArray()))
                                 .put("zone", _utmPose.origin.toString())));
             } catch (JSONException e) {
                 Log.w(TAG, "Unable to serialize pose.");
             }
-            setPose(_utmPose.clone());
+            sendState(_utmPose.clone());
 
             // Send vehicle command by converting raw command to appropriate vehicle model.
             JSONObject command = new JSONObject();
@@ -447,7 +447,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 .put("sensor", new JSONObject()
                                         .put("channel", reading.channel)
                                         .put("type", reading.type.toString())
-                                        .put("data", reading.data)));
+                                        .put("data", new JSONArray(reading.data))));
                     }
                 } else {
                     Log.w(TAG, "Received unknown param '" + cmd + "'.");
@@ -465,7 +465,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         try {
             JSONObject samplerCommand = new JSONObject()
                     .put("s0", new JSONObject()
-                            .put("sample", true));
+                    .put("sample", true));
             mController.send(samplerCommand);
             mLogger.info(new JSONObject().put("sampler", true));
             Log.i(TAG, "Triggering sampler.");
@@ -602,16 +602,17 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         // Copy this pose over the existing value
         _utmPose = pose.clone();
 
-        // Report the new pose in the log file
+        // Report the new pose in the log file and to listeners.
         try {
             mLogger.info(new JSONObject()
                     .put("pose", new JSONObject()
-                            .put("p", _utmPose.pose.getPosition())
-                            .put("q", _utmPose.pose.getRotation().getArray())
+                            .put("p", new JSONArray(_utmPose.pose.getPosition()))
+                            .put("q", new JSONArray(_utmPose.pose.getRotation().getArray()))
                             .put("zone", _utmPose.origin.toString())));
         } catch (JSONException e) {
             Log.w(TAG, "Unable to serialize pose.");
         }
+        sendState(_utmPose);
     }
 
     @Override
