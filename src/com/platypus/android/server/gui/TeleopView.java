@@ -154,7 +154,7 @@ public class TeleopView extends View {
                 }
 
                 // Scale the contact point to a velocity between [-1.0, 1.0].
-                double rudder = 2.0f * (finger[0].x / mWidth) - 1.0f;
+                double rudder = -2.0f * (finger[0].x / mWidth) + 1.0f;
                 double thrust = -2.0f * (finger[0].y / mHeight) + 1.0f;
 
                 // Send the command to the vehicle.
