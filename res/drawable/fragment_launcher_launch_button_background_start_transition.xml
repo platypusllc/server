@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<transition xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/fragment_launcher_launch_button_background_red" />
+    <item android:drawable="@drawable/fragment_launcher_launch_button_background_green" />
+</transition>

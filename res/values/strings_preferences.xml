@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_server_category_title">Vehicle Server</string>
+    <string name="pref_server_port_title">Server port</string>
+    <string name="pref_server_port_summary">Set the port on which the vehicle service will run.</string>
+    <string name="pref_registry_category_title">Registry Service</string>
+    <string name="pref_registry_enable_title">Enable Registry</string>
+    <string name="pref_registry_enable_summary">Enable or disable the use of a vehicle registry service.</string>
+    <string name="pref_registry_addr_title">Registry IP/Hostname</string>
+    <string name="pref_registry_addr_summary">Set the IP/Hostname of a Platypus Vehicle Registry.</string>
+    <string name="pref_failsafe_category_title">Failsafe Service</string>
+    <string name="pref_failsafe_enable_title">Enable Failsafe</string>
+    <string name="pref_failsafe_enable_summary">Enable or disable the use of a connectivity failsafe behavior.</string>
+    <string name="pref_failsafe_addr_title">Failsafe IP/Hostname</string>
+    <string name="pref_failsafe_addr_summary">Set the IP/Hostname of an address that must have connectivity.</string>
+    <string name="pref_failsafe_timeout_title">Failsafe timeout</string>
+    <string name="pref_failsafe_timeout_summary">Set the maximum time without connectivity until failsafe activates.</string>
+    <string name="pref_failsafe_timeout_default">120</string>
+    <string-array name="pref_failsafe_timeout_entries">
+        <item>30 seconds</item>
+        <item>1 minute</item>
+        <item>2 minutes</item>
+        <item>5 minutes</item>
+        <item>10 minutes</item>
+    </string-array>
+    <string-array name="pref_failsafe_timeout_values">
+        <item>30</item>
+        <item>60</item>
+        <item>120</item>
+        <item>300</item>
+        <item>600</item>
+    </string-array>
+    <string name="pref_vehicle_category_title">Vehicle Configuration</string>
+    <string name="pref_vehicle_type_title">Vehicle Type</string>
+    <string name="pref_vehicle_type_summary">Set the type of Platypus vehicle that is in use.</string>
+    <string name="pref_vehicle_type_default">DIFFERENTIAL</string>
+    <string-array name="pref_vehicle_type_entries">
+        <item>Differential (Dual Thrust)</item>
+        <item>Vectored (Rotating Thrust)</item>
+    </string-array>
+    <string-array name="pref_vehicle_type_values">
+        <item>DIFFERENTIAL</item>
+        <item>VECTORED</item>
+    </string-array>
+</resources>

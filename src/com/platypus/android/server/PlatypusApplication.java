@@ -7,7 +7,7 @@ import com.platypus.crw.data.UtmPose;
 /**
  * Created by hnx on 6/23/14.
  */
-public class ApplicationGlobe extends Application{
+public class PlatypusApplication extends Application{
     private String failsafe_IPAddress;
     private UtmPose[] waypoints;
 

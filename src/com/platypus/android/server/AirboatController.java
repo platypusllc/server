@@ -103,7 +103,7 @@ public enum AirboatController {
 				double angle_between = normalizeAngle(angle_destination - angle_boat);
 				
 				// use gyro information from arduino to get rotation rate of heading
-				double[] _gyroReadings = ((AirboatImpl) server).getGyro();
+				double[] _gyroReadings = ((VehicleServerImpl) server).getGyro();
 				double drz = _gyroReadings[2];
 				
 				// use previous data to get rate of change of destination angle
@@ -117,7 +117,7 @@ public enum AirboatController {
 				buffer[bIndex] = error;
 				
 				// Define PID constants and boundary pos constants
-				AirboatImpl server_impl = (AirboatImpl) server;
+				VehicleServerImpl server_impl = (VehicleServerImpl) server;
 				double[] rudder_pids = server_impl.getGains(5);
 				
 				double pos = rudder_pids[0]*(angle_between) + rudder_pids[2]*(angle_destination_change - drz) + rudder_pids[1]*bSum;
@@ -162,7 +162,7 @@ public enum AirboatController {
 		private boolean log_boolean = true;
 		@Override
 		public void update(final VehicleServer server, double dt) {
-			server.setVelocity(new Twist(AirboatImpl.DEFAULT_TWIST));
+			server.setVelocity(new Twist(VehicleServerImpl.DEFAULT_TWIST));
 			
 			final double[] first = new double[3]; // angle, time, thrust
 			first[0] = server.getWaypoints()[0].pose.getX();
@@ -199,7 +199,7 @@ public enum AirboatController {
 					// TODO Auto-generated method stub
 					if (log_boolean) { logger.info("START"); log_boolean = false;}
 					server.setVelocity(new Twist(first[2], 0, 0, 0, 0, first[0]));
-					// when go testing, use AirboatImpl.CONST_THRUST
+					// when go testing, use VehicleServerImpl.CONST_THRUST
 				}
 			};
 			TimerTask second_step = new TimerTask() {
@@ -246,7 +246,7 @@ public enum AirboatController {
 				public void run() {
 					// TODO Auto-generated method stub
 					// retrieve state information
-					AirboatImpl server_impl = (AirboatImpl) server;
+					VehicleServerImpl server_impl = (VehicleServerImpl) server;
 					double yawVel = server_impl.getGyro()[2];
 					Pose3D pose = server_impl.getPose().pose;
 					double xPos = pose.getX();
