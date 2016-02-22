@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -19,6 +20,11 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -36,6 +42,7 @@ public class LauncherFragment extends Fragment
     final Handler mHandler = new Handler();
 
     protected TextView mHomeText;
+    protected TextView mIpAddressText;
     protected Button mLaunchButton;
     protected Button mSetHomeButton;
     protected LocationManager mLocationManager;
@@ -55,6 +62,7 @@ public class LauncherFragment extends Fragment
 
         // Get references to UI elements.
         mHomeText = (TextView) view.findViewById(R.id.launcher_home_text);
+        mIpAddressText = (TextView) view.findViewById(R.id.ip_address_text);
         mLaunchButton = (Button) view.findViewById(R.id.launcher_launch_button);
         mSetHomeButton = (Button) view.findViewById(R.id.launcher_home_button);
 
@@ -229,6 +237,10 @@ public class LauncherFragment extends Fragment
                 // If the service is not running, start it.
                 getActivity().startService(new Intent(getActivity(), VehicleService.class));
                 Log.i(TAG, "Vehicle service started.");
+                updateIP();
+
+
+
             } else {
                 // If the service is running, stop it.
                 getActivity().stopService(new Intent(getActivity(), VehicleService.class));
@@ -261,5 +273,37 @@ public class LauncherFragment extends Fragment
             }
         }
         return false;
+    }
+
+    /**
+     * Helper function that retrieves first valid (non-loopback) IP address
+     * over all available interfaces.
+     *
+     * @return Text representation of current local IP address.
+     */
+    public String getLocalIpAddress() {
+        try {
+            for (Enumeration<NetworkInterface> en = NetworkInterface
+                    .getNetworkInterfaces(); en.hasMoreElements();) {
+                NetworkInterface intf = en.nextElement();
+                for (Enumeration<InetAddress> enumIpAddr = intf
+                        .getInetAddresses(); enumIpAddr.hasMoreElements();) {
+                    InetAddress inetAddress = enumIpAddr.nextElement();
+                    if (!inetAddress.isLoopbackAddress() && inetAddress.getAddress().length == 4) {
+                        return inetAddress.getHostAddress().toString();
+                    }
+                }
+            }
+        } catch (SocketException ex) {
+            Log.e(TAG, "Failed to get local IP.", ex);
+        }
+        return null;
+    }
+
+    public void updateIP(){
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+        String port = sharedPreferences.getString("pref_server_port", "11411");
+        mIpAddressText.setText(getLocalIpAddress() + ":" + port);
     }
 }
