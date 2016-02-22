@@ -39,6 +39,10 @@
             android:layout_below="@+id/launcher_home_text"
             android:layout_centerHorizontal="true"
             android:text="@string/launcher_ip_text_content" />
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2d170e723469635056266cf385aab3a5510ae890
     </RelativeLayout>
 
 
