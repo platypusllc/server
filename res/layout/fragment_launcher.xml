@@ -32,8 +32,20 @@
             android:layout_below="@id/launcher_home_button"
             android:layout_centerHorizontal="true"
             android:text="@string/launcher_home_text_content" />
+        <TextView
+            android:id="@+id/ip_address_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/launcher_home_text"
+            android:layout_centerHorizontal="true"
+            android:text="@string/launcher_ip_text_content" />
+<<<<<<< HEAD
+=======
 
+>>>>>>> 2d170e723469635056266cf385aab3a5510ae890
     </RelativeLayout>
+
+
 
     <RelativeLayout
         android:layout_width="200dp"
