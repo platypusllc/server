@@ -1,12 +1,12 @@
 package com.platypus.android.server.gui;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -21,6 +21,8 @@ import android.widget.TextView;
 import com.platypus.android.server.R;
 import com.platypus.crw.FunctionObserver;
 
+import java.text.DecimalFormat;
+
 /**
  * View that allows users to read and set gains for the vehicle server.
  *
@@ -28,6 +30,7 @@ import com.platypus.crw.FunctionObserver;
  */
 public class GainView extends VehicleGuiView {
     private static final String TAG = GainView.class.getSimpleName();
+    private static final DecimalFormat GAIN_FORMAT = new DecimalFormat("#.#####");
 
     final Spinner mAxis;
     final TypedArray mAxisValues;
@@ -43,26 +46,35 @@ public class GainView extends VehicleGuiView {
 
         View view = LayoutInflater.from(getContext()).inflate(
                 R.layout.view_gain, null);
-        mAxis = (Spinner)view.findViewById(R.id.axis_spinner);
-        mGainP = (EditText)view.findViewById(R.id.p_gain);
-        mGainI = (EditText)view.findViewById(R.id.i_gain);
-        mGainD = (EditText)view.findViewById(R.id.d_gain);
-        mRefresh = (ImageButton)view.findViewById(R.id.refresh_button);
-        mSave = (ImageButton)view.findViewById(R.id.save_button);
+        mAxis = (Spinner) view.findViewById(R.id.axis_spinner);
+        mGainP = (EditText) view.findViewById(R.id.p_gain);
+        mGainI = (EditText) view.findViewById(R.id.i_gain);
+        mGainD = (EditText) view.findViewById(R.id.d_gain);
+        mRefresh = (ImageButton) view.findViewById(R.id.refresh_button);
+        mSave = (ImageButton) view.findViewById(R.id.save_button);
 
         mAxisValues = getResources().obtainTypedArray(R.array.gain_axis_values);
 
-        // Clear colors on save button if gains are changed.
-        final TextView.OnEditorActionListener clearSaveButton = new TextView.OnEditorActionListener() {
+        // Clear color filters on save button if gains are changed.
+        final TextWatcher clearSaveButton = new TextWatcher() {
             @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // Do nothing.
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Do nothing.
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
                 mSave.clearColorFilter();
-                return false;
             }
         };
-        mGainP.setOnEditorActionListener(clearSaveButton);
-        mGainI.setOnEditorActionListener(clearSaveButton);
-        mGainD.setOnEditorActionListener(clearSaveButton);
+        mGainP.addTextChangedListener(clearSaveButton);
+        mGainI.addTextChangedListener(clearSaveButton);
+        mGainD.addTextChangedListener(clearSaveButton);
 
         // Refresh values when axis is changed.
         mAxis.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -118,9 +130,10 @@ public class GainView extends VehicleGuiView {
             double i = Double.parseDouble(mGainI.getText().toString());
             double d = Double.parseDouble(mGainD.getText().toString());
 
-            new SetGains(axis).execute(p, i ,d);
+            new SetGains(axis).execute(p, i, d);
             mSave.setEnabled(false);
         } catch (NumberFormatException e) {
+            mSave.setColorFilter(Color.YELLOW);
             Log.e(TAG, "Unable to parse gains.");
         }
     }
@@ -152,7 +165,7 @@ public class GainView extends VehicleGuiView {
                     public void completed(final double[] gains) {
                         if (gains.length != 3) {
                             Log.w(TAG, "Got unexpected number of gain values " + gains.length +
-                                       "for axis " + mAxis + ".");
+                                    "for axis " + mAxis + ".");
                             mHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
@@ -166,9 +179,9 @@ public class GainView extends VehicleGuiView {
                             @Override
                             public void run() {
                                 mRefresh.clearColorFilter();
-                                mGainP.setText(Double.toString(gains[0]));
-                                mGainI.setText(Double.toString(gains[1]));
-                                mGainD.setText(Double.toString(gains[2]));
+                                mGainP.setText(GAIN_FORMAT.format(gains[0]));
+                                mGainI.setText(GAIN_FORMAT.format(gains[1]));
+                                mGainD.setText(GAIN_FORMAT.format(gains[2]));
                                 mRefresh.setEnabled(true);
                             }
                         });

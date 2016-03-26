@@ -42,8 +42,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     /**
      * Defines the PID gains that will be returned if there is an error.
      */
-    public static final double[] NAN_GAINS = new double[]{Double.NaN,
-            Double.NaN, Double.NaN};
+    public static final double[] NAN_GAINS =
+            new double[]{Double.NaN, Double.NaN, Double.NaN};
     public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.14;
     public static final double SAFE_VECTORED_THRUST = 0.7;
@@ -88,9 +88,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     Twist _velocities = new Twist(DEFAULT_TWIST);
     /**
      * Hard-coded PID gains and thrust limits per vehicle type.
+     * These values are loaded from the application SharedPreferences in the class constructor.
      */
-    double[] r_PID = {.2, 0, .3}; // Kp, Ki, Kd
-    double[] t_PID = {.7, .5, .5};
+    double[] r_PID = new double[3];
+    double[] t_PID = new double[3];
+
     // TODO: Remove this variable, it is totally arbitrary
     private double winch_depth_ = Double.NaN;
     // Last known temperature and EC values for sensor compensation
@@ -219,6 +221,16 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         // Connect to the Shared Preferences for this process.
         mPrefs = PreferenceManager.getDefaultSharedPreferences(_context);
 
+        // Load PID values from SharedPreferences.
+        // Use hard-coded defaults if not specified.
+        r_PID[0] = mPrefs.getFloat("gain_rP", 0.2f);
+        r_PID[1] = mPrefs.getFloat("gain_rI", 0.0f);
+        r_PID[2] = mPrefs.getFloat("gain_rD", 0.3f);
+
+        t_PID[0] = mPrefs.getFloat("gain_tP", 0.7f);
+        t_PID[1] = mPrefs.getFloat("gain_tI", 0.5f);
+        t_PID[2] = mPrefs.getFloat("gain_tD", 0.5f);
+
         // Start a regular update function
         _updateTimer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
 
@@ -318,8 +330,22 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             return;
         } else if (axis == 5) {
             r_PID = k.clone();
+
+            // Save the PID values to the SharedPreferences as well.
+            mPrefs.edit()
+                    .putFloat("gain_rP", (float)r_PID[0])
+                    .putFloat("gain_rI", (float)r_PID[1])
+                    .putFloat("gain_rD", (float)r_PID[2])
+                    .apply();
         } else if (axis == 0) {
             t_PID = k.clone();
+
+            // Save the PID values to the SharedPreferences as well.
+            mPrefs.edit()
+                    .putFloat("gain_tP", (float)t_PID[0])
+                    .putFloat("gain_tI", (float)t_PID[1])
+                    .putFloat("gain_tD", (float)t_PID[2])
+                    .apply();
         }
 
         // Log the new gain settings to the logfile.
