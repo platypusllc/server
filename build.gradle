@@ -10,13 +10,28 @@ apply plugin: 'com.android.application'
 
 dependencies {
     compile fileTree(dir: 'libs', include: '*.jar')
-    compile 'com.android.support:support-v13:+'
-    compile 'com.android.support:support-annotations:22.2.0'
+    compile 'com.android.support:support-v13:23.2.1'
+    compile 'com.android.support:support-annotations:23.2.1'
+}
+
+// Disables pre-dexing (used to speed up automated builds which cannot use it).
+// See:
+// https://circleci.com/docs/android#disable-pre-dexing-to-improve-build-performance
+// http://tools.android.com/tech-docs/new-build-system/tips#TOC-Improving-Build-Server-performance
+project.ext.preDexLibs = !project.hasProperty('disablePreDex')
+subprojects {
+    project.plugins.whenPluginAdded { plugin ->
+        if ("com.android.build.gradle.AppPlugin".equals(plugin.class.name)) {
+            project.android.dexOptions.preDexLibraries = rootProject.ext.preDexLibs
+        } else if ("com.android.build.gradle.LibraryPlugin".equals(plugin.class.name)) {
+            project.android.dexOptions.preDexLibraries = rootProject.ext.preDexLibs
+        }
+    }
 }
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion '23.0.2'
+    compileSdkVersion 23
+    buildToolsVersion '23.0.3'
 
     sourceSets {
         main {
