@@ -1,11 +1,6 @@
 #
 # Build configuration for Circle CI
 #
-
-general:
-    artifacts:
-        - build/outputs/apk
-
 machine:
     environment:
         ANDROID_HOME: /usr/local/android-sdk-linux
@@ -21,3 +16,4 @@ dependencies:
 test:
   override:
     - ./gradlew assembleRelease -PdisablePreDex
+    - cp -r ./build/outputs/apk/ $CIRCLE_ARTIFACTS
