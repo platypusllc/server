@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class TeleopView extends VehicleGuiView {
     private static final String TAG = VehicleGuiView.class.getSimpleName();
     private static final int NUM_RINGS = 3;
+
     final Object mFingerLock = new Object();
     Paint mPointerPaint = new Paint();
     Paint mRingEnabledPaint = new Paint();
@@ -39,6 +40,7 @@ public class TeleopView extends VehicleGuiView {
 
     public TeleopView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        setWillNotDraw(false);
 
         mPointerPaint.setColor(Color.WHITE);
         mPointerPaint.setStyle(Paint.Style.FILL);
