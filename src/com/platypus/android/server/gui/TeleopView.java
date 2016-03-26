@@ -112,6 +112,7 @@ public class TeleopView extends VehicleGuiView {
                         mUpdateFuture = mExecutor.scheduleAtFixedRate(
                                 new UpdateVelocityTask(),
                                 0, 100, TimeUnit.MILLISECONDS);
+                        getParent().requestDisallowInterceptTouchEvent(true);
                     } else {
                         mFinger.set(eventX, eventY);
                     }
@@ -123,6 +124,7 @@ public class TeleopView extends VehicleGuiView {
                         mUpdateFuture.cancel(true);
                         mExecutor.schedule(new StopVelocityTask(),
                                 0, TimeUnit.MILLISECONDS);
+                        getParent().requestDisallowInterceptTouchEvent(false);
                     }
                     break;
                 default:
