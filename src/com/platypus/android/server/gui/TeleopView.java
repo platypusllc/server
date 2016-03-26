@@ -25,21 +25,17 @@ import java.util.concurrent.TimeUnit;
 public class TeleopView extends VehicleGuiView {
     private static final String TAG = VehicleGuiView.class.getSimpleName();
     private static final int NUM_RINGS = 3;
-
+    final Object mFingerLock = new Object();
     Paint mPointerPaint = new Paint();
     Paint mRingEnabledPaint = new Paint();
     Paint mRingDisabledPaint = new Paint();
-
     PointF mFinger = null;
-    final Object mFingerLock = new Object();
-
     float mWidth;
     float mHeight;
     RectF[] mRings;
 
     ScheduledThreadPoolExecutor mExecutor = new ScheduledThreadPoolExecutor(1);
     ScheduledFuture mUpdateFuture = null;
-
 
     public TeleopView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -75,6 +71,7 @@ public class TeleopView extends VehicleGuiView {
         }
     }
 
+    @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         Paint mRingPaint;
@@ -112,7 +109,7 @@ public class TeleopView extends VehicleGuiView {
                     if (mFinger == null) {
                         mFinger = new PointF(eventX, eventY);
                         mUpdateFuture = mExecutor.scheduleAtFixedRate(new UpdateVelocityTask(),
-                                                                      0, 100, TimeUnit.MILLISECONDS);
+                                0, 100, TimeUnit.MILLISECONDS);
                     } else {
                         mFinger.set(eventX, eventY);
                     }
@@ -122,7 +119,7 @@ public class TeleopView extends VehicleGuiView {
                     mFinger = null;
                     mUpdateFuture.cancel(true);
                     mExecutor.schedule(new StopVelocityTask(),
-                                       0, TimeUnit.MILLISECONDS);
+                            0, TimeUnit.MILLISECONDS);
                     break;
                 default:
                     return false;
@@ -135,7 +132,6 @@ public class TeleopView extends VehicleGuiView {
     }
 
     class UpdateVelocityTask implements Runnable {
-
         @Override
         public void run() {
             // Get the current finger position.
