@@ -69,6 +69,7 @@
             android:id="@+id/p_gain"
             android:hint="@string/gain_hint"
             android:gravity="center"
+            android:imeOptions="actionDone"
             android:layout_weight="1" />
 
         <TextView
@@ -89,6 +90,7 @@
             android:id="@+id/i_gain"
             android:hint="@string/gain_hint"
             android:gravity="center"
+            android:imeOptions="actionDone"
             android:layout_weight="1" />
 
         <TextView
@@ -109,6 +111,7 @@
             android:id="@+id/d_gain"
             android:hint="@string/gain_hint"
             android:gravity="center"
+            android:imeOptions="actionDone"
             android:layout_weight="1" />
 
     </LinearLayout>

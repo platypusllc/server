@@ -106,11 +106,11 @@ public class TeleopView extends VehicleGuiView {
         synchronized (mFingerLock) {
             switch (maskedAction) {
                 case MotionEvent.ACTION_DOWN:
-                    break;
                 case MotionEvent.ACTION_MOVE:
                     if (mFinger == null) {
                         mFinger = new PointF(eventX, eventY);
-                        mUpdateFuture = mExecutor.scheduleAtFixedRate(new UpdateVelocityTask(),
+                        mUpdateFuture = mExecutor.scheduleAtFixedRate(
+                                new UpdateVelocityTask(),
                                 0, 100, TimeUnit.MILLISECONDS);
                     } else {
                         mFinger.set(eventX, eventY);
@@ -118,10 +118,12 @@ public class TeleopView extends VehicleGuiView {
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    mFinger = null;
-                    mUpdateFuture.cancel(true);
-                    mExecutor.schedule(new StopVelocityTask(),
-                            0, TimeUnit.MILLISECONDS);
+                    if (mFinger != null) {
+                        mFinger = null;
+                        mUpdateFuture.cancel(true);
+                        mExecutor.schedule(new StopVelocityTask(),
+                                0, TimeUnit.MILLISECONDS);
+                    }
                     break;
                 default:
                     return false;

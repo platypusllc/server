@@ -9,12 +9,15 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.LayoutInflater;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import com.platypus.android.server.R;
 import com.platypus.crw.FunctionObserver;
@@ -42,8 +45,7 @@ public class GainView extends VehicleGuiView {
     public GainView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        View view = LayoutInflater.from(getContext()).inflate(
-                R.layout.view_gain, null);
+        View view = View.inflate(context, R.layout.view_gain, null);
         mAxis = (Spinner) view.findViewById(R.id.axis_spinner);
         mGainP = (EditText) view.findViewById(R.id.p_gain);
         mGainI = (EditText) view.findViewById(R.id.i_gain);
@@ -54,25 +56,14 @@ public class GainView extends VehicleGuiView {
         mAxisValues = getResources().obtainTypedArray(R.array.gain_axis_values);
 
         // Clear color filters on save button if gains are changed.
-        final TextWatcher clearSaveButton = new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                // Do nothing.
-            }
+        mGainP.addTextChangedListener(mClearSaveButton);
+        mGainI.addTextChangedListener(mClearSaveButton);
+        mGainD.addTextChangedListener(mClearSaveButton);
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Do nothing.
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                mSave.clearColorFilter();
-            }
-        };
-        mGainP.addTextChangedListener(clearSaveButton);
-        mGainI.addTextChangedListener(clearSaveButton);
-        mGainD.addTextChangedListener(clearSaveButton);
+        // Clear focus when done editing.
+        mGainP.setOnEditorActionListener(mClearFocus);
+        mGainI.setOnEditorActionListener(mClearFocus);
+        mGainD.setOnEditorActionListener(mClearFocus);
 
         // Refresh values when axis is changed.
         mAxis.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -106,6 +97,9 @@ public class GainView extends VehicleGuiView {
         this.addView(view);
     }
 
+    /**
+     * Helper function to reset all PID values to blanks.
+     */
     public void clear() {
         // Reset all PIDs to blank.
         mGainP.setText("");
@@ -114,6 +108,9 @@ public class GainView extends VehicleGuiView {
         mRefresh.setEnabled(true);
     }
 
+    /**
+     * Helper function to trigger a refresh of the PID values from the server.
+     */
     public void refresh() {
         int axis = mAxisValues.getInt(mAxis.getSelectedItemPosition(), -1);
         new GetGains(axis).execute();
@@ -121,6 +118,9 @@ public class GainView extends VehicleGuiView {
         mRefresh.setEnabled(false);
     }
 
+    /**
+     * Helper function to save the current PID values to the server.
+     */
     public void save() {
         try {
             int axis = mAxisValues.getInt(mAxis.getSelectedItemPosition(), -1);
@@ -136,6 +136,47 @@ public class GainView extends VehicleGuiView {
         }
     }
 
+    /**
+     * Clears focus from a PID text box when user clicks "done".
+     */
+    final TextView.OnEditorActionListener mClearFocus = new TextView.OnEditorActionListener() {
+        @Override
+        public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                // Hide virtual keyboard when finished editing.
+                InputMethodManager imm =
+                        (InputMethodManager)getContext().getSystemService(
+                                Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                v.clearFocus();
+            }
+            return false;
+        }
+    };
+
+    /**
+     * Reset the save button if the user changes gains.
+     */
+    final TextWatcher mClearSaveButton = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            // Do nothing.
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            // Do nothing.
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            mSave.clearColorFilter();
+        }
+    };
+
+    /**
+     * Task that queries the server for gains in the background.
+     */
     class GetGains extends AsyncTask<Void, Void, Void> {
         final int mAxis;
 
@@ -203,6 +244,9 @@ public class GainView extends VehicleGuiView {
         }
     }
 
+    /**
+     * Task that send the new gains to the server in the background.
+     */
     class SetGains extends AsyncTask<Double, Void, Void> {
         final int mAxis;
 
