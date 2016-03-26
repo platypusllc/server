@@ -19,4 +19,9 @@
         android:layout_height="wrap_content"
         android:id="@+id/sensors"
         android:layout_gravity="center_horizontal" />
+    <com.platypus.android.server.gui.GainView
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:id="@+id/gains"
+        android:layout_gravity="center_horizontal" />
 </LinearLayout>

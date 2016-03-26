@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="axis_title">Axis:</string>
+    <string name="p_gain_title">P</string>
+    <string name="i_gain_title">I</string>
+    <string name="d_gain_title">D</string>
+</resources>

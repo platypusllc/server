@@ -6,33 +6,40 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.RectF;
-import android.os.AsyncTask;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
-import android.view.View;
 
-import com.platypus.crw.AsyncVehicleServer;
+import com.platypus.crw.FunctionObserver;
 import com.platypus.crw.data.Twist;
+
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A draggable teleoperation interface that controls the thrust and yaw of a Vehicle.
  *
  * @author pkv
  */
-public class TeleopView extends View {
+public class TeleopView extends VehicleGuiView {
+    private static final String TAG = VehicleGuiView.class.getSimpleName();
     private static final int NUM_RINGS = 3;
 
-    private Paint mPointerPaint = new Paint();
-    private Paint mRingEnabledPaint = new Paint();
-    private Paint mRingDisabledPaint = new Paint();
+    Paint mPointerPaint = new Paint();
+    Paint mRingEnabledPaint = new Paint();
+    Paint mRingDisabledPaint = new Paint();
 
-    protected AsyncVehicleServer mServer = null;
-    protected PointF mFinger = null;
-    protected final Object mFingerLock = new Object();
+    PointF mFinger = null;
+    final Object mFingerLock = new Object();
 
-    protected float mWidth;
-    protected float mHeight;
-    protected RectF[] mRings;
+    float mWidth;
+    float mHeight;
+    RectF[] mRings;
+
+    ScheduledThreadPoolExecutor mExecutor = new ScheduledThreadPoolExecutor(1);
+    ScheduledFuture mUpdateFuture = null;
+
 
     public TeleopView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -51,18 +58,6 @@ public class TeleopView extends View {
         mRings = new RectF[NUM_RINGS];
         for (int i = 0; i < NUM_RINGS; ++i)
             mRings[i] = new RectF();
-    }
-
-    public synchronized void getVehicleServer(AsyncVehicleServer server) {
-        synchronized (mFingerLock) {
-            mServer = server;
-        }
-    }
-
-    public void setVehicleServer(AsyncVehicleServer server) {
-        synchronized (mFingerLock) {
-            mServer = server;
-        }
     }
 
     @Override
@@ -116,15 +111,18 @@ public class TeleopView extends View {
                 case MotionEvent.ACTION_MOVE:
                     if (mFinger == null) {
                         mFinger = new PointF(eventX, eventY);
+                        mUpdateFuture = mExecutor.scheduleAtFixedRate(new UpdateVelocityTask(),
+                                                                      0, 100, TimeUnit.MILLISECONDS);
                     } else {
                         mFinger.set(eventX, eventY);
                     }
-                    new UpdateVelocity().execute(mFinger);
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     mFinger = null;
-                    new UpdateVelocity().execute();
+                    mUpdateFuture.cancel(true);
+                    mExecutor.schedule(new StopVelocityTask(),
+                                       0, TimeUnit.MILLISECONDS);
                     break;
                 default:
                     return false;
@@ -136,32 +134,57 @@ public class TeleopView extends View {
         return true;
     }
 
-    protected class UpdateVelocity extends AsyncTask<PointF, Void, Void> {
+    class UpdateVelocityTask implements Runnable {
 
         @Override
-        protected Void doInBackground(PointF... finger) {
+        public void run() {
+            // Get the current finger position.
+            PointF finger;
             synchronized (mFingerLock) {
+                finger = mFinger;
+            }
+
+            // If the user is not clicking, just exit.
+            if (finger == null)
+                return;
+
+            // Scale the contact point to a velocity between [-1.0, 1.0].
+            double rudder = -2.0f * (finger.x / mWidth) + 1.0f;
+            double thrust = -2.0f * (finger.y / mHeight) + 1.0f;
+
+            Twist twist = new Twist();
+            twist.dx(thrust);
+            twist.drz(rudder);
+
+            // Send the command to the vehicle.
+            synchronized (mServerLock) {
+                mServer.setVelocity(twist, null);
+            }
+        }
+    }
+
+    class StopVelocityTask implements Runnable {
+        @Override
+        public void run() {
+            synchronized (mServerLock) {
                 Twist twist = new Twist();
 
                 // If there is no vehicle server, don't do anything.
                 if (mServer == null)
-                    return null;
+                    return;
 
-                // If no positions, just use the zero-velocity command.
-                if (finger.length == 0) {
-                    mServer.setVelocity(twist, null);
-                    return null;
-                }
+                // Send a zero-velocity command.
+                mServer.setVelocity(twist, new FunctionObserver<Void>() {
+                    @Override
+                    public void completed(Void aVoid) {
+                        // Do nothing.
+                    }
 
-                // Scale the contact point to a velocity between [-1.0, 1.0].
-                double rudder = -2.0f * (finger[0].x / mWidth) + 1.0f;
-                double thrust = -2.0f * (finger[0].y / mHeight) + 1.0f;
-
-                // Send the command to the vehicle.
-                twist.dx(thrust);
-                twist.drz(rudder);
-                mServer.setVelocity(twist, null);
-                return null;
+                    @Override
+                    public void failed(FunctionError functionError) {
+                        Log.w(TAG, "Failed to stop teleop.");
+                    }
+                });
             }
         }
     }
