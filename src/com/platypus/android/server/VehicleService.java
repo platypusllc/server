@@ -272,11 +272,10 @@ public class VehicleService extends Service {
         if (provider == null) {
             Log.e(TAG, "Failed to start Platypus Server: No sufficiently accurate location provider.");
             sendNotification("Failed to start Platypus Server: No sufficiently accurate location provider.");
-	    stopSelf();
-	    return Service.START_STICKY;
-        } else {
-            gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
+            stopSelf();
+            return Service.START_STICKY;
         }
+        gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
 
         // Create the internal vehicle server implementation.
         _vehicleServerImpl = new VehicleServerImpl(this, mLogger, mController);
