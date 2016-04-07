@@ -275,8 +275,15 @@ public class VehicleService extends Service {
             stopSelf();
             return Service.START_STICKY;
         }
-        gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
 
+        try {
+            gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
+        } catch (SecurityException e){
+            Log.e(TAG, "Failed to start Platypus Server: Inadequate permissions to access accurate location.");
+            sendNotification("Failed to start Platypus Server: Inadequate permissions to access accurate location.");
+            stopSelf();
+            return Service.START_STICKY;
+        }
         // Create the internal vehicle server implementation.
         _vehicleServerImpl = new VehicleServerImpl(this, mLogger, mController);
 
@@ -431,7 +438,11 @@ public class VehicleService extends Service {
         // Disconnect from GPS updates
         LocationManager gps;
         gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        gps.removeUpdates(locationListener);
+        try {
+            gps.removeUpdates(locationListener);
+        } catch (SecurityException e){
+            // Optionally notify user
+        }
 
         // Disconnect the data object from this service
         if (_vehicleServerImpl != null) {
