@@ -5,8 +5,8 @@
     android:versionName="4.2.1">
 
     <uses-sdk
-        android:minSdkVersion="19"
-        android:targetSdkVersion="21" />
+        android:minSdkVersion="21"
+        android:targetSdkVersion="23" />
 
     <uses-feature android:name="android.hardware.usb.accessory" />
 
@@ -18,62 +18,48 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:name="com.platypus.android.server.ApplicationGlobe"
+        android:name=".PlatypusApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name">
 
         <service
-            android:name="com.platypus.android.server.AirboatService"
+            android:name=".VehicleService"
             android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Service" />
-        <service
-            android:name="com.platypus.android.server.AirboatFailsafeService"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Failsafe" />
+            android:label="Platypus Vehicle Service" />
 
         <activity
-            android:name="com.platypus.android.server.AirboatActivity"
+            android:name=".MainActivity"
             android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Setup"
-            android:screenOrientation="portrait">
+            android:label="Platypus Server"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".AirboatCameraActivity"
+            android:configChanges="keyboardHidden|orientation"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Platypus Vehicle Camera"
+            android:screenOrientation="nosensor" />
+        <activity
+            android:name=".ControllerDetectionActivity"
+            android:excludeFromRecents="true"
+            android:label="Platypus Hardware Detector"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />
             </intent-filter>
             <meta-data
                 android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
-        <activity
-            android:name="com.platypus.android.server.AirboatControlActivity"
-            android:icon="@mipmap/ic_launcher"
-            android:screenOrientation="portrait"
-            android:label="Airboat Control" />
-        <activity
-            android:name="com.platypus.android.server.AirboatCameraActivity"
-            android:configChanges="keyboardHidden|orientation"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Camera"
-            android:screenOrientation="nosensor" />
-        <activity
-            android:name="com.platypus.android.server.LauncherActivity"
-            android:excludeFromRecents="true"
-            android:label="Airboat Launcher Activity"
-            android:launchMode="singleInstance"
-            android:theme="@android:style/Theme.NoDisplay" />
-        <activity
-            android:name="com.platypus.android.server.AirboatOfflineActivity"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Airboat offline"
-            android:screenOrientation="portrait"/>
-        <service
-            android:name="com.platypus.android.server.AirboatOfflineService"
-            android:icon="@mipmap/ic_launcher"
-            android:label="Airboat Offline Service" />
+
     </application>
 
 </manifest>
