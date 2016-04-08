@@ -45,8 +45,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final double[] NAN_GAINS = new double[]{Double.NaN,
             Double.NaN, Double.NaN};
     public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
-    public static final double SAFE_DIFFERENTIAL_THRUST = 0.14;
-    public static final double SAFE_VECTORED_THRUST = 0.7;
+    public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
+    public static final double SAFE_VECTORED_THRUST = 1.0;
     private static final String TAG = VehicleServerImpl.class.getName();
     protected final SharedPreferences mPrefs;
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
@@ -89,8 +89,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     /**
      * Hard-coded PID gains and thrust limits per vehicle type.
      */
-    double[] r_PID = {.2, 0, .3}; // Kp, Ki, Kd
-    double[] t_PID = {.7, .5, .5};
+    double[] r_PID = {1.0, 0.0, 0.2}; // Kp, Ki, Kd
+    double[] t_PID = {0.6, 0.0, 0.0};
     // TODO: Remove this variable, it is totally arbitrary
     private double winch_depth_ = Double.NaN;
     // Last known temperature and EC values for sensor compensation
@@ -327,7 +327,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             mLogger.info(new JSONObject()
                     .put("gain", new JSONObject()
                             .put("axis", axis)
-                            .put("values", k)));
+                            .put("values", Arrays.toString(k))));
         } catch (JSONException e) {
             Log.w(TAG, "Failed to serialize gains.");
         }
