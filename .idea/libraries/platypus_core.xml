@@ -1,7 +1,7 @@
 <component name="libraryTable">
-  <library name="crwlib_core">
+  <library name="platypus-core">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/libs/crwlib_core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/platypus-core.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
