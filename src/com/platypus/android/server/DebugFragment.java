@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.platypus.android.server.gui.GainView;
 import com.platypus.android.server.gui.SensorView;
 import com.platypus.android.server.gui.TeleopView;
 import com.platypus.crw.udp.UdpVehicleServer;
@@ -50,6 +51,9 @@ public class DebugFragment extends Fragment
         // Register the vehicle service with the view elements.
         TeleopView teleopView = (TeleopView) view.findViewById(R.id.teleop);
         teleopView.setVehicleServer(mServer);
+
+        GainView gainView = (GainView) view.findViewById(R.id.gains);
+        gainView.setVehicleServer(mServer);
 
         SensorView sensorView = (SensorView) view.findViewById(R.id.sensors);
         sensorView.setVehicleServer(mServer);

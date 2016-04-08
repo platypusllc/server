@@ -11,18 +11,10 @@ import com.platypus.crw.AsyncVehicleServer;
  *
  * @author pkv
  */
-public class SensorView extends View {
-    AsyncVehicleServer mServer = null;
-
+public class SensorView extends VehicleGuiView {
     public SensorView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public synchronized void getVehicleServer(AsyncVehicleServer server) {
-        mServer = server;
-    }
-
-    public synchronized void setVehicleServer(AsyncVehicleServer server) {
-        mServer = server;
-    }
+    // TODO: fill this class in.
 }

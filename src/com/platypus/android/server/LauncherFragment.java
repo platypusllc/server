@@ -102,10 +102,15 @@ public class LauncherFragment extends Fragment
                 PreferenceManager.getDefaultSharedPreferences(getActivity());
 
         // Set the home location label to a formatted string of the home latitude and longitude.
-        mHomeText.setText(String.format(
-                getResources().getString(R.string.launcher_home_text_format),
-                sharedPreferences.getFloat("pref_home_latitude", Float.NaN),
-                sharedPreferences.getFloat("pref_home_longitude", Float.NaN)));
+        if (sharedPreferences.contains("pref_home_latitude") &&
+                sharedPreferences.contains("pref_home_longitude")) {
+            mHomeText.setText(String.format(
+                    getResources().getString(R.string.launcher_home_text_format),
+                    sharedPreferences.getFloat("pref_home_latitude", Float.NaN),
+                    sharedPreferences.getFloat("pref_home_longitude", Float.NaN)));
+        } else {
+            mHomeText.setText(getResources().getString(R.string.launcher_home_text_content));
+        }
     }
 
     /**
