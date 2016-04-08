@@ -45,8 +45,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final double[] NAN_GAINS =
             new double[]{Double.NaN, Double.NaN, Double.NaN};
     public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
-    public static final double SAFE_DIFFERENTIAL_THRUST = 0.14;
-    public static final double SAFE_VECTORED_THRUST = 0.7;
+    public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
+    public static final double SAFE_VECTORED_THRUST = 1.0;
     private static final String TAG = VehicleServerImpl.class.getName();
     protected final SharedPreferences mPrefs;
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
@@ -223,13 +223,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
-        r_PID[0] = mPrefs.getFloat("gain_rP", 0.2f);
+        r_PID[0] = mPrefs.getFloat("gain_rP", 1.0f);
         r_PID[1] = mPrefs.getFloat("gain_rI", 0.0f);
-        r_PID[2] = mPrefs.getFloat("gain_rD", 0.3f);
+        r_PID[2] = mPrefs.getFloat("gain_rD", 0.2f);
 
-        t_PID[0] = mPrefs.getFloat("gain_tP", 0.7f);
-        t_PID[1] = mPrefs.getFloat("gain_tI", 0.5f);
-        t_PID[2] = mPrefs.getFloat("gain_tD", 0.5f);
+        t_PID[0] = mPrefs.getFloat("gain_tP", 0.6f);
+        t_PID[1] = mPrefs.getFloat("gain_tI", 0.0f);
+        t_PID[2] = mPrefs.getFloat("gain_tD", 0.0f);
 
         // Start a regular update function
         _updateTimer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
@@ -353,7 +353,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             mLogger.info(new JSONObject()
                     .put("gain", new JSONObject()
                             .put("axis", axis)
-                            .put("values", k)));
+                            .put("values", Arrays.toString(k))));
         } catch (JSONException e) {
             Log.w(TAG, "Failed to serialize gains.");
         }
