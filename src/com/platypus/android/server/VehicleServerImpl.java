@@ -23,6 +23,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import robotutils.Pose3D;
@@ -47,6 +50,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
     public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
     public static final double SAFE_VECTORED_THRUST = 1.0;
+    public static final long VELOCITY_TIMEOUT_MS = 2000;
     private static final String TAG = VehicleServerImpl.class.getName();
     protected final SharedPreferences mPrefs;
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
@@ -60,6 +64,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     final Context _context;
     final VehicleLogger mLogger;
     final Controller mController;
+    // Velocity shutdown timer.
+    final ScheduledThreadPoolExecutor mVelocityExecutor = new ScheduledThreadPoolExecutor(1);
+    ScheduledFuture mVelocityFuture = null;
     /**
      * Raw gyroscopic readings from the phone gyro.
      */
@@ -775,6 +782,23 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      */
     public void setVelocity(Twist vel) {
         _velocities = vel.clone();
+
+        // Schedule a task to shutdown the velocity if no command is received within the timeout.
+        // Normally, this task will be canceled by a subsequent call to the setVelocity function,
+        // but if no call is made within the timeout, the task will execute, stopping the vehicle.
+        synchronized (mVelocityExecutor) {
+            // Cancel the previous shutdown task.
+            if (mVelocityFuture != null)
+                mVelocityFuture.cancel(false);
+
+            // Schedule a new shutdown task.
+            mVelocityFuture = mVelocityExecutor.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    setVelocity(new Twist());
+                }
+            }, VELOCITY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override
