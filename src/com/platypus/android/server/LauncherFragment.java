@@ -2,8 +2,10 @@ package com.platypus.android.server;
 
 import android.app.ActivityManager;
 import android.app.Fragment;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
@@ -41,11 +43,12 @@ public class LauncherFragment extends Fragment
 
     final Handler mHandler = new Handler();
 
-    protected TextView mHomeText;
-    protected TextView mIpAddressText;
-    protected Button mLaunchButton;
-    protected Button mSetHomeButton;
-    protected LocationManager mLocationManager;
+    TextView mHomeText;
+    TextView mFailsafeText;
+    TextView mIpAddressText;
+    Button mLaunchButton;
+    Button mSetHomeButton;
+    LocationManager mLocationManager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -62,6 +65,7 @@ public class LauncherFragment extends Fragment
 
         // Get references to UI elements.
         mHomeText = (TextView) view.findViewById(R.id.launcher_home_text);
+        mFailsafeText = (TextView) view.findViewById(R.id.launcher_failsafe_text);
         mIpAddressText = (TextView) view.findViewById(R.id.ip_address_text);
         mLaunchButton = (Button) view.findViewById(R.id.launcher_launch_button);
         mSetHomeButton = (Button) view.findViewById(R.id.launcher_home_button);
@@ -72,7 +76,20 @@ public class LauncherFragment extends Fragment
         // Add listener for home button click.
         mSetHomeButton.setOnLongClickListener(new SetHomeListener());
 
+        // Add listener for failsafe behavior events.
+        getActivity().registerReceiver(
+                mFailsafeBroadcastReceiver,
+                new IntentFilter(Failsafe.ACTION_FAILSAFE_UPDATE));
+
         return view;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        // Remove listener for failsafe behavior events.
+        getActivity().unregisterReceiver(mFailsafeBroadcastReceiver);
     }
 
     @Override
@@ -112,6 +129,22 @@ public class LauncherFragment extends Fragment
             mHomeText.setText(getResources().getString(R.string.launcher_home_text_content));
         }
     }
+
+    /**
+     * Receives failsafe broadcast intents and updates the launcher UI accordingly.
+     */
+    final BroadcastReceiver mFailsafeBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(final Context context, final Intent intent) {
+            LauncherFragment.this.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    boolean isRunning = intent.getBooleanExtra("isRunning", false);
+                    mFailsafeText.setVisibility(isRunning ? View.VISIBLE : View.INVISIBLE);
+                }
+            });
+        }
+    };
 
     /**
      * Updates the launch button depending on whether the service is running or not.

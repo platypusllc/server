@@ -70,8 +70,11 @@ public class VehicleService extends Service {
     // Reference to vehicle logfile.
     private VehicleLogger mLogger;
 
-    // Reference to vehicle controller;
+    // Reference to vehicle controller.
     private Controller mController;
+
+    // Reference to vehicle failsafe behavior.
+    private Failsafe mFailsafe;
 
     // Objects implementing actual functionality
     private VehicleServerImpl _vehicleServerImpl;
@@ -287,6 +290,9 @@ public class VehicleService extends Service {
         // Create the internal vehicle server implementation.
         _vehicleServerImpl = new VehicleServerImpl(this, mLogger, mController);
 
+        // Initialize failsafe service.
+        mFailsafe = new Failsafe(this, _vehicleServerImpl);
+
         // Start up UDP vehicle service in the background
         new Thread(new Runnable() {
             @Override
@@ -405,6 +411,12 @@ public class VehicleService extends Service {
         if (mController != null) {
             mController.shutdown();
             mController = null;
+        }
+
+        // Shutdown the failsafe service.
+        if (mFailsafe != null) {
+            mFailsafe.shutdown();
+            mFailsafe = null;
         }
 
         // Unregister shared preference listener to listen for updates.
