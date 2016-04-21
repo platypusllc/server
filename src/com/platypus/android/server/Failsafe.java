@@ -146,8 +146,12 @@ public class Failsafe {
                 } catch (ExecutionException e) {
                     // Do nothing.
                 }
+                mUpdateFuture = null;
             }
         }
+
+        // Broadcast that the failsafe is no longer running.
+        sendFailsafeIntent(false);
     }
 
     /**
@@ -317,6 +321,11 @@ public class Failsafe {
             // Enable/disable update task.
             if (sharedPreferences.getBoolean("pref_failsafe_enable", false)) {
                 if (mUpdateFuture == null) {
+                    // Use current location as starting failsafe location.
+                    mLastConnectedLocation = mVehicleServer.getPose();
+                    mLastConnectedTime = System.currentTimeMillis();
+
+                    // Start update task.
                     mUpdateFuture = mUpdateExecutor.scheduleAtFixedRate(
                             mUpdateRunnable, 0,
                             UPDATE_PERIOD_MS, TimeUnit.MILLISECONDS);
@@ -324,6 +333,7 @@ public class Failsafe {
                 }
             } else {
                 if (mUpdateFuture != null) {
+                    // Stop update task.
                     try {
                         mUpdateFuture.cancel(false);
                         mUpdateFuture.get();
@@ -334,7 +344,11 @@ public class Failsafe {
                     } catch (ExecutionException e) {
                         // Do nothing.
                     }
+                    mUpdateFuture = null;
                     Log.i(TAG, "Failsafe service disabled.");
+
+                    // Broadcast that the failsafe behavior is no longer running.
+                    sendFailsafeIntent(false);
                 }
             }
         }
