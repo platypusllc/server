@@ -164,12 +164,10 @@ public class Failsafe {
             synchronized (mUpdateLock) {
                 isRecentlyConnected = (System.currentTimeMillis() - mLastConnectedTime > mTimeoutMs);
             }
+            sendFailsafeIntent(isRecentlyConnected);
 
             switch (mStatus) {
                 case CONNECTED:
-                    // Broadcast that the failsafe is inactive.
-                    sendFailsafeIntent(false);
-
                     // If we were recently connected, just stay connected.
                     if (isRecentlyConnected)
                         return;
@@ -177,23 +175,20 @@ public class Failsafe {
                     // If not recently connected, initiate failsafe to last known location.
                     synchronized (mUpdateLock) {
                         mStatus = FailsafeStatus.FAILSAFE_TO_HOME_LOCATION;
-                        mVehicleServer.addWaypointListener(mFailsafeToLastLocationListener);
+                        Log.w(TAG,
+                                "Connectivity loss detected. " +
+                                "Will failsafe to last-known location if IDLE.");
                     }
                     break;
 
-                case FAILSAFE_TO_HOME_LOCATION:
-                    // Broadcast that the failsafe is active.
-                    sendFailsafeIntent(true);
-
+                case FAILSAFE_TO_LAST_LOCATION:
                     // If we were recently connected, return to connected state.
                     // (Note that this will NOT stop the ongoing navigation command.  That is left up
                     //  to the user to override when connectivity is re-established.)
                     if (isRecentlyConnected) {
                         synchronized (mUpdateLock) {
                             mStatus = FailsafeStatus.CONNECTED;
-                            mVehicleServer.removeWaypointListener(mFailsafeToLastLocationListener);
                         }
-
                         Log.i(TAG,
                                 "Failsafe to last-known location disengaged, " +
                                 "connectivity re-established.");
@@ -204,13 +199,15 @@ public class Failsafe {
                     // If not, start navigating using the default controller.
                     synchronized (mUpdateLock) {
                         checkFailsafeBehavior(mLastConnectedLocation);
+
+                        // Since we have already attempted to get to the last location,
+                        // transition to using the home location the next time we need to
+                        // engage a failsafe behavior.
+                        mStatus = FailsafeStatus.FAILSAFE_TO_HOME_LOCATION;
                     }
                     break;
 
-                case FAILSAFE_TO_LAST_LOCATION:
-                    // Broadcast that the failsafe is active.
-                    sendFailsafeIntent(true);
-
+                case FAILSAFE_TO_HOME_LOCATION:
                     // If we were recently connected, return to connected state.
                     // (Note that this will NOT stop the ongoing navigation command.  That is left up
                     //  to the user to override when connectivity is re-established.)
@@ -270,12 +267,21 @@ public class Failsafe {
     }
 
     /**
-     * Check if we are already navigating to the last-known location.
-     * If not, start navigating using the default controller.
+     * Check if we are already navigating. If not, start navigating using the default controller.
+     *
+     * This will begin navigation to the failsafe, but only if the boat does not have any active
+     * autonomous behavior.
      *
      * @param failsafeDestination the failsafe destination to verify navigation towards
      */
     void checkFailsafeBehavior(final UtmPose failsafeDestination) {
+        // Do not engage failsafe if the vehicle is already doing something.
+        switch(mVehicleServer.getWaypointStatus()) {
+            case GOING:
+            case PAUSED:
+                return;
+        }
+
         // Check if already navigating to the desired destination.
         UtmPose[] waypoints = mVehicleServer.getWaypoints();
         if (waypoints[0].equals(failsafeDestination))
@@ -284,33 +290,8 @@ public class Failsafe {
         // Start navigating to the failsafe destination.
         mVehicleServer.startWaypoints(new UtmPose[]{failsafeDestination}, null);
         mVehicleServer.setAutonomous(true);
+        Log.w(TAG, "Engaged failsafe behavior to: " + failsafeDestination);
     }
-
-    /**
-     * Waypoint listener that switches the failsafe mode to home location.
-     *
-     * This is used by the failsafe server when the failsafe to last-known location is engaged,
-     * to determine if the last-known location has been reached, but connectivity is still
-     * not established.
-     */
-    final WaypointListener mFailsafeToLastLocationListener = new WaypointListener() {
-        @Override
-        public void waypointUpdate(VehicleServer.WaypointState waypointState) {
-            if (waypointState.equals(VehicleServer.WaypointState.DONE)) {
-                synchronized (mUpdateLock) {
-                    // If the home location is not set, there's nothing else to do.
-                    if (mHomeLocation == null)
-                        return;
-
-                    // If a home location is set, try to navigate toward it.
-                    mStatus = FailsafeStatus.FAILSAFE_TO_HOME_LOCATION;
-                    mVehicleServer.removeWaypointListener(mFailsafeToLastLocationListener);
-                }
-
-                Log.w(TAG, "Failsafe to last-known failed, switching to home location.");
-            }
-        }
-    };
 
     /**
      * Updates all member variables from shared preference settings.
