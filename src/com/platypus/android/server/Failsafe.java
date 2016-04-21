@@ -168,7 +168,7 @@ public class Failsafe {
             synchronized (mUpdateLock) {
                 isRecentlyConnected = (System.currentTimeMillis() - mLastConnectedTime > mTimeoutMs);
             }
-            sendFailsafeIntent(isRecentlyConnected);
+            sendFailsafeIntent(!isRecentlyConnected);
 
             switch (mStatus) {
                 case CONNECTED:
