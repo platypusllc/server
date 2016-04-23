@@ -670,7 +670,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 {
                     try {
                         vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
-                        //Log.i(TAG, "vc:"+ vc.toString() + "controller" + controller );
                     } catch (IllegalArgumentException e) {
                         Log.w(TAG, "Unknown controller specified (using " + vc
                                 + " instead): " + controller);
