@@ -649,83 +649,78 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     }
 
     @Override
-    public void startWaypoints(final UtmPose[] waypoints,
-                               final String controller) {
-        Log.i(TAG, "Starting waypoints with " + controller + ": "
-                + Arrays.toString(waypoints));
-        if (controller.equalsIgnoreCase("PRIMITIVES")) {
+    public void startWaypoints(final UtmPose[] waypoints, final String controller) {
+
+        // Determine the appropriate controller to use from the name.
+        VehicleController parsedVehicleController = DEFAULT_CONTROLLER;
+        try {
+            parsedVehicleController = (controller == null) ?
+                    DEFAULT_CONTROLLER : AirboatController.valueOf(controller).controller;
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "Unknown controller specified (using " + parsedVehicleController
+                    + " instead): " + controller);
+        }
+        Log.i(TAG, "Starting waypoints with " + parsedVehicleController + ": " +
+                Arrays.toString(waypoints));
+
+        // Create a waypoint navigation task
+        final VehicleController vc = parsedVehicleController;
+        TimerTask newNavigationTask = new TimerTask() {
+            long lastUpdateTime = System.currentTimeMillis();
+
+            @Override
+            public void run() {
+                synchronized (_navigationLock) {
+                    if (!_isAutonomous.get()) {
+                        // If we are not autonomous, do nothing
+                        Log.i(TAG, "Paused");
+                        sendWaypointUpdate(WaypointState.PAUSED);
+
+                    } else if (_waypoints.length == 0) {
+                        // If we are finished with waypoints, stop in place
+                        Log.i(TAG, "Done");
+                        sendWaypointUpdate(WaypointState.DONE);
+                        setVelocity(new Twist(DEFAULT_TWIST));
+                        this.cancel();
+                        _navigationTask = null;
+
+                    } else {
+                        // Compute the time since the last update.
+                        long currentTime = System.currentTimeMillis();
+                        double dt = (currentTime - lastUpdateTime) / 1000.0;
+                        lastUpdateTime = currentTime;
+
+                        // If we are still executing waypoints, use a
+                        // controller to figure out how to complete the waypoint.
+                        vc.update(VehicleServerImpl.this, dt);
+                        sendWaypointUpdate(WaypointState.GOING);
+                    }
+                }
+            }
+        };
+
+        synchronized (_navigationLock) {
+            // Change waypoints to new set of waypoints
             _waypoints = new UtmPose[waypoints.length];
             System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
-            VehicleController vc = AirboatController.valueOf(controller).controller;
-            vc.update(VehicleServerImpl.this, (double) UPDATE_INTERVAL_MS / 1000.0);
-            Log.i(TAG, "Waypoint Status: PRIMITIVES");
-        } else {
-            // Create a waypoint navigation task
-            TimerTask newNavigationTask = new TimerTask() {
-                final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
-                // Retrieve the appropriate controller in initializer
-                VehicleController vc = DEFAULT_CONTROLLER;
+            // Cancel any previous navigation tasks
+            if (_navigationTask != null)
+                _navigationTask.cancel();
 
-                {
-                    try {
-                        vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
-                    } catch (IllegalArgumentException e) {
-                        Log.w(TAG, "Unknown controller specified (using " + vc
-                                + " instead): " + controller);
-                    }
-                }
+            // Schedule this task for execution
+            _navigationTask = newNavigationTask;
+            _navigationTimer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
+        }
 
-                @Override
-                public void run() {
-                    synchronized (_navigationLock) {
-                        if (!_isAutonomous.get()) {
-                            // If we are not autonomous, do nothing
-                            Log.i(TAG, "Paused");
-                            sendWaypointUpdate(WaypointState.PAUSED);
-                        } else if (_waypoints.length == 0) {
-                            // If we are finished with waypoints, stop in place
-                            Log.i(TAG, "Done");
-                            sendWaypointUpdate(WaypointState.DONE);
-                            setVelocity(new Twist(DEFAULT_TWIST));
-                            this.cancel();
-                            _navigationTask = null;
-
-                        } else {
-                            // If we are still executing waypoints, use a
-                            // controller to figure out how to get to waypoint
-                            // TODO: measure dt directly instead of approximating
-                            Log.i(TAG, "controller :" + controller);
-                            vc.update(VehicleServerImpl.this, dt);
-                            sendWaypointUpdate(WaypointState.GOING);
-                        }
-                    }
-                }
-            };
-
-            synchronized (_navigationLock) {
-                // Change waypoints to new set of waypoints
-                _waypoints = new UtmPose[waypoints.length];
-                System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
-
-                // Cancel any previous navigation tasks
-                if (_navigationTask != null)
-                    _navigationTask.cancel();
-
-                // Schedule this task for execution
-                _navigationTask = newNavigationTask;
-                _navigationTimer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
-            }
-
-            // Report the new waypoint in the log file.
-            try {
-                mLogger.info(new JSONObject()
-                        .put("nav", new JSONObject()
-                                .put("controller", controller)
-                                .put("waypoints", new JSONArray(waypoints))));
-            } catch (JSONException e) {
-                Log.w(TAG, "Unable to serialize waypoints.");
-            }
+        // Report the new waypoint in the log file.
+        try {
+            mLogger.info(new JSONObject()
+                    .put("nav", new JSONObject()
+                            .put("controller", controller)
+                            .put("waypoints", new JSONArray(waypoints))));
+        } catch (JSONException e) {
+            Log.w(TAG, "Unable to serialize waypoints.");
         }
     }
 
