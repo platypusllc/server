@@ -159,6 +159,7 @@ public class LauncherFragment extends Fragment
             mLaunchButton.setBackground(getResources().getDrawable(
                     R.drawable.fragment_launcher_launch_button_background_red));
             mLaunchButton.setText(getResources().getString(R.string.launcher_launch_button_start));
+            mFailsafeText.setVisibility(View.INVISIBLE);
         }
     }
 
