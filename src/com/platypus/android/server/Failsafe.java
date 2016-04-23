@@ -131,7 +131,7 @@ public class Failsafe {
         synchronized (mUpdateLock) {
             if (mUpdateFuture != null) {
                 try {
-                    mUpdateFuture.cancel(false);
+                    mUpdateFuture.cancel(true);
                     mUpdateFuture.get();
                 } catch (InterruptedException | CancellationException | ExecutionException e) {
                     // Do nothing.
@@ -359,7 +359,7 @@ public class Failsafe {
                 if (mUpdateFuture != null) {
                     // Stop update task.
                     try {
-                        mUpdateFuture.cancel(false);
+                        mUpdateFuture.cancel(true);
                         mUpdateFuture.get();
                     } catch (InterruptedException | CancellationException | ExecutionException e) {
                         // Do nothing.
