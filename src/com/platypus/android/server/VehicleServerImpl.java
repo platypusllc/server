@@ -680,8 +680,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 @Override
                 public void run() {
                     synchronized (_navigationLock) {
-                        //Log.i(TAG, "Synchronized");
-
                         if (!_isAutonomous.get()) {
                             // If we are not autonomous, do nothing
                             Log.i(TAG, "Paused");
@@ -701,7 +699,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                             Log.i(TAG, "controller :" + controller);
                             vc.update(VehicleServerImpl.this, dt);
                             sendWaypointUpdate(WaypointState.GOING);
-                            //Log.i(TAG, "Waypoint Status: POINT_AND_SHOOT");
                         }
                     }
                 }
