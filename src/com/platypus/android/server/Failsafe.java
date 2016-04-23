@@ -6,10 +6,7 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.platypus.crw.AsyncVehicleServer;
-import com.platypus.crw.FunctionObserver;
 import com.platypus.crw.VehicleServer;
-import com.platypus.crw.WaypointListener;
 import com.platypus.crw.data.UtmPose;
 
 import java.io.IOException;
@@ -24,13 +21,15 @@ import java.util.concurrent.TimeUnit;
 /**
  * Implements a failsafe behavior that does the following:
  *
- * - Every five seconds, query the failsafe address for connectivity
- * - Record the current pose if the boat is within connectivity
+ * - Every five seconds, query the failsafe address for connectivity.
+ * - Record the current pose if the boat is within connectivity.
+ *
  * - If it has been FAILSAFE_TIMEOUT since the failsafe address was contacted,
  *   then enable autonomy and head to the last position where there was connectivity.
- * - If the last position with connectivity was reached, reset the timeout counter and wait.
- * - If it has been FAILSAFE_TIMEOUT since the failsafe address was contacted,
- *   then enable autonomy to head to the home position, if it was specified.
+ *
+ * - If, after reaching the last-known position, it has still been longer than FAILSAFE_TIMEOUT
+ *   since the failsafe address was contacted, then enable autonomy to head to the home position,
+ *   if it was specified.
  */
 public class Failsafe {
     private static final String TAG = VehicleService.class.getSimpleName();
@@ -40,11 +39,6 @@ public class Failsafe {
      * Time between periodic connectivity checks.
      */
     static int UPDATE_PERIOD_MS = 5000;
-
-    /**
-     * Maximum time until a connectivity check will be considered a failure.
-     */
-    static int UPDATE_TIMEOUT_MS = 1000;
 
     /**
      * The current status of the failsafe behavior.
@@ -65,7 +59,7 @@ public class Failsafe {
      * Maximum allowable loss of connectivity to failsafe server before engaging failsafe.
      * Updated from SharedPreferences.
      */
-    int mTimeoutMs = 0;
+    long mTimeoutMs = 0;
 
     /**
      * Pose at which the vehicle was last connected to the failsafe server.
@@ -85,7 +79,7 @@ public class Failsafe {
     /**
      * Current state of the failsafe recovery behavior.
      */
-    FailsafeStatus mStatus;
+    FailsafeStatus mStatus = FailsafeStatus.CONNECTED;
 
     /**
      * Vehicle on which to engage the failsafe behavior.
@@ -139,11 +133,7 @@ public class Failsafe {
                 try {
                     mUpdateFuture.cancel(false);
                     mUpdateFuture.get();
-                } catch (InterruptedException e) {
-                    // Do nothing.
-                } catch (CancellationException e) {
-                    // Do nothing.
-                } catch (ExecutionException e) {
+                } catch (InterruptedException | CancellationException | ExecutionException e) {
                     // Do nothing.
                 }
                 mUpdateFuture = null;
@@ -166,7 +156,7 @@ public class Failsafe {
             // Test if connectivity is sufficiently recent.
             boolean isRecentlyConnected;
             synchronized (mUpdateLock) {
-                isRecentlyConnected = (System.currentTimeMillis() - mLastConnectedTime > mTimeoutMs);
+                isRecentlyConnected = (System.currentTimeMillis() - mLastConnectedTime < mTimeoutMs);
             }
             sendFailsafeIntent(!isRecentlyConnected);
 
@@ -178,7 +168,7 @@ public class Failsafe {
 
                     // If not recently connected, initiate failsafe to last known location.
                     synchronized (mUpdateLock) {
-                        mStatus = FailsafeStatus.FAILSAFE_TO_HOME_LOCATION;
+                        mStatus = FailsafeStatus.FAILSAFE_TO_LAST_LOCATION;
                         Log.w(TAG,
                                 "Connectivity loss detected. " +
                                 "Will failsafe to last-known location if IDLE.");
@@ -202,7 +192,8 @@ public class Failsafe {
                     // Check if we are already navigating to the last-known location.
                     // If not, start navigating using the default controller.
                     synchronized (mUpdateLock) {
-                        checkFailsafeBehavior(mLastConnectedLocation);
+                        if (mLastConnectedLocation != null)
+                            checkFailsafeBehavior(mLastConnectedLocation);
 
                         // Since we have already attempted to get to the last location,
                         // transition to using the home location the next time we need to
@@ -229,12 +220,36 @@ public class Failsafe {
                     // Check if we are already navigating to the home location.
                     // If not, start navigating using the default controller.
                     synchronized (mUpdateLock) {
-                        checkFailsafeBehavior(mHomeLocation);
+                        if (mHomeLocation != null)
+                            checkFailsafeBehavior(mHomeLocation);
                     }
+                    break;
+
+                default:
+                    Log.e(TAG, "Unexpectedly reached invalid status, resetting to CONNECTED.");
+                    mStatus = FailsafeStatus.CONNECTED;
                     break;
             }
         }
     };
+
+    /**
+     * Executes a single ICMP ping to a host and returns the success.
+     *
+     * @param host the host to attempt to reach
+     * @return true if the ping succeeded.
+     */
+    boolean ping(InetAddress host) {
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            Process pingProcess = runtime.exec(
+                    "/system/bin/ping -c 1 -W 1 " + host.getHostAddress());
+            int result = pingProcess.waitFor();
+            return (result == 0);
+        } catch (IOException | InterruptedException e) {
+            return false;
+        }
+    }
 
     /**
      * Tests connection to the failsafe server and updates the last connected location and time.
@@ -242,20 +257,21 @@ public class Failsafe {
      * @return the success of the connectivity test
      */
     boolean checkConnection() {
-        try {
-            // If the server is not reachable, do nothing.
-            synchronized (mUpdateLock) {
-                if (!mFailsafeServer.isReachable(UPDATE_TIMEOUT_MS))
-                    return false;
+        // Get the current failsafe server address.
+        InetAddress failsafeServer;
+        synchronized (mUpdateLock) {
+            failsafeServer = mFailsafeServer;
+        }
 
-                // If the server is reached, update the latest pose and time.
-                mLastConnectedTime = System.currentTimeMillis();
-                mLastConnectedLocation = mVehicleServer.getPose();
-                return true;
-            }
-        } catch (IOException e) {
-            Log.w(TAG, "Failed to test connectivity.", e);
+        // If the server is not reachable, do nothing.
+        if (!ping(failsafeServer))
             return false;
+
+        // If the server is reached, update the latest pose and time.
+        synchronized (mUpdateLock) {
+            mLastConnectedTime = System.currentTimeMillis();
+            mLastConnectedLocation = mVehicleServer.getPose();
+            return true;
         }
     }
 
@@ -279,6 +295,13 @@ public class Failsafe {
      * @param failsafeDestination the failsafe destination to verify navigation towards
      */
     void checkFailsafeBehavior(final UtmPose failsafeDestination) {
+
+        // Ignore attempts to set a null destination.
+        if (failsafeDestination == null) {
+            Log.w(TAG, "Ignoring attempt to set null destination.");
+            return;
+        }
+
         // Do not engage failsafe if the vehicle is already doing something.
         switch(mVehicleServer.getWaypointStatus()) {
             case GOING:
@@ -288,7 +311,7 @@ public class Failsafe {
 
         // Check if already navigating to the desired destination.
         UtmPose[] waypoints = mVehicleServer.getWaypoints();
-        if (waypoints[0].equals(failsafeDestination))
+        if (waypoints.length > 0 && waypoints[0].equals(failsafeDestination))
             return;
 
         // Start navigating to the failsafe destination.
@@ -304,9 +327,9 @@ public class Failsafe {
         synchronized (mUpdateLock) {
 
             // Update the timeout used for the failsafe server (stored as a numeric string).
-            mTimeoutMs = Integer.parseInt(
+            mTimeoutMs = Long.parseLong(
                     sharedPreferences.getString("pref_failsafe_timeout",
-                        mContext.getString(R.string.pref_failsafe_timeout_default)));
+                            mContext.getString(R.string.pref_failsafe_timeout_default)));
 
             // Update the hostname used for the failsafe server.
             String failsafeHostname =
@@ -321,9 +344,10 @@ public class Failsafe {
             // Enable/disable update task.
             if (sharedPreferences.getBoolean("pref_failsafe_enable", false)) {
                 if (mUpdateFuture == null) {
-                    // Use current location as starting failsafe location.
-                    mLastConnectedLocation = mVehicleServer.getPose();
+                    // Reset last-known location as for failsafe.
+                    mLastConnectedLocation = null;
                     mLastConnectedTime = System.currentTimeMillis();
+                    mStatus = FailsafeStatus.CONNECTED;
 
                     // Start update task.
                     mUpdateFuture = mUpdateExecutor.scheduleAtFixedRate(
@@ -337,11 +361,7 @@ public class Failsafe {
                     try {
                         mUpdateFuture.cancel(false);
                         mUpdateFuture.get();
-                    } catch (InterruptedException e) {
-                        // Do nothing.
-                    } catch (CancellationException e) {
-                        // Do nothing.
-                    } catch (ExecutionException e) {
+                    } catch (InterruptedException | CancellationException | ExecutionException e) {
                         // Do nothing.
                     }
                     mUpdateFuture = null;
