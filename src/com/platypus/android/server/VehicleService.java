@@ -36,8 +36,6 @@ import com.platypus.crw.udp.UdpVehicleService;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -323,18 +321,12 @@ public class VehicleService extends Service {
             }
         }).start();
 
-        // Log the velocity gains before starting the service
+        // Load and save gains to trigger logging of the values.
+        // (This should not change gains at all.)
         int[] axes = {0, 5};
         for (int axis : axes) {
             double[] gains = _vehicleServerImpl.getGains(axis);
-            try {
-                mLogger.info(new JSONObject()
-                        .put("gain", new JSONObject()
-                                .put("axis", axis)
-                                .put("values", gains)));
-            } catch (JSONException e) {
-                Log.w(TAG, "Failed to serialize gains.");
-            }
+            _vehicleServerImpl.setGains(axis, gains);
         }
 
         // Prevent phone from sleeping or turning off wifi
