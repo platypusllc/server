@@ -1,5 +1,5 @@
 from . import Behavior
-from .util import spatial
+from ..util import spatial
 import enum
 import numpy as np
 

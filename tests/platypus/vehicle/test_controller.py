@@ -1,4 +1,4 @@
-import platypus.vehicle.controller
+import platypus.vehicle
 import six
 import time
 from unittest import TestCase
@@ -22,7 +22,7 @@ class ControllerTest(TestCase):
             "s0": "test_sensor"
         }
 
-        c = platypus.vehicle.controller.Controller(port='loop://', data=data)
+        c = platypus.vehicle.Controller(port='loop://', data=data)
 
         # Check that initial data is accessible.
         six.assertCountEqual(self, c.keys(), ('m0', 'm1', 'm2', 's0'))

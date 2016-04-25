@@ -10,14 +10,16 @@ class Vehicle(object):
     of a reference to a controller and a a list of behaviors that can be
     activated at any given time.
     """
-    def __init__(self, controller=None, behaviors=[]):
+    def __init__(self, controller=None, behaviors=dict()):
         """
         Create a vehicle with the specified controller and specified behaviors.
 
         :param controller: a Platypus hardware controller for this vehicle
         :type  controller: platypus.vehicle.controller
+        :param behaviors: a dict of behaviors to make available on the vehicle
+        :type  behaviors: {str: platypus.vehicle.Behavior}
         """
-        self.behaviors = behaviors
+        self.behaviors = dict(behaviors)
         self.controller = controller
         self.shutdown_event = threading.Event()
         # TODO: locking for controllers and behaviors (adding and removing)?

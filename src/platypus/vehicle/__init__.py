@@ -1,9 +1,12 @@
 import argparse
-from .controller import Controller
-from .behavior.navigator import Navigator
-from .behavior.failsafe import Failsafe
-from .vehicle import Vehicle
 from . import io
+from .behavior import Behavior
+from .behavior.failsafe import Failsafe
+from .behavior.navigator import Navigator
+from .controller import Controller
+from .vehicle import Vehicle
+
+__all__ = [Behavior, Failsafe, Navigator, Controller, Vehicle]
 
 
 def main():

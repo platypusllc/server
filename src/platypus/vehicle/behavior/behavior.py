@@ -15,7 +15,7 @@ class Behavior(object):
     """
     def __init__(self, vehicle=None):
         self._vehicle = vehicle
-        self._active = False
+        self._is_active = False
 
     @property
     def vehicle(self):
@@ -27,16 +27,16 @@ class Behavior(object):
         self._vehicle = vehicle
 
     @property
-    def active(self):
+    def is_active(self):
         """
         When a behavior is active, it is allowed to modify the vehicle.
         """
-        return self._active
+        return self._is_active
 
-    @active.setter
-    def active(self, active):
-        self.on('active', self._active, active)
-        self._active = active
+    @is_active.setter
+    def is_active(self, active):
+        self.on('is_active', self._is_active, active)
+        self._is_active = active
 
     def activate(self):
         """
