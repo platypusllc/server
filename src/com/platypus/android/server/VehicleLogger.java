@@ -1,15 +1,14 @@
 package com.platypus.android.server;
 
+import android.os.Environment;
 import android.util.Log;
 
-import com.google.code.microlog4android.Level;
-import com.google.code.microlog4android.LoggerFactory;
-import com.google.code.microlog4android.appender.FileAppender;
-import com.google.code.microlog4android.format.PatternFormatter;
-
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -39,15 +38,14 @@ public class VehicleLogger {
     private static final String TAG = VehicleService.class.getSimpleName();
 
     /**
-     * Internal logger object used to add entries to the log.
-     */
-    private static final com.google.code.microlog4android.Logger mLogger =
-            LoggerFactory.getLogger();
-
-    /**
      * Internal log appender that manages the output to a log file.
      */
-    private FileAppender mFileAppender;
+    private PrintWriter mLogWriter;
+
+    /**
+     * Internal timestamp of when log was created.
+     */
+    private long mStartTime;
 
     /**
      * The default prefix for Platypus Vehicle data log files.
@@ -66,36 +64,75 @@ public class VehicleLogger {
     }
 
     /**
+     * Logging levels supported by the vehicle logger.
+     */
+    public enum Level {
+        /**
+         * Debugging information that normal users do not need to see.
+         */
+        DEBUG("D"),
+        /**
+         * Information about normal operation.
+         */
+        INFO("I"),
+        /**
+         * Notification of an abnormal event that is recoverable.
+         */
+        WARN("W"),
+        /**
+         * Notification of an abnormal event that may put the system into an invalid state.
+         */
+        ERROR("E"),
+        /**
+         * Notification of an abnormal event that the system cannot recover from.
+         */
+        FATAL("F");
+
+        private final String mCode;
+        Level(final String code) { mCode = code; }
+
+        /**
+         * Returns a short string code for each log level.
+         */
+        public String code() { return mCode; }
+    }
+
+    /**
      * Create a new vehicle log file.
      */
     public VehicleLogger() {
-        // Set up logging format to include time, tag, and value.
-        PatternFormatter formatter = new PatternFormatter();
-        formatter.setPattern("%r %d %m %T");
+        // Construct the path to the new log file.
+        File logDirectory = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS), "platypus");
+        File logFile = new File(logDirectory, defaultFilename());
 
-        // Set up an output stream for the vehicle log file.
-        String logFilename = defaultFilename();
-        mFileAppender = new FileAppender();
-        mFileAppender.setFileName(logFilename);
-        mFileAppender.setAppend(true);
-        mFileAppender.setFormatter(formatter);
+        // Set up a writer for the vehicle log file.
         try {
-            mFileAppender.open();
+            logDirectory.mkdirs();
+            logFile.createNewFile();
+            mLogWriter = new PrintWriter(logFile);
+            mStartTime = System.currentTimeMillis();
         } catch (IOException e) {
-            Log.w(TAG, "Failed to open data log file: " + logFilename, e);
+            Log.e(TAG, "Failed to create log file: " + logFile, e);
+            return;
         }
-        mLogger.addAppender(mFileAppender);
+
+        // Whenever a log is created, add a date/time message to the log.
+        try {
+            log(Level.INFO, new JSONObject()
+                    .put("date", new Date())
+                    .put("time", System.currentTimeMillis()));
+        }  catch (JSONException e) {
+            Log.e(TAG, "Failed to serialize time.", e);
+            return;
+        }
     }
 
     public synchronized void close() {
         // Remove the data log (a new one will be created on restart)
-        if (mFileAppender != null) {
-            try {
-                mFileAppender.close();
-                mFileAppender = null;
-            } catch (IOException e) {
-                Log.e(TAG, "Data log shutdown error", e);
-            }
+        if (mLogWriter != null) {
+            mLogWriter.close();
+            mLogWriter = null;
         }
     }
 
@@ -104,7 +141,17 @@ public class VehicleLogger {
      * @param obj
      */
     public synchronized void log(Level level, JSONObject obj) {
-        mLogger.log(level, obj.toString());
+        if (mLogWriter == null)
+            return;
+
+        StringBuffer sb = new StringBuffer();
+        sb.append(System.currentTimeMillis() - mStartTime);
+        sb.append("\t");
+        sb.append(level.code());
+        sb.append("\t");
+        sb.append(obj.toString());
+
+        mLogWriter.println(sb.toString());
     }
 
     public synchronized void debug(JSONObject obj) {

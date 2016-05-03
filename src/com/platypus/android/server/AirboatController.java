@@ -2,7 +2,6 @@ package com.platypus.android.server;
 
 import android.util.Log;
 
-import com.google.code.microlog4android.LoggerFactory;
 import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleServer;
 import com.platypus.crw.data.Twist;
@@ -157,8 +156,6 @@ public enum AirboatController {
 		}
 	}),
 	PRIMITIVES(new VehicleController() {
-		private final com.google.code.microlog4android.Logger logger = LoggerFactory
-				.getLogger();
 		private boolean log_boolean = true;
 		@Override
 		public void update(final VehicleServer server, double dt) {
@@ -186,7 +183,6 @@ public enum AirboatController {
 			
 			if (first[1] < 0 || second[1] < 0 || third[1] < 0 || fourth[1] < 0)
 			{
-				logger.info("INVALID INPUT: DEFAULT ALL TO 5 SEC");
 				first[1] = 5000; second[1] = 5000; third[1] = 5000; fourth[1] = 5000;
 			}
 			
@@ -197,7 +193,6 @@ public enum AirboatController {
 				@Override
 				public void run() {
 					// TODO Auto-generated method stub
-					if (log_boolean) { logger.info("START"); log_boolean = false;}
 					server.setVelocity(new Twist(first[2], 0, 0, 0, 0, first[0]));
 					// when go testing, use VehicleServerImpl.CONST_THRUST
 				}
@@ -231,7 +226,6 @@ public enum AirboatController {
 				@Override
 				public void run() {
 					// TODO Auto-generated method stub
-					if (!log_boolean) {logger.info("END"); log_boolean = true;}
 					server.setVelocity(new Twist(500, 0, 0, 0, 0, 90));
 					server.startWaypoints(new UtmPose[0], "POINT_AND_SHOOT");
 					log.purge();
@@ -254,9 +248,6 @@ public enum AirboatController {
 					double heading = pose.getRotation().toYaw();
 					double rudder = server_impl.getVelocity().drz();
 					double thrust = server_impl.getVelocity().dx();
-					
-					logger.info("PROCESS: " + " " + rudder + " " + heading + " " + yawVel
-							+ " " + xPos + " " + yPos + " " + thrust);
 				}
 			};
 			
