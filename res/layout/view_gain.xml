@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:weightSum="1">
+
+        <TextView
+            android:id="@+id/axis_title"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:gravity="center_vertical"
+            android:layout_marginStart="10sp"
+            android:text="@string/gain_axis_title" />
+
+        <Spinner
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/axis_spinner"
+            android:entries="@array/gain_axis_entries"
+            android:entryValues="@array/gain_axis_values"
+            android:layout_weight="1" />
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/refresh_button"
+            android:layout_gravity="end"
+            android:src="@drawable/ic_refresh"/>
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/save_button"
+            android:layout_gravity="end"
+            android:src="@drawable/ic_checked"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:weightSum="3">
+
+        <TextView
+            android:id="@+id/p_gain_title"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:gravity="center_vertical"
+            android:layout_marginStart="10sp"
+            android:text="@string/gain_p_title" />
+
+        <EditText
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal|numberSigned"
+            android:ems="10"
+            android:id="@+id/p_gain"
+            android:hint="@string/gain_hint"
+            android:gravity="center"
+            android:imeOptions="actionDone"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/i_gain_title"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:gravity="center_vertical"
+            android:layout_marginStart="10sp"
+            android:text="@string/gain_i_title" />
+
+        <EditText
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal|numberSigned"
+            android:ems="10"
+            android:id="@+id/i_gain"
+            android:hint="@string/gain_hint"
+            android:gravity="center"
+            android:imeOptions="actionDone"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/d_gain_title"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:gravity="center_vertical"
+            android:layout_marginStart="10sp"
+            android:text="@string/gain_d_title" />
+
+        <EditText
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal|numberSigned"
+            android:ems="10"
+            android:id="@+id/d_gain"
+            android:hint="@string/gain_hint"
+            android:gravity="center"
+            android:imeOptions="actionDone"
+            android:layout_weight="1" />
+
+    </LinearLayout>
+
+</LinearLayout>

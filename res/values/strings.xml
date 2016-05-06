@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- General -->
-    <string name="app_name">Airboat Server</string>
+    <string name="app_name">Platypus Server</string>
     <!-- EditActivity -->
     <string name="connect_title">Airboat Bluetooth MAC Address:</string>
     <string name="connect_default_addr">00:00:00:00:00:00</string>

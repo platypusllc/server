@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:key="pref_server_category"
+        android:title="@string/pref_server_category_title">
+        <EditTextPreference
+            android:defaultValue="11411"
+            android:key="pref_server_port"
+            android:summary="@string/pref_server_port_summary"
+            android:title="@string/pref_server_port_title" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pref_registry_category"
+        android:title="@string/pref_registry_category_title">
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="pref_registry_enable"
+            android:summary="@string/pref_registry_enable_summary"
+            android:title="@string/pref_registry_enable_title" />
+        <EditTextPreference
+            android:defaultValue="registry.senseplatypus.com"
+            android:dependency="pref_registry_enable"
+            android:key="pref_registry_addr"
+            android:summary="@string/pref_registry_addr_summary"
+            android:title="@string/pref_registry_addr_title" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pref_failsafe_category"
+        android:title="@string/pref_failsafe_category_title">
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="pref_failsafe_enable"
+            android:summary="@string/pref_failsafe_enable_summary"
+            android:title="@string/pref_failsafe_enable_title" />
+        <EditTextPreference
+            android:defaultValue="10.0.0.1"
+            android:dependency="pref_failsafe_enable"
+            android:key="pref_failsafe_addr"
+            android:summary="@string/pref_failsafe_addr_summary"
+            android:title="@string/pref_failsafe_addr_title" />
+        <ListPreference
+            android:defaultValue="@string/pref_failsafe_timeout_default"
+            android:dialogTitle="@string/pref_failsafe_timeout_title"
+            android:entries="@array/pref_failsafe_timeout_entries"
+            android:entryValues="@array/pref_failsafe_timeout_values"
+            android:key="pref_failsafe_timeout"
+            android:summary="@string/pref_failsafe_timeout_summary"
+            android:title="@string/pref_failsafe_timeout_title" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pref_vehicle_category"
+        android:title="@string/pref_vehicle_category_title">
+        <ListPreference
+            android:defaultValue="@string/pref_vehicle_type_default"
+            android:dialogTitle="@string/pref_vehicle_type_title"
+            android:entries="@array/pref_vehicle_type_entries"
+            android:entryValues="@array/pref_vehicle_type_values"
+            android:key="pref_vehicle_type"
+            android:summary="@string/pref_vehicle_type_summary"
+            android:title="@string/pref_vehicle_type_title" />
+    </PreferenceCategory>
+</PreferenceScreen>
