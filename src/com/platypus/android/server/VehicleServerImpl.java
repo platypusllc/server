@@ -411,16 +411,20 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         SensorData reading = new SensorData();
 
                         if (type.equalsIgnoreCase("es2")) {
-                            // Parse out temperature and ec values
-                            String[] data = value.getString("data").trim().split(" ");
-                            double ecData = Double.parseDouble(data[0]);
-                            double tempData = Double.parseDouble(data[1]);
+                            try {
+                                // Parse out temperature and ec values
+                                String[] data = value.getString("data").trim().split(" ");
+                                double ecData = Double.parseDouble(data[0]);
+                                double tempData = Double.parseDouble(data[1]);
 
-                            // Todo: update stored temp and ec values then push to DO/pH probes
-                            // Fill in readings from parsed sensor data.
-                            reading.channel = sensor;
-                            reading.type = SensorType.ES2;
-                            reading.data = new double[]{ecData, tempData};
+                                // Todo: update stored temp and ec values then push to DO/pH probes
+                                // Fill in readings from parsed sensor data.
+                                reading.channel = sensor;
+                                reading.type = SensorType.ES2;
+                                reading.data = new double[]{ecData, tempData};
+                            } catch (NumberFormatException e){
+                                Log.w(TAG, "Received malformed ES2 Sensor Data: " + value);
+                            }
                         } else if (type.equalsIgnoreCase("atlas_do")) {
                             // Fill in readings from parsed sensor data.
                             reading.channel = sensor;
@@ -454,16 +458,20 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 continue;
                             }
                         } else if (type.equalsIgnoreCase("battery")) {
-                            // Parse out voltage and motor velocity values
-                            String[] data = value.getString("data").trim().split(" ");
-                            double voltage = Double.parseDouble(data[0]);
-                            double motor0Velocity = Double.parseDouble(data[1]);
-                            double motor1Velocity = Double.parseDouble(data[2]);
+                            try {
+                                // Parse out voltage and motor velocity values
+                                String[] data = value.getString("data").trim().split(" ");
+                                double voltage = Double.parseDouble(data[0]);
+                                double motor0Velocity = Double.parseDouble(data[1]);
+                                double motor1Velocity = Double.parseDouble(data[2]);
 
-                            // Fill in readings from parsed sensor data.
-                            reading.channel = sensor;
-                            reading.type = SensorType.BATTERY;
-                            reading.data = new double[]{voltage, motor0Velocity, motor1Velocity};
+                                // Fill in readings from parsed sensor data.
+                                reading.channel = sensor;
+                                reading.type = SensorType.BATTERY;
+                                reading.data = new double[]{voltage, motor0Velocity, motor1Velocity};
+                            } catch (NumberFormatException e){
+                                Log.w(TAG, "Received malformed Battery Sensor Data: " + value);
+                            }
                         } else if (type.equalsIgnoreCase("winch")) {
                             // Fill in readings from parsed sensor data.
                             reading.channel = sensor;
