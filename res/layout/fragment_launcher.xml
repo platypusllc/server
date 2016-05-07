@@ -77,4 +77,16 @@
             android:singleLine="true"
             android:text="@string/launcher_swipe_right_text_content" />
     </RelativeLayout>
+
+    <TextView
+        android:id="@+id/launcher_failsafe_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:textStyle="bold"
+        android:textSize="24sp"
+        android:textColor="#F00"
+        android:visibility="invisible"
+        android:text="@string/launcher_failsafe_text_content" />
 </RelativeLayout>
