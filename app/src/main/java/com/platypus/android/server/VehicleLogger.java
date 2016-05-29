@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * A logging class that creates vehicle logs in JSON format.
@@ -48,6 +49,11 @@ public class VehicleLogger {
     private long mStartTime;
 
     /**
+     * File reference to the log file that this logger is creating.
+     */
+    private final File mLogFile;
+
+    /**
      * The default prefix for Platypus Vehicle data log files.
      */
     private static final String DEFAULT_LOG_PREFIX = "platypus_";
@@ -59,7 +65,7 @@ public class VehicleLogger {
      */
     private static String defaultFilename() {
         Date d = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss", Locale.US);
         return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
     }
 
@@ -104,16 +110,16 @@ public class VehicleLogger {
         // Construct the path to the new log file.
         File logDirectory = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), "platypus");
-        File logFile = new File(logDirectory, defaultFilename());
+        mLogFile = new File(logDirectory, defaultFilename());
 
         // Set up a writer for the vehicle log file.
         try {
             logDirectory.mkdirs();
-            logFile.createNewFile();
-            mLogWriter = new PrintWriter(logFile);
+            mLogFile.createNewFile();
+            mLogWriter = new PrintWriter(mLogFile);
             mStartTime = System.currentTimeMillis();
         } catch (IOException e) {
-            Log.e(TAG, "Failed to create log file: " + logFile, e);
+            Log.e(TAG, "Failed to create log file: " + mLogFile, e);
             return;
         }
 
@@ -124,8 +130,16 @@ public class VehicleLogger {
                     .put("time", System.currentTimeMillis()));
         }  catch (JSONException e) {
             Log.e(TAG, "Failed to serialize time.", e);
-            return;
         }
+    }
+
+    /**
+     * Get the file that is being logged to.
+     *
+     * @return the file to which this logger is appending
+     */
+    public File getFile() {
+        return mLogFile;
     }
 
     public synchronized void close() {
@@ -138,20 +152,17 @@ public class VehicleLogger {
 
     /**
      * Creates a log entry from the specified JSON object.
-     * @param obj
+     * @param obj a JSON object containing the log entry
      */
     public synchronized void log(Level level, JSONObject obj) {
         if (mLogWriter == null)
             return;
 
-        StringBuffer sb = new StringBuffer();
-        sb.append(System.currentTimeMillis() - mStartTime);
-        sb.append("\t");
-        sb.append(level.code());
-        sb.append("\t");
-        sb.append(obj.toString());
+        String message = (System.currentTimeMillis() - mStartTime)
+                + "\t" + level.code()
+                + "\t" + obj.toString();
 
-        mLogWriter.println(sb.toString());
+        mLogWriter.println(message);
     }
 
     public synchronized void debug(JSONObject obj) {
