@@ -11,6 +11,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -24,6 +25,7 @@ import java.util.List;
  * Activity that is used to start/stop/configure the vehicle server application.
  */
 public class MainActivity extends Activity {
+    private static final String TAG = VehicleService.class.getSimpleName();
 
     protected ViewPager mPager;
 
@@ -96,6 +98,8 @@ public class MainActivity extends Activity {
                     .getReference("usage")
                     .child(instanceToken);
             usageRef.keepSynced(true);
+        } else {
+            Log.w(TAG, "Unable to report status to firebase: missing instance ID.");
         }
     }
 
