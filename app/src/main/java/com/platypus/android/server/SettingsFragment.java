@@ -1,7 +1,10 @@
 package com.platypus.android.server;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.preference.Preference;
 import android.preference.PreferenceFragment;
+import android.util.Log;
 
 /**
  * Fragment that implements a dynamically-generated settings panel for the server.
@@ -17,5 +20,17 @@ public class SettingsFragment extends PreferenceFragment {
 
         // Load the preferences from an XML resource
         addPreferencesFromResource(R.xml.preferences);
+
+        // Add a click handler to synchronize logs.
+        Preference button = (Preference)findPreference("pref_cloud_sync");
+        button.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(Preference preference) {
+                Intent logUploadIntent = new Intent(getActivity(), LogUploadService.class);
+                logUploadIntent.setAction(LogUploadService.ACTION_SCAN_AND_UPLOAD_LOGS);
+                getActivity().startService(logUploadIntent);
+                return true;
+            }
+        });
     }
 }

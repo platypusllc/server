@@ -7,8 +7,27 @@
         <EditTextPreference
             android:defaultValue="11411"
             android:key="pref_server_port"
-            android:summary="@string/pref_server_port_summary"
-            android:title="@string/pref_server_port_title" />
+            android:title="@string/pref_server_port_title"
+            android:summary="@string/pref_server_port_summary" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pref_cloud_category"
+        android:title="@string/pref_cloud_category_title">
+        <Preference
+            android:key="pref_cloud_sync"
+            android:title="@string/pref_cloud_sync_title"
+            android:summary="@string/pref_cloud_sync_summary"/>
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="pref_cloud_autosync_enable"
+            android:title="@string/pref_cloud_autosync_enable_title"
+            android:summary="@string/pref_cloud_autosync_enable_summary" />
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="pref_cloud_sync_delete"
+            android:title="@string/pref_cloud_sync_delete_title"
+            android:summary="@string/pref_cloud_sync_delete_summary" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -17,14 +36,14 @@
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="pref_registry_enable"
-            android:summary="@string/pref_registry_enable_summary"
-            android:title="@string/pref_registry_enable_title" />
+            android:title="@string/pref_registry_enable_title"
+            android:summary="@string/pref_registry_enable_summary" />
         <EditTextPreference
             android:defaultValue="registry.senseplatypus.com"
             android:dependency="pref_registry_enable"
             android:key="pref_registry_addr"
-            android:summary="@string/pref_registry_addr_summary"
-            android:title="@string/pref_registry_addr_title" />
+            android:title="@string/pref_registry_addr_title"
+            android:summary="@string/pref_registry_addr_summary" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -33,22 +52,22 @@
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="pref_failsafe_enable"
-            android:summary="@string/pref_failsafe_enable_summary"
-            android:title="@string/pref_failsafe_enable_title" />
+            android:title="@string/pref_failsafe_enable_title"
+            android:summary="@string/pref_failsafe_enable_summary" />
         <EditTextPreference
             android:defaultValue="10.0.0.1"
             android:dependency="pref_failsafe_enable"
             android:key="pref_failsafe_addr"
-            android:summary="@string/pref_failsafe_addr_summary"
-            android:title="@string/pref_failsafe_addr_title" />
+            android:title="@string/pref_failsafe_addr_title"
+            android:summary="@string/pref_failsafe_addr_summary" />
         <ListPreference
             android:defaultValue="@string/pref_failsafe_timeout_default"
             android:dialogTitle="@string/pref_failsafe_timeout_title"
             android:entries="@array/pref_failsafe_timeout_entries"
             android:entryValues="@array/pref_failsafe_timeout_values"
             android:key="pref_failsafe_timeout"
-            android:summary="@string/pref_failsafe_timeout_summary"
-            android:title="@string/pref_failsafe_timeout_title" />
+            android:title="@string/pref_failsafe_timeout_title"
+            android:summary="@string/pref_failsafe_timeout_summary" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -60,7 +79,7 @@
             android:entries="@array/pref_vehicle_type_entries"
             android:entryValues="@array/pref_vehicle_type_values"
             android:key="pref_vehicle_type"
-            android:summary="@string/pref_vehicle_type_summary"
-            android:title="@string/pref_vehicle_type_title" />
+            android:title="@string/pref_vehicle_type_title"
+            android:summary="@string/pref_vehicle_type_summary" />
     </PreferenceCategory>
 </PreferenceScreen>

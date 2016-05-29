@@ -59,7 +59,10 @@
                 android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
-
+        <service
+            android:name=".LogUploadService"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Platypus Log Upload Service" />
     </application>
 
 </manifest>

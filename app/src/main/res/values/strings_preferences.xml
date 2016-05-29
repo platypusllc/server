@@ -8,6 +8,13 @@
     <string name="pref_registry_enable_summary">Enable or disable the use of a vehicle registry service.</string>
     <string name="pref_registry_addr_title">Registry IP/Hostname</string>
     <string name="pref_registry_addr_summary">Set the IP/Hostname of a Platypus Vehicle Registry.</string>
+    <string name="pref_cloud_category_title">Cloud Service</string>
+    <string name="pref_cloud_sync_title">Synchronize Logs Now</string>
+    <string name="pref_cloud_sync_summary">Synchronize all logs to the Platypus Cloud.</string>
+    <string name="pref_cloud_autosync_enable_title">Enable Log Synchronization</string>
+    <string name="pref_cloud_autosync_enable_summary">Enable or disable automatic log synchronization with the Platypus Cloud.</string>
+    <string name="pref_cloud_sync_delete_title">Clear Logs After Upload</string>
+    <string name="pref_cloud_sync_delete_summary">Removes local copies of log files after uploading to Platypus Cloud.</string>
     <string name="pref_failsafe_category_title">Failsafe Service</string>
     <string name="pref_failsafe_enable_title">Enable Failsafe</string>
     <string name="pref_failsafe_enable_summary">Enable or disable the use of a connectivity failsafe behavior.</string>
