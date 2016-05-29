@@ -1,12 +1,11 @@
 package com.platypus.android.server;
 
 import android.app.Application;
-
 import com.google.firebase.database.FirebaseDatabase;
-import com.platypus.crw.data.UtmPose;
+
 
 /**
- * Created by hnx on 6/23/14.
+ * Application configuration for the Platypus Server.
  */
 public class PlatypusApplication extends Application{
     @Override
