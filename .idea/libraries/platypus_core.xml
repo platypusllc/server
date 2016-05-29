@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="platypus-core">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/app/libs/platypus-core.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
