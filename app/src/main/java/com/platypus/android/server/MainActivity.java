@@ -12,6 +12,11 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.platypus.android.server.util.ISO8601Date;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,6 +79,24 @@ public class MainActivity extends Activity {
             }, 0);
         }
 
+        // Configure Firebase to work offline and sync vehicle and usage data whenever possible.
+        FirebaseDatabase.getInstance().setPersistenceEnabled(true);
+        String instanceToken = FirebaseInstanceId.getInstance().getToken();
+        if (instanceToken != null) {
+            // Synchronize status information about the vehicle.
+            DatabaseReference vehicleRef = FirebaseDatabase.getInstance()
+                    .getReference("vehicles")
+                    .child(instanceToken);
+            vehicleRef.child("lastUpdate").setValue(ISO8601Date.now());
+            vehicleRef.child("serverVersion").setValue(BuildConfig.VERSION_NAME);
+            vehicleRef.keepSynced(true);
+
+            // Synchronize usage information about the vehicle.
+            DatabaseReference usageRef = FirebaseDatabase.getInstance()
+                    .getReference("usage")
+                    .child(instanceToken);
+            usageRef.keepSynced(true);
+        }
     }
 
     /**

@@ -28,6 +28,9 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.iid.FirebaseInstanceId;
 import com.platypus.crw.CrwSecurityManager;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
@@ -369,6 +372,17 @@ public class VehicleService extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(startupIntent);
         isRunning.set(true);
 
+        // Record the startup of this server to the Firebase database.
+        String instanceToken = FirebaseInstanceId.getInstance().getToken();
+        if (instanceToken != null) {
+            DatabaseReference usageRef = FirebaseDatabase.getInstance()
+                    .getReference("usage")
+                    .child(instanceToken);
+            usageRef.push().setValue(new UsageEvent(true));
+        } else {
+            Log.w(TAG, "Failed to report usage: instance ID not generated.");
+        }
+
         Log.i(TAG, "VehicleService started.");
         return Service.START_STICKY;
     }
@@ -449,6 +463,17 @@ public class VehicleService extends Service {
         Intent startupIntent = new Intent().setAction(STOP_ACTION);
         LocalBroadcastManager.getInstance(this).sendBroadcast(startupIntent);
         isRunning.set(false);
+
+        // Record the shutdown of this server to the Firebase database.
+        String instanceToken = FirebaseInstanceId.getInstance().getToken();
+        if (instanceToken != null) {
+            DatabaseReference usageRef = FirebaseDatabase.getInstance()
+                    .getReference("usage")
+                    .child(instanceToken);
+            usageRef.push().setValue(new UsageEvent(false));
+        } else {
+            Log.w(TAG, "Failed to report usage: instance ID not generated.");
+        }
 
         Log.i(TAG, "VehicleService stopped.");
         super.onDestroy();
