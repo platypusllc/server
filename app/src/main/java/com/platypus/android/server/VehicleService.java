@@ -31,7 +31,6 @@ import android.util.Log;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.iid.FirebaseInstanceId;
-import com.platypus.android.server.util.ISO8601Date;
 import com.platypus.crw.CrwSecurityManager;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
@@ -384,7 +383,7 @@ public class VehicleService extends Service {
                     .child(instanceToken)
                     .push();
             mFirebaseId = usageRef.getKey();
-            usageRef.child("start").setValue(ISO8601Date.now());
+            usageRef.child("start").setValue(System.currentTimeMillis());
         } else {
             Log.w(TAG, "Failed to report usage: instance ID not generated.");
         }
@@ -477,7 +476,7 @@ public class VehicleService extends Service {
                     .getReference("usage")
                     .child(instanceToken)
                     .child(mFirebaseId);
-            usageRef.child("stop").setValue(ISO8601Date.now());
+            usageRef.child("stop").setValue(System.currentTimeMillis());
         } else {
             Log.w(TAG, "Failed to report usage: instance ID not generated.");
         }

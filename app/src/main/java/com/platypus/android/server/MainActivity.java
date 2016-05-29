@@ -15,8 +15,8 @@ import android.util.Log;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.iid.FirebaseInstanceId;
-import com.platypus.android.server.util.ISO8601Date;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +88,7 @@ public class MainActivity extends Activity {
             DatabaseReference vehicleRef = FirebaseDatabase.getInstance()
                     .getReference("vehicles")
                     .child(instanceToken);
-            vehicleRef.child("lastUpdate").setValue(ISO8601Date.now());
+            vehicleRef.child("lastUpdate").onDisconnect().setValue(ServerValue.TIMESTAMP);
             vehicleRef.child("serverVersion").setValue(BuildConfig.VERSION_NAME);
             vehicleRef.keepSynced(true);
 
