@@ -24,12 +24,15 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.platypus.crw.CrwSecurityManager;
 import com.platypus.crw.data.Utm;
@@ -56,11 +59,10 @@ import robotutils.Quaternion;
  * @author kshaurya
  */
 public class VehicleService extends Service {
-    private static final int SERVICE_ID = 11312;
-    private static final String TAG = VehicleService.class.getSimpleName();
     public static final String START_ACTION = "com.platypus.android.server.SERVICE_START";
     public static final String STOP_ACTION = "com.platypus.android.server.SERVICE_STOP";
-
+    private static final int SERVICE_ID = 11312;
+    private static final String TAG = VehicleService.class.getSimpleName();
     // Default values for parameters
     private static final int DEFAULT_UDP_PORT = 11411;
     final int GPS_UPDATE_RATE = 200; // in milliseconds
@@ -282,7 +284,7 @@ public class VehicleService extends Service {
 
         try {
             gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
-        } catch (SecurityException e){
+        } catch (SecurityException e) {
             Log.e(TAG, "Failed to start Platypus Server: Inadequate permissions to access accurate location.");
             sendNotification("Failed to start Platypus Server: Inadequate permissions to access accurate location.");
             stopSelf();
@@ -303,7 +305,7 @@ public class VehicleService extends Service {
                     _udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _vehicleServerImpl);
                     // If given a UDP registry parameter, add registry to
                     // service
-					/*
+                    /*
 					String udpRegistryStr = intent
 							.getStringExtra(UDP_REGISTRY_ADDR);
 					//_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
@@ -383,7 +385,27 @@ public class VehicleService extends Service {
                     .child(instanceToken)
                     .push();
             mFirebaseId = usageRef.getKey();
-            usageRef.child("start").setValue(System.currentTimeMillis());
+            usageRef.child("start")
+                    .setValue(System.currentTimeMillis())
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w(TAG, "Failed to report usage:", e);
+                                }
+                            });
+            FirebaseDatabase.getInstance()
+                    .getReference("vehicles")
+                    .child(instanceToken)
+                    .child("lastUpdated")
+                    .setValue(ServerValue.TIMESTAMP)
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w(TAG, "Failed to update timestamp:", e);
+                                }
+                            });
         } else {
             Log.w(TAG, "Failed to report usage: instance ID not generated.");
         }
@@ -451,7 +473,7 @@ public class VehicleService extends Service {
         gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         try {
             gps.removeUpdates(locationListener);
-        } catch (SecurityException e){
+        } catch (SecurityException e) {
             // Optionally notify user
         }
 
@@ -472,11 +494,31 @@ public class VehicleService extends Service {
         // Record the shutdown of this server to the Firebase database.
         String instanceToken = FirebaseInstanceId.getInstance().getToken();
         if (instanceToken != null && mFirebaseId != null) {
-            DatabaseReference usageRef = FirebaseDatabase.getInstance()
+            FirebaseDatabase.getInstance()
                     .getReference("usage")
                     .child(instanceToken)
-                    .child(mFirebaseId);
-            usageRef.child("stop").setValue(System.currentTimeMillis());
+                    .child(mFirebaseId)
+                    .child("stop")
+                    .setValue(System.currentTimeMillis())
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w(TAG, "Failed to report usage:", e);
+                                }
+                            });
+            FirebaseDatabase.getInstance()
+                    .getReference("vehicles")
+                    .child(instanceToken)
+                    .child("lastUpdated")
+                    .setValue(ServerValue.TIMESTAMP)
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w(TAG, "Failed to update timestamp:", e);
+                                }
+                            });
         } else {
             Log.w(TAG, "Failed to report usage: instance ID not generated.");
         }
