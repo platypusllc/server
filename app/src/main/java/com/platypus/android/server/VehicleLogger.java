@@ -15,10 +15,10 @@ import java.util.Locale;
 
 /**
  * A logging class that creates vehicle logs in JSON format.
- *
+ * <p/>
  * This allows the creation of easily parsable and log messages and handles storing the log in a
  * standard location from which it can be downloaded.
- *
+ * <p/>
  * Example:
  * <pre>
  *     try {
@@ -37,71 +37,22 @@ public class VehicleLogger {
      * Tag used for Android log records.
      */
     private static final String TAG = VehicleService.class.getSimpleName();
-
-    /**
-     * Internal log appender that manages the output to a log file.
-     */
-    private PrintWriter mLogWriter;
-
-    /**
-     * Internal timestamp of when log was created.
-     */
-    private long mStartTime;
-
-    /**
-     * File reference to the log file that this logger is creating.
-     */
-    private final File mLogFile;
-
     /**
      * The default prefix for Platypus Vehicle data log files.
      */
     private static final String DEFAULT_LOG_PREFIX = "platypus_";
-
     /**
-     * Constructs a default filename from the current date and time.
-     *
-     * @return the default filename for the current time.
+     * File reference to the log file that this logger is creating.
      */
-    private static String defaultFilename() {
-        Date d = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss", Locale.US);
-        return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
-    }
-
+    private final File mLogFile;
     /**
-     * Logging levels supported by the vehicle logger.
+     * Internal log appender that manages the output to a log file.
      */
-    public enum Level {
-        /**
-         * Debugging information that normal users do not need to see.
-         */
-        DEBUG("D"),
-        /**
-         * Information about normal operation.
-         */
-        INFO("I"),
-        /**
-         * Notification of an abnormal event that is recoverable.
-         */
-        WARN("W"),
-        /**
-         * Notification of an abnormal event that may put the system into an invalid state.
-         */
-        ERROR("E"),
-        /**
-         * Notification of an abnormal event that the system cannot recover from.
-         */
-        FATAL("F");
-
-        private final String mCode;
-        Level(final String code) { mCode = code; }
-
-        /**
-         * Returns a short string code for each log level.
-         */
-        public String code() { return mCode; }
-    }
+    private PrintWriter mLogWriter;
+    /**
+     * Internal timestamp of when log was created.
+     */
+    private long mStartTime;
 
     /**
      * Create a new vehicle log file.
@@ -128,9 +79,20 @@ public class VehicleLogger {
             log(Level.INFO, new JSONObject()
                     .put("date", new Date())
                     .put("time", System.currentTimeMillis()));
-        }  catch (JSONException e) {
+        } catch (JSONException e) {
             Log.e(TAG, "Failed to serialize time.", e);
         }
+    }
+
+    /**
+     * Constructs a default filename from the current date and time.
+     *
+     * @return the default filename for the current time.
+     */
+    private static String defaultFilename() {
+        Date d = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss", Locale.US);
+        return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
     }
 
     /**
@@ -143,7 +105,7 @@ public class VehicleLogger {
     }
 
     public synchronized void close() {
-        // Remove the data log (a new one will be created on restart)
+        // Close the data log (a new one will be created on restart)
         if (mLogWriter != null) {
             mLogWriter.close();
             mLogWriter = null;
@@ -152,6 +114,7 @@ public class VehicleLogger {
 
     /**
      * Creates a log entry from the specified JSON object.
+     *
      * @param obj a JSON object containing the log entry
      */
     public synchronized void log(Level level, JSONObject obj) {
@@ -183,5 +146,44 @@ public class VehicleLogger {
 
     public synchronized void warn(JSONObject obj) {
         log(Level.WARN, obj);
+    }
+
+    /**
+     * Logging levels supported by the vehicle logger.
+     */
+    public enum Level {
+        /**
+         * Debugging information that normal users do not need to see.
+         */
+        DEBUG("D"),
+        /**
+         * Information about normal operation.
+         */
+        INFO("I"),
+        /**
+         * Notification of an abnormal event that is recoverable.
+         */
+        WARN("W"),
+        /**
+         * Notification of an abnormal event that may put the system into an invalid state.
+         */
+        ERROR("E"),
+        /**
+         * Notification of an abnormal event that the system cannot recover from.
+         */
+        FATAL("F");
+
+        private final String mCode;
+
+        Level(final String code) {
+            mCode = code;
+        }
+
+        /**
+         * Returns a short string code for each log level.
+         */
+        public String code() {
+            return mCode;
+        }
     }
 }
