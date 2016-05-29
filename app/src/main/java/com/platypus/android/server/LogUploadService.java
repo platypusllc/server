@@ -92,10 +92,10 @@ public class LogUploadService extends JobService {
             // Create a job that attempts to upload files periodically.
             final JobInfo job = new JobInfo.Builder(SYNC_PERIODIC_JOB_ID,
                     new ComponentName(context, LogUploadService.class))
-                    //.setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
-                    //.setRequiresCharging(true)
-                    //.setRequiresDeviceIdle(true)
-                    .setPeriodic(60000)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                    .setRequiresCharging(true)
+                    .setRequiresDeviceIdle(true)
+                    .setPeriodic(86400000) // Run about once every day.
                     .setPersisted(true)
                     .build();
 
