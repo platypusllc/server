@@ -26,3 +26,6 @@ dependencies {
     compile 'com.android.support:support-v13:23.2.1'
     compile 'com.android.support:support-annotations:23.2.1'
 }
+
+// Google Services are required to support Firebase.
+apply plugin: 'com.google.gms.google-services'
