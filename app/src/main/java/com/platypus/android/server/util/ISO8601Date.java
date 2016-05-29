@@ -14,7 +14,7 @@ public class ISO8601Date {
      * Date format representing the ISO-8601 specification.
      */
     static final SimpleDateFormat ISO8601_FORMAT =
-            new SimpleDateFormat("yyyy/MM/dd 'T'HH:mmZ", Locale.ENGLISH);
+            new SimpleDateFormat("yyyy/MM/dd'T'HH:mm:ssZ", Locale.ENGLISH);
 
     /**
      * Returns an ISO-8601 compliant string that represents the current date.

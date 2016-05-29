@@ -81,8 +81,7 @@ public class MainActivity extends Activity {
             }, 0);
         }
 
-        // Configure Firebase to work offline and sync vehicle and usage data whenever possible.
-        FirebaseDatabase.getInstance().setPersistenceEnabled(true);
+        // Configure Firebase to sync vehicle and usage data whenever possible.
         String instanceToken = FirebaseInstanceId.getInstance().getToken();
         if (instanceToken != null) {
             // Synchronize status information about the vehicle.
@@ -99,7 +98,7 @@ public class MainActivity extends Activity {
                     .child(instanceToken);
             usageRef.keepSynced(true);
         } else {
-            Log.w(TAG, "Unable to report status to firebase: missing instance ID.");
+            Log.w(TAG, "Unable to report status to Firebase: missing instance ID.");
         }
     }
 

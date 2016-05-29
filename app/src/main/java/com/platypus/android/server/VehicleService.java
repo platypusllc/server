@@ -384,7 +384,7 @@ public class VehicleService extends Service {
                     .child(instanceToken)
                     .push();
             mFirebaseId = usageRef.getKey();
-            usageRef.setValue("start", ISO8601Date.now());
+            usageRef.child("start").setValue(ISO8601Date.now());
         } else {
             Log.w(TAG, "Failed to report usage: instance ID not generated.");
         }
@@ -477,7 +477,7 @@ public class VehicleService extends Service {
                     .getReference("usage")
                     .child(instanceToken)
                     .child(mFirebaseId);
-            usageRef.setValue("stop", ISO8601Date.now());
+            usageRef.child("stop").setValue(ISO8601Date.now());
         } else {
             Log.w(TAG, "Failed to report usage: instance ID not generated.");
         }
