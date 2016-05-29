@@ -93,7 +93,7 @@ public class VehicleLogger {
      */
     private static String defaultFilename() {
         Date d = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss", Locale.US);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
         return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
     }
 
