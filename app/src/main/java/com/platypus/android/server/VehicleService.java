@@ -31,6 +31,7 @@ import android.util.Log;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.iid.FirebaseInstanceId;
+import com.platypus.android.server.util.ISO8601Date;
 import com.platypus.crw.CrwSecurityManager;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
@@ -67,6 +68,9 @@ public class VehicleService extends Service {
 
     // Variable storing the current started/stopped status of the service.
     protected AtomicBoolean isRunning = new AtomicBoolean(false);
+
+    // Variable storing the Firebase instance ID associated with this particular run.
+    protected String mFirebaseId = null;
 
     // Reference to vehicle logfile.
     private VehicleLogger mLogger;
@@ -377,8 +381,10 @@ public class VehicleService extends Service {
         if (instanceToken != null) {
             DatabaseReference usageRef = FirebaseDatabase.getInstance()
                     .getReference("usage")
-                    .child(instanceToken);
-            usageRef.push().setValue(new UsageEvent(true));
+                    .child(instanceToken)
+                    .push();
+            mFirebaseId = usageRef.getKey();
+            usageRef.setValue("start", ISO8601Date.now());
         } else {
             Log.w(TAG, "Failed to report usage: instance ID not generated.");
         }
@@ -466,14 +472,16 @@ public class VehicleService extends Service {
 
         // Record the shutdown of this server to the Firebase database.
         String instanceToken = FirebaseInstanceId.getInstance().getToken();
-        if (instanceToken != null) {
+        if (instanceToken != null && mFirebaseId != null) {
             DatabaseReference usageRef = FirebaseDatabase.getInstance()
                     .getReference("usage")
-                    .child(instanceToken);
-            usageRef.push().setValue(new UsageEvent(false));
+                    .child(instanceToken)
+                    .child(mFirebaseId);
+            usageRef.setValue("stop", ISO8601Date.now());
         } else {
             Log.w(TAG, "Failed to report usage: instance ID not generated.");
         }
+        mFirebaseId = null;
 
         Log.i(TAG, "VehicleService stopped.");
         super.onDestroy();
