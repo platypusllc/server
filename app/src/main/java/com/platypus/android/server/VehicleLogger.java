@@ -45,6 +45,7 @@ public class VehicleLogger {
      * File reference to the log file that this logger is creating.
      */
     private final File mLogFile;
+    private final File mLogFileFinal;
     /**
      * Internal log appender that manages the output to a log file.
      */
@@ -61,7 +62,8 @@ public class VehicleLogger {
         // Construct the path to the new log file.
         File logDirectory = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOCUMENTS), "platypus");
-        mLogFile = new File(logDirectory, defaultFilename());
+        mLogFileFinal = new File(logDirectory, defaultFilename());
+        mLogFile = new File(logDirectory, defaultFilename()+".incomplete");
 
         // Set up a writer for the vehicle log file.
         try {
@@ -95,21 +97,15 @@ public class VehicleLogger {
         return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
     }
 
-    /**
-     * Get the file that is being logged to.
-     *
-     * @return the file to which this logger is appending
-     */
-    public File getFile() {
-        return mLogFile;
-    }
-
     public synchronized void close() {
         // Close the data log (a new one will be created on restart)
         if (mLogWriter != null) {
             mLogWriter.close();
             mLogWriter = null;
         }
+
+        // Move the file to its final path.
+        mLogFile.renameTo(mLogFileFinal);
     }
 
     /**

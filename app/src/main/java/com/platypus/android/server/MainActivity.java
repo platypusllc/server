@@ -71,13 +71,13 @@ public class MainActivity extends Activity {
         // Check for location and file write permissions.
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
 
             // Request location and file write permissions.
-            ActivityCompat.requestPermissions(this, new String[] {
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
             }, 0);
         }
 
@@ -103,6 +103,14 @@ public class MainActivity extends Activity {
     }
 
     /**
+     * Overrides the back-button to *always* just go to the launcher screen.
+     */
+    @Override
+    public void onBackPressed() {
+        mPager.setCurrentItem(1);
+    }
+
+    /**
      * Implements a simple page adapter that cycles through several fragments.
      */
     static class MainPageAdapter extends FragmentPagerAdapter {
@@ -122,13 +130,5 @@ public class MainActivity extends Activity {
         public int getCount() {
             return mFragments.size();
         }
-    }
-
-    /**
-     * Overrides the back-button to *always* just go to the launcher screen.
-     */
-    @Override
-    public void onBackPressed() {
-        mPager.setCurrentItem(1);
     }
 }

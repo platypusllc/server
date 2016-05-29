@@ -13,7 +13,7 @@ import android.preference.PreferenceManager;
  * SharedPreferences.  These preferences can be dynamically queried by the server, and are
  * automatically saved and preserved across software updates.
  */
-public class SettingsFragment extends PreferenceFragment {
+public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -31,15 +31,29 @@ public class SettingsFragment extends PreferenceFragment {
                 return true;
             }
         });
-        
-        // Create a shared preference handler to schedule and un-schedule log file auto-uploads.
-        PreferenceManager.getDefaultSharedPreferences(getActivity())
-                .registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
-                    @Override
-                    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                        if ("pref_cloud_autosync_enable".equals(key))
-                            LogUploadService.updateAutoSync(getActivity());
-                    }
-                });
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Set up a preference listener for whenever a key changes.
+        getPreferenceScreen().getSharedPreferences()
+                .registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Unregister the preference listener for whenever a key changes.
+        getPreferenceScreen().getSharedPreferences()
+                .unregisterOnSharedPreferenceChangeListener(this);
+    }
+
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,String key)
+    {
+        if ("pref_cloud_autosync_enable".equals(key))
+            LogUploadService.updateAutoSync(getActivity());
+    }
+
+
 }
