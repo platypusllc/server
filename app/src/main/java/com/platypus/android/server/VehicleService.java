@@ -62,8 +62,6 @@ public class VehicleService extends Service {
     public static final String STOP_ACTION = "com.platypus.android.server.SERVICE_STOP";
     private static final int SERVICE_ID = 11312;
     private static final String TAG = VehicleService.class.getSimpleName();
-    // Default values for parameters
-    private static final int DEFAULT_UDP_PORT = 11411;
     final int GPS_UPDATE_RATE = 200; // in milliseconds
 
     // Variable storing the current started/stopped status of the service.
@@ -81,6 +79,8 @@ public class VehicleService extends Service {
     // Objects implementing actual functionality
     private VehicleServerImpl _vehicleServerImpl;
     private UdpVehicleService _udpService;
+    private final Object mUdpLock = new Object();
+
     // Lock objects that prevent the phone from sleeping
     private WakeLock _wakeLock = null;
     private WifiLock _wifiLock = null;
@@ -193,7 +193,8 @@ public class VehicleService extends Service {
             new SharedPreferences.OnSharedPreferenceChangeListener() {
                 @Override
                 public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                    // TODO: fill this in to update preferences.
+                    if ("pref_server_port".equals(key))
+                        startOrUpdateUdpServer();
                 }
             };
 
@@ -227,6 +228,36 @@ public class VehicleService extends Service {
      */
     public VehicleServerImpl getServer() {
         return _vehicleServerImpl;
+    }
+
+    /**
+     * Starts UDP server, either at startup or when the UDP port is changed.
+     * If a server instance already exists, it is shutdown first.
+     */
+    private void startOrUpdateUdpServer() {
+        // Start up UDP vehicle service in the background
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final SharedPreferences preferences =
+                        PreferenceManager.getDefaultSharedPreferences(VehicleService.this);
+
+                synchronized (mUdpLock) {
+                    if (_udpService != null)
+                        _udpService.shutdown();
+
+                    try {
+                        final int port = Integer.parseInt(preferences.getString("pref_server_port", "11411"));
+                        _udpService = new UdpVehicleService(port, _vehicleServerImpl);
+                        Log.i(TAG, "UdpVehicleService launched on port " + port + ".");
+                    } catch (Exception e) {
+                        Log.e(TAG, "UdpVehicleService failed to launch", e);
+                        sendNotification("UdpVehicleService failed: " + e.getMessage());
+                        stopSelf();
+                    }
+                }
+            }
+        }).start();
     }
 
     /**
@@ -293,40 +324,7 @@ public class VehicleService extends Service {
         _vehicleServerImpl = new VehicleServerImpl(this, mLogger, mController);
 
         // Start up UDP vehicle service in the background
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                SharedPreferences sharedPreferences =
-                        PreferenceManager.getDefaultSharedPreferences(VehicleService.this);
-
-                try {
-                    // Create a UdpVehicleService to expose the data object
-                    _udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _vehicleServerImpl);
-                    // If given a UDP registry parameter, add registry to
-                    // service
-                    /*
-					String udpRegistryStr = intent
-							.getStringExtra(UDP_REGISTRY_ADDR);
-					//_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
-					// TODO: add registry from the SharedPreferences.
-                    if (_udpRegistryAddr! = null) {
-						_udpService.addRegistry(_udpRegistryAddr);
-
-                    } else {
-                        //((PlatypusApplication)getApplicationContext()).setFailsafe_IPAddress(_udpRegistryAddr.getHostName());
-                        Log.w(TAG, "Unable to parse '" + udpRegistryStr
-								+ "' into UDP address.");
-					}
-					*/
-
-                    //((PlatypusApplication)getApplicationContext()).setFailsafe_IPAddress(CrwNetworkUtils.getLocalhost(udpRegistryStr));
-                } catch (Exception e) {
-                    Log.e(TAG, "UdpVehicleService failed to launch", e);
-                    sendNotification("UdpVehicleService failed: " + e.getMessage());
-                    stopSelf();
-                }
-            }
-        }).start();
+        startOrUpdateUdpServer();
 
         // Load and save gains to trigger logging of the values.
         // (This should not change gains at all.)
