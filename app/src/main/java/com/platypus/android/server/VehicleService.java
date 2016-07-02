@@ -17,6 +17,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.IBinder;
@@ -29,8 +30,6 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.iid.FirebaseInstanceId;
 import com.platypus.crw.CrwSecurityManager;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
@@ -56,11 +55,10 @@ import robotutils.Quaternion;
  * @author kshaurya
  */
 public class VehicleService extends Service {
-    private static final int SERVICE_ID = 11312;
-    private static final String TAG = VehicleService.class.getSimpleName();
     public static final String START_ACTION = "com.platypus.android.server.SERVICE_START";
     public static final String STOP_ACTION = "com.platypus.android.server.SERVICE_STOP";
-
+    private static final int SERVICE_ID = 11312;
+    private static final String TAG = VehicleService.class.getSimpleName();
     // Default values for parameters
     private static final int DEFAULT_UDP_PORT = 11411;
     final int GPS_UPDATE_RATE = 200; // in milliseconds
@@ -282,7 +280,7 @@ public class VehicleService extends Service {
 
         try {
             gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
-        } catch (SecurityException e){
+        } catch (SecurityException e) {
             Log.e(TAG, "Failed to start Platypus Server: Inadequate permissions to access accurate location.");
             sendNotification("Failed to start Platypus Server: Inadequate permissions to access accurate location.");
             stopSelf();
@@ -303,7 +301,7 @@ public class VehicleService extends Service {
                     _udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _vehicleServerImpl);
                     // If given a UDP registry parameter, add registry to
                     // service
-					/*
+                    /*
 					String udpRegistryStr = intent
 							.getStringExtra(UDP_REGISTRY_ADDR);
 					//_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
@@ -376,17 +374,12 @@ public class VehicleService extends Service {
         isRunning.set(true);
 
         // Record the startup of this server to the Firebase database.
-        String instanceToken = FirebaseInstanceId.getInstance().getToken();
-        if (instanceToken != null) {
-            DatabaseReference usageRef = FirebaseDatabase.getInstance()
-                    .getReference("usage")
-                    .child(instanceToken)
-                    .push();
-            mFirebaseId = usageRef.getKey();
-            usageRef.child("start").setValue(System.currentTimeMillis());
-        } else {
-            Log.w(TAG, "Failed to report usage: instance ID not generated.");
-        }
+        DatabaseReference usageRef = FirebaseUtils.getDatabase()
+                .getReference("usage")
+                .child(Build.SERIAL)
+                .push();
+        mFirebaseId = usageRef.getKey();
+        usageRef.child("start").setValue(System.currentTimeMillis());
 
         Log.i(TAG, "VehicleService started.");
         return Service.START_STICKY;
@@ -451,7 +444,7 @@ public class VehicleService extends Service {
         gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         try {
             gps.removeUpdates(locationListener);
-        } catch (SecurityException e){
+        } catch (SecurityException e) {
             // Optionally notify user
         }
 
@@ -470,15 +463,14 @@ public class VehicleService extends Service {
         isRunning.set(false);
 
         // Record the shutdown of this server to the Firebase database.
-        String instanceToken = FirebaseInstanceId.getInstance().getToken();
-        if (instanceToken != null && mFirebaseId != null) {
-            DatabaseReference usageRef = FirebaseDatabase.getInstance()
+        if (mFirebaseId != null) {
+            DatabaseReference usageRef = FirebaseUtils.getDatabase()
                     .getReference("usage")
-                    .child(instanceToken)
+                    .child(Build.SERIAL)
                     .child(mFirebaseId);
             usageRef.child("stop").setValue(System.currentTimeMillis());
         } else {
-            Log.w(TAG, "Failed to report usage: instance ID not generated.");
+            Log.w(TAG, "Failed to report usage: start record not generated.");
         }
         mFirebaseId = null;
 

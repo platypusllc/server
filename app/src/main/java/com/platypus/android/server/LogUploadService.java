@@ -10,9 +10,11 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.util.Base64;
 import android.util.Log;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -20,8 +22,6 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageMetadata;
@@ -30,7 +30,13 @@ import com.google.firebase.storage.StorageTask;
 import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
 
@@ -59,6 +65,39 @@ public class LogUploadService extends JobService {
     };
     // Reference to ongoing uploading task.
     protected AsyncTask<File, Integer, Boolean> mUploadTask;
+
+    /**
+     * Compute the MD5 hash of a file as a Base64 string.
+     *
+     * @param file the file whose hash is computed
+     * @return a base64 encoded MD5 hash for the file
+     */
+    public static String computeMD5Hash(File file) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            InputStream is = new FileInputStream(file);
+            byte[] buffer = new byte[8192];
+
+            // Read contents of the file.
+            int read;
+            while ((read = is.read(buffer)) > 0) {
+                digest.update(buffer, 0, read);
+            }
+
+            // Turn MD5 sum into a standardized 32 character hash string.
+            byte[] md5sum = digest.digest();
+            return Base64.encodeToString(md5sum, Base64.NO_WRAP);
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Unable to compute MD5 hash: file not found.");
+            return null;
+        } catch (NoSuchAlgorithmException e) {
+            Log.e(TAG, "Unable to compute MD5 hash: algorithm unavailable.");
+            return null;
+        } catch (IOException e) {
+            Log.e(TAG, "Unable to compute MD5 hash: error accessing file.");
+            return null;
+        }
+    }
 
     /**
      * Schedules an upload of logs to be executed as soon as possible.
@@ -111,24 +150,15 @@ public class LogUploadService extends JobService {
 
     @Override
     public boolean onStartJob(final JobParameters params) {
-        // Make sure that the vehicle has a unique instance ID identifying it.
-        String instanceToken = FirebaseInstanceId.getInstance().getToken();
-        if (instanceToken == null) {
-            Log.w(TAG, "Unable to access Firebase storage: missing instance ID.");
-            jobFinished(params, true);
-            return false;
-        }
-
         // Create a reference to the appropriate storage location for log files for this vehicle.
         final StorageReference logsRef = FirebaseStorage.getInstance()
                 .getReferenceFromUrl("gs://platypus-cloud-api-9f679.appspot.com")
                 .child("logs")
-                .child(instanceToken);
+                .child(Build.SERIAL);
 
-        // Log in with an anonymous user and scan and upload all log files.
-        // TODO: Replace this with token-based authentication for vehicles?
-        FirebaseAuth.getInstance().signInAnonymously()
-                .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+        // Log in with an authenticated user and scan and upload all log files.
+        FirebaseUtils.firebaseSignin(this,
+                new OnSuccessListener<AuthResult>() {
                     @Override
                     public void onSuccess(AuthResult authResult) {
                         // Retrieve a list of all log files currently on the system.
@@ -139,14 +169,16 @@ public class LogUploadService extends JobService {
                         // Start a task to upload these files.
                         mUploadTask = new UploadLogsTask(logsRef, params).execute(logFiles);
                     }
-                })
-                .addOnFailureListener(new OnFailureListener() {
+                },
+                new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "Unable to access Firebase storage: anonymous login failed.");
-                        jobFinished(params, true);
+                        // Even though we did not complete, the authentication error will not go
+                        // away on its own, so tell Android not to reschedule this job.
+                        jobFinished(params, false);
                     }
-                });
+                }
+        );
 
         // Indicate that there is ongoing work that may need to be canceled.
         return true;
@@ -233,8 +265,10 @@ public class LogUploadService extends JobService {
                 try {
                     metadataDone.await();
                     if (metadataTask.isSuccessful()) {
-                        if (metadataTask.getResult().getSizeBytes() == logFile.length()) {
-                            Log.i(TAG, "Log " + logFile.getName() + " already uploaded.");
+                        final String cloudHash = metadataTask.getResult().getMd5Hash();
+                        final String logHash = computeMD5Hash(logFile);
+                        if (cloudHash != null && cloudHash.equalsIgnoreCase(logHash)) {
+                            Log.d(TAG, "Log " + logFile.getName() + " already uploaded.");
                             continue;
                         }
                     }

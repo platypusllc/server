@@ -4,7 +4,8 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
-import android.preference.PreferenceManager;
+
+import com.google.firebase.auth.FirebaseAuth;
 
 /**
  * Fragment that implements a dynamically-generated settings panel for the server.
@@ -49,11 +50,13 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                 .unregisterOnSharedPreferenceChangeListener(this);
     }
 
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,String key)
-    {
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if ("pref_cloud_autosync_enable".equals(key))
             LogUploadService.updateAutoSync(getActivity());
+
+        if (key.equals("pref_cloud_token")) {
+            FirebaseAuth.getInstance().signOut();
+            FirebaseUtils.firebaseSignin(getActivity(), null, null);
+        }
     }
-
-
 }

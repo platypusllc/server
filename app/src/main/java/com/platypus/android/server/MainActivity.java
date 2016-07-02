@@ -5,18 +5,18 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.util.Log;
 
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
-import com.google.firebase.iid.FirebaseInstanceId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +25,6 @@ import java.util.List;
  * Activity that is used to start/stop/configure the vehicle server application.
  */
 public class MainActivity extends Activity {
-    private static final String TAG = VehicleService.class.getSimpleName();
 
     protected ViewPager mPager;
 
@@ -81,25 +80,25 @@ public class MainActivity extends Activity {
             }, 0);
         }
 
-        // Configure Firebase to sync vehicle and usage data whenever possible.
-        String instanceToken = FirebaseInstanceId.getInstance().getToken();
-        if (instanceToken != null) {
-            // Synchronize status information about the vehicle.
-            DatabaseReference vehicleRef = FirebaseDatabase.getInstance()
-                    .getReference("vehicles")
-                    .child(instanceToken);
-            vehicleRef.child("lastUpdate").onDisconnect().setValue(ServerValue.TIMESTAMP);
-            vehicleRef.child("serverVersion").setValue(BuildConfig.VERSION_NAME);
-            vehicleRef.keepSynced(true);
+        // Always try to sign in and synchronize log information when starting up.
+        FirebaseUtils.firebaseSignin(this, new OnSuccessListener<AuthResult>() {
+            @Override
+            public void onSuccess(AuthResult authResult) {
+                // Synchronize status information about the vehicle.
+                DatabaseReference vehicleRef = FirebaseUtils.getDatabase()
+                        .getReference("vehicles")
+                        .child(Build.SERIAL);
+                vehicleRef.child("lastUpdated").onDisconnect().setValue(ServerValue.TIMESTAMP);
+                vehicleRef.child("serverVersion").setValue(BuildConfig.VERSION_NAME);
+                vehicleRef.keepSynced(true);
 
-            // Synchronize usage information about the vehicle.
-            DatabaseReference usageRef = FirebaseDatabase.getInstance()
-                    .getReference("usage")
-                    .child(instanceToken);
-            usageRef.keepSynced(true);
-        } else {
-            Log.w(TAG, "Unable to report status to Firebase: missing instance ID.");
-        }
+                // Synchronize usage information about the vehicle.
+                DatabaseReference usageRef = FirebaseUtils.getDatabase()
+                        .getReference("usage")
+                        .child(Build.SERIAL);
+                usageRef.keepSynced(true);
+            }
+        }, null);
     }
 
     /**
