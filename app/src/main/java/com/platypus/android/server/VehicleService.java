@@ -32,6 +32,7 @@ import android.util.Log;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ServerValue;
 import com.platypus.crw.CrwSecurityManager;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
@@ -382,7 +383,7 @@ public class VehicleService extends Service {
                 .push();
         mFirebaseId = usageRef.getKey();
         usageRef.child("start")
-                .setValue(System.currentTimeMillis());
+                .setValue(System.currentTimeMillis())
                 .addOnFailureListener(
                         new OnFailureListener() {
                             @Override
@@ -474,7 +475,7 @@ public class VehicleService extends Service {
 
         // Record the shutdown of this server to the Firebase database.
         if (mFirebaseId != null) {
-            DatabaseReference usageRef = FirebaseUtils.getDatabase()
+            FirebaseUtils.getDatabase()
                     .getReference("usage")
                     .child(Build.SERIAL)
                     .child(mFirebaseId)
@@ -487,7 +488,7 @@ public class VehicleService extends Service {
                                     Log.w(TAG, "Failed to report usage:", e);
                                 }
                             });
-            DatabaseReference usageRef = FirebaseUtils.getDatabase()
+            FirebaseUtils.getDatabase()
                     .getReference("vehicles")
                     .child(Build.SERIAL)
                     .child("lastUpdated")
