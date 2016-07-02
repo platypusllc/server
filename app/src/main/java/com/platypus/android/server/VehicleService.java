@@ -25,10 +25,12 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.database.DatabaseReference;
 import com.platypus.crw.CrwSecurityManager;
 import com.platypus.crw.data.Utm;
@@ -379,7 +381,15 @@ public class VehicleService extends Service {
                 .child(Build.SERIAL)
                 .push();
         mFirebaseId = usageRef.getKey();
-        usageRef.child("start").setValue(System.currentTimeMillis());
+        usageRef.child("start")
+                .setValue(System.currentTimeMillis());
+                .addOnFailureListener(
+                        new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.w(TAG, "Failed to report usage:", e);
+                            }
+                        });
 
         Log.i(TAG, "VehicleService started.");
         return Service.START_STICKY;
@@ -467,8 +477,28 @@ public class VehicleService extends Service {
             DatabaseReference usageRef = FirebaseUtils.getDatabase()
                     .getReference("usage")
                     .child(Build.SERIAL)
-                    .child(mFirebaseId);
-            usageRef.child("stop").setValue(System.currentTimeMillis());
+                    .child(mFirebaseId)
+                    .child("stop")
+                    .setValue(System.currentTimeMillis())
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w(TAG, "Failed to report usage:", e);
+                                }
+                            });
+            DatabaseReference usageRef = FirebaseUtils.getDatabase()
+                    .getReference("vehicles")
+                    .child(Build.SERIAL)
+                    .child("lastUpdated")
+                    .setValue(ServerValue.TIMESTAMP)
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w(TAG, "Failed to update timestamp:", e);
+                                }
+                            });
         } else {
             Log.w(TAG, "Failed to report usage: start record not generated.");
         }
