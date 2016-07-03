@@ -17,6 +17,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,7 +45,7 @@ public class LauncherFragment extends Fragment
 
     protected TextView mHomeText;
     protected TextView mIpAddressText;
-    protected Button mLaunchButton;
+    protected Switch mLaunchSwitch;
     protected Button mSetHomeButton;
     protected LocationManager mLocationManager;
 
@@ -63,11 +65,11 @@ public class LauncherFragment extends Fragment
         // Get references to UI elements.
         mHomeText = (TextView) view.findViewById(R.id.launcher_home_text);
         mIpAddressText = (TextView) view.findViewById(R.id.ip_address_text);
-        mLaunchButton = (Button) view.findViewById(R.id.launcher_launch_button);
+        mLaunchSwitch = (SwipeOnlySwitch) view.findViewById(R.id.launcher_launch_switch);
         mSetHomeButton = (Button) view.findViewById(R.id.launcher_home_button);
 
         // Add listener for starting/stopping vehicle service.
-        mLaunchButton.setOnLongClickListener(new LaunchListener());
+        mLaunchSwitch.setOnCheckedChangeListener(mLaunchListener);
 
         // Add listener for home button click.
         mSetHomeButton.setOnLongClickListener(new SetHomeListener());
@@ -117,16 +119,9 @@ public class LauncherFragment extends Fragment
      * Updates the launch button depending on whether the service is running or not.
      */
     protected void updateLaunchStatus() {
-        // TODO: improve this UI.
-        if (isVehicleServiceRunning()) {
-            mLaunchButton.setBackground(getResources().getDrawable(
-                    R.drawable.fragment_launcher_launch_button_background_green));
-            mLaunchButton.setText(getResources().getString(R.string.launcher_launch_button_stop));
-        } else {
-            mLaunchButton.setBackground(getResources().getDrawable(
-                    R.drawable.fragment_launcher_launch_button_background_red));
-            mLaunchButton.setText(getResources().getString(R.string.launcher_launch_button_start));
-        }
+        mLaunchSwitch.setOnCheckedChangeListener(null);
+        mLaunchSwitch.setChecked(isVehicleServiceRunning());
+        mLaunchSwitch.setOnCheckedChangeListener(mLaunchListener);
     }
 
     @Override
@@ -231,16 +226,13 @@ public class LauncherFragment extends Fragment
     }
 
     /**
-     * Listens for long-click events on "Launch" button and starts/stops vehicle service.
+     * Listens for checked events on "Launch" button and starts/stops vehicle service.
      */
-    class LaunchListener implements View.OnLongClickListener {
+    CompoundButton.OnCheckedChangeListener mLaunchListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
-        public boolean onLongClick(View v) {
+        public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
             // Disable the launch button temporarily (until the service is done processing).
-            mLaunchButton.setEnabled(false);
-            mLaunchButton.setBackground(getResources().getDrawable(
-                    R.drawable.fragment_launcher_launch_button_background_yellow));
-
+            mLaunchSwitch.setEnabled(false);
             if (!isVehicleServiceRunning()) {
                 // If the service is not running, start it.
                 getActivity().startService(new Intent(getActivity(), VehicleService.class));
@@ -256,12 +248,11 @@ public class LauncherFragment extends Fragment
                 @Override
                 public void run() {
                     updateLaunchStatus();
-                    mLaunchButton.setEnabled(true);
+                    mLaunchSwitch.setEnabled(true);
                 }
             }, 2000);
-            return true;
         }
-    }
+    };
 
     /**
      * Checks whether the vehicle service is still running by iterating through all services.
@@ -294,7 +285,7 @@ public class LauncherFragment extends Fragment
                         .getInetAddresses(); enumIpAddr.hasMoreElements();) {
                     InetAddress inetAddress = enumIpAddr.nextElement();
                     if (!inetAddress.isLoopbackAddress() && inetAddress.getAddress().length == 4) {
-                        return inetAddress.getHostAddress().toString();
+                        return inetAddress.getHostAddress();
                     }
                 }
             }
