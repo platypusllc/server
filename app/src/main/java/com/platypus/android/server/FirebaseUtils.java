@@ -73,7 +73,9 @@ public class FirebaseUtils {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String token = preferences.getString("pref_cloud_token", "");
         if (token.trim().isEmpty()) {
-            failure.onFailure(new FirebaseAuthInvalidUserException("No user provided.", "No user provided."));
+            if (failure != null)
+                failure.onFailure(new FirebaseAuthInvalidUserException("No user provided.", "No user provided."));
+
             return;
         }
 
