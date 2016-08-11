@@ -190,6 +190,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         // Rudder is constrained to +/-1.0
                         double constrainedP = clip(_velocities.drz(), -1.0, 1.0);
 
+                        // Fix for rudder being reversed *******************************************
+                        constrainedP *= -1.0;
+                        // *************************************************************************
+
                         thrust.put("v", (float) constrainedV);
                         rudder.put("p", (float) constrainedP);
 
@@ -232,9 +236,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         // Use hard-coded defaults if not specified.
         r_PID[0] = mPrefs.getFloat("gain_rP", 1.0f);
         r_PID[1] = mPrefs.getFloat("gain_rI", 0.0f);
-        r_PID[2] = mPrefs.getFloat("gain_rD", 0.2f);
+        r_PID[2] = mPrefs.getFloat("gain_rD", 1.0f);
 
-        t_PID[0] = mPrefs.getFloat("gain_tP", 0.6f);
+        t_PID[0] = mPrefs.getFloat("gain_tP", 0.1f);
         t_PID[1] = mPrefs.getFloat("gain_tI", 0.0f);
         t_PID[2] = mPrefs.getFloat("gain_tD", 0.0f);
 
