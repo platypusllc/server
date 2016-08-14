@@ -237,7 +237,8 @@ public class Controller {
      * @throws IOException if there is not a valid connection to a controller board.
      */
     public void send(JSONObject obj) throws IOException {
-        byte[] message = obj.toString().getBytes(ASCII);
+        // Construct message string as single byte array.
+        byte[] message = (obj + "\r\n").getBytes(ASCII);
 
         synchronized (mUsbLock) {
             if (mUsbOutputStream == null)
@@ -245,8 +246,6 @@ public class Controller {
 
             try {
                 mUsbOutputStream.write(message);
-                mUsbOutputStream.write('\r');
-                mUsbOutputStream.write('\n');
                 mUsbOutputStream.flush();
             } catch (IOException e) {
                 disconnect();
