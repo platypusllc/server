@@ -66,7 +66,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     final Controller mController;
     // Velocity shutdown timer.
     final ScheduledThreadPoolExecutor mVelocityExecutor = new ScheduledThreadPoolExecutor(1);
-    ScheduledFuture mVelocityFuture = null;
     /**
      * Raw gyroscopic readings from the phone gyro.
      */
@@ -77,6 +76,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     protected UtmPose[] _waypoints = new UtmPose[0];
     protected TimerTask _captureTask = null;
     protected TimerTask _navigationTask = null;
+    ScheduledFuture mVelocityFuture = null;
     /**
      * Inertial state vector, currently containing a 6D pose estimate:
      * [x,y,z,roll,pitch,yaw]
@@ -113,13 +113,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         @Override
         public void run() {
-            /*
-			 * // Compute the number of milliseconds since last update // (or 0
-			 * if this is the first update) long currentUpdateMs =
-			 * SystemClock.elapsedRealtime(); long elapsedMs = (_lastUpdateMs >
-			 * 0) ? currentUpdateMs - _lastUpdateMs : 0; _lastUpdateMs =
-			 * currentUpdateMs;
-			 */
             // Do an intelligent state prediction update here
             _utmPose = filter.pose(System.currentTimeMillis()); // TODO: what the hell is this?
             try {
@@ -249,9 +242,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 while (_isRunning.get()) {
                     try {
                         onCommand(mController.receive());
+                    } catch (IOException | Controller.ControllerException e) {
+                        Log.w(TAG, e);
+                    } finally {
                         Thread.yield();
-                    } catch (IOException e) {
-                        // Do nothing.
                     }
                 }
             }
@@ -340,18 +334,18 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
             // Save the PID values to the SharedPreferences as well.
             mPrefs.edit()
-                    .putFloat("gain_rP", (float)r_PID[0])
-                    .putFloat("gain_rI", (float)r_PID[1])
-                    .putFloat("gain_rD", (float)r_PID[2])
+                    .putFloat("gain_rP", (float) r_PID[0])
+                    .putFloat("gain_rI", (float) r_PID[1])
+                    .putFloat("gain_rD", (float) r_PID[2])
                     .apply();
         } else if (axis == 0) {
             t_PID = k.clone();
 
             // Save the PID values to the SharedPreferences as well.
             mPrefs.edit()
-                    .putFloat("gain_tP", (float)t_PID[0])
-                    .putFloat("gain_tI", (float)t_PID[1])
-                    .putFloat("gain_tD", (float)t_PID[2])
+                    .putFloat("gain_tP", (float) t_PID[0])
+                    .putFloat("gain_tI", (float) t_PID[1])
+                    .putFloat("gain_tD", (float) t_PID[2])
                     .apply();
         }
 
@@ -422,7 +416,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 reading.channel = sensor;
                                 reading.type = SensorType.ES2;
                                 reading.data = new double[]{ecData, tempData};
-                            } catch (NumberFormatException e){
+                            } catch (NumberFormatException e) {
                                 Log.w(TAG, "Received malformed ES2 Sensor Data: " + value);
                             }
                         } else if (type.equalsIgnoreCase("atlas_do")) {
@@ -469,7 +463,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 reading.channel = sensor;
                                 reading.type = SensorType.BATTERY;
                                 reading.data = new double[]{voltage, motor0Velocity, motor1Velocity};
-                            } catch (NumberFormatException e){
+                            } catch (NumberFormatException e) {
                                 Log.w(TAG, "Received malformed Battery Sensor Data: " + value);
                             }
                         } else if (type.equalsIgnoreCase("winch")) {
@@ -506,7 +500,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         try {
             JSONObject samplerCommand = new JSONObject()
                     .put("s0", new JSONObject()
-                    .put("sample", true));
+                            .put("sample", true));
             mController.send(samplerCommand);
             mLogger.info(new JSONObject().put("sampler", true));
             Log.i(TAG, "Triggering sampler.");

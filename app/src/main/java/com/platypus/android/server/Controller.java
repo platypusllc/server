@@ -30,12 +30,10 @@ public class Controller {
     private static final String ACTION_USB_PERMISSION = "com.platypus.android.server.USB_PERMISSION";
     private static final String TAG = VehicleService.class.getSimpleName();
     private static final Charset ASCII = Charset.forName("US-ASCII");
-
     /**
      * Maximum packet size that can be received from the board.
      */
     private static final int MAX_PACKET_SIZE = 1024;
-
     private final Context mContext;
     /**
      * Listen for connection events for accessory and request permission to connect to it.
@@ -76,7 +74,6 @@ public class Controller {
             }
         }
     };
-
     /**
      * Listen for permission events for a connected device and open connection if we got access.
      */
@@ -264,7 +261,7 @@ public class Controller {
      *
      * @throws IOException if there is not a valid connection to a controller board.
      */
-    public JSONObject receive() throws IOException {
+    public JSONObject receive() throws IOException, ControllerException {
         // Allocate a buffer for the data packet.
         byte[] buffer = new byte[MAX_PACKET_SIZE];
         int len;
@@ -289,9 +286,26 @@ public class Controller {
         // Turn the line into a JSON object and return it.
         // If the line is malformed, wait for the next line.
         try {
-            return new JSONObject(line);
+            JSONObject response = new JSONObject(line);
+            if (response.has("error")) {
+                throw new ControllerException(response.getString("error"),
+                        response.optString("args"));
+            }
+            return response;
         } catch (JSONException e) {
             throw new IOException("Failed to parse response '" + line + "'.", e);
+        }
+    }
+
+    /**
+     * Exception used to denote an error returned by the controller itself.
+     */
+    public class ControllerException extends Exception {
+        public final String mArgs;
+
+        ControllerException(String message, String args) {
+            super(args.isEmpty() ? message : message + ": " + args);
+            mArgs = args;
         }
     }
 }
