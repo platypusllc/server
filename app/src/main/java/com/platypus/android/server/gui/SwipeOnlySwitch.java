@@ -1,4 +1,4 @@
-package com.platypus.android.server;
+package com.platypus.android.server.gui;
 
 import android.content.Context;
 import android.util.AttributeSet;

@@ -8,7 +8,6 @@ import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -22,7 +21,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.math.BigInteger;
+import com.platypus.android.server.gui.SwipeOnlySwitch;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
