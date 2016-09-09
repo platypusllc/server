@@ -245,6 +245,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 while (_isRunning.get()) {
                     try {
                         onCommand(mController.receive());
+                    } catch (Controller.ConnectionException e) {
+                        // Do nothing, we don't need to detect this here.
                     } catch (IOException | Controller.ControllerException e) {
                         Log.w(TAG, e);
                     } finally {

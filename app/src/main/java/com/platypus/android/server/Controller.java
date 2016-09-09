@@ -242,7 +242,7 @@ public class Controller {
 
         synchronized (mUsbLock) {
             if (mUsbOutputStream == null)
-                throw new IOException("Not connected to hardware.");
+                throw new ConnectionException("Not connected to hardware.");
 
             try {
                 mUsbOutputStream.write(message);
@@ -269,7 +269,7 @@ public class Controller {
         // If the stream is not open, just wait longer.
         synchronized (mUsbLock) {
             if (mUsbInputStream == null)
-                throw new IOException("Not connected to hardware.");
+                throw new ConnectionException("Not connected to hardware.");
             try {
                 len = mUsbInputStream.read(buffer);
             } catch (IOException e) {
@@ -305,6 +305,15 @@ public class Controller {
         ControllerException(String message, String args) {
             super(args.isEmpty() ? message : message + ": " + args);
             mArgs = args;
+        }
+    }
+
+    /**
+     * Exception caused by an action that requires hardware being called when disconnected.
+     */
+    public class ConnectionException extends IOException {
+        ConnectionException(String message) {
+            super(message);
         }
     }
 }
