@@ -152,7 +152,7 @@ public class LogUploadService extends JobService {
     public boolean onStartJob(final JobParameters params) {
         // Create a reference to the appropriate storage location for log files for this vehicle.
         final StorageReference logsRef = FirebaseStorage.getInstance()
-                .getReferenceFromUrl("gs://platypus-cloud-api-9f679.appspot.com")
+                .getReferenceFromUrl("gs://platypus-cloud-api.appspot.com")
                 .child("logs")
                 .child(Build.SERIAL);
 
@@ -164,7 +164,11 @@ public class LogUploadService extends JobService {
                         // Retrieve a list of all log files currently on the system.
                         File logDirectory = new File(Environment.getExternalStoragePublicDirectory(
                                 Environment.DIRECTORY_DOCUMENTS), "platypus");
-                        final File[] logFiles = logDirectory.listFiles(LOG_FILENAME_FILTER);
+                        File[] logFiles = logDirectory.listFiles(LOG_FILENAME_FILTER);
+
+                        // If we fail to find any logfiles, just make an empty list.
+                        if (logFiles == null)
+                            logFiles = new File[0];
 
                         // Start a task to upload these files.
                         mUploadTask = new UploadLogsTask(logsRef, params).execute(logFiles);
