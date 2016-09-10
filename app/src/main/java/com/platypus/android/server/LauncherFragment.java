@@ -8,7 +8,6 @@ import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -18,11 +17,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.math.BigInteger;
+import com.platypus.android.server.gui.SwipeOnlySwitch;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -47,7 +48,36 @@ public class LauncherFragment extends Fragment
     protected TextView mIpAddressText;
     protected Switch mLaunchSwitch;
     protected Button mSetHomeButton;
+    protected ImageView mVehicleImage;
     protected LocationManager mLocationManager;
+    /**
+     * Listens for checked events on "Launch" button and starts/stops vehicle service.
+     */
+    CompoundButton.OnCheckedChangeListener mLaunchListener = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+            // Disable the launch button temporarily (until the service is done processing).
+            mLaunchSwitch.setEnabled(false);
+            if (!isVehicleServiceRunning()) {
+                // If the service is not running, start it.
+                getActivity().startService(new Intent(getActivity(), VehicleService.class));
+                Log.i(TAG, "Vehicle service started.");
+            } else {
+                // If the service is running, stop it.
+                getActivity().stopService(new Intent(getActivity(), VehicleService.class));
+                Log.i(TAG, "Vehicle service stopped.");
+            }
+
+            // Schedule the button to update launch status and re-enable.
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    updateLaunchStatus();
+                    mLaunchSwitch.setEnabled(true);
+                }
+            }, 2000);
+        }
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,6 +97,7 @@ public class LauncherFragment extends Fragment
         mIpAddressText = (TextView) view.findViewById(R.id.ip_address_text);
         mLaunchSwitch = (SwipeOnlySwitch) view.findViewById(R.id.launcher_launch_switch);
         mSetHomeButton = (Button) view.findViewById(R.id.launcher_home_button);
+        mVehicleImage = (ImageView) view.findViewById(R.id.launcher_vehicle_image);
 
         // Add listener for starting/stopping vehicle service.
         mLaunchSwitch.setOnCheckedChangeListener(mLaunchListener);
@@ -87,6 +118,7 @@ public class LauncherFragment extends Fragment
         updateHomeLocation();
         updateLaunchStatus();
         updateServerAddress();
+        updateVehicleType();
     }
 
     @Override
@@ -94,6 +126,26 @@ public class LauncherFragment extends Fragment
         super.onPause();
         PreferenceManager.getDefaultSharedPreferences(getActivity())
                 .unregisterOnSharedPreferenceChangeListener(this);
+    }
+
+    /**
+     * Updates the image showing the currently selected vehicle type.
+     */
+    protected void updateVehicleType() {
+        SharedPreferences sharedPreferences =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+        switch (sharedPreferences.getString("pref_vehicle_type", "")) {
+            case "DIFFERENTIAL":
+                mVehicleImage.setImageResource(R.drawable.ic_vehicle_differential);
+                break;
+            case "VECTORED":
+                mVehicleImage.setImageResource(R.drawable.ic_vehicle_vectored);
+                break;
+            default:
+                mVehicleImage.setImageResource(R.drawable.ic_vehicle_unknown);
+                break;
+        }
     }
 
     /**
@@ -126,12 +178,71 @@ public class LauncherFragment extends Fragment
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        // If the home location was changed, update the server application.
-        if (key.equals("pref_home_latitude") || key.equals("pref_home_longitude")) {
-            updateHomeLocation();
-        } else if (key.equals("pref_server_port")) {
-            updateServerAddress();
+        switch (key) {
+            case "pref_home_latitude":
+            case "pref_home_longitude":
+                updateHomeLocation();
+                break;
+            case "pref_server_port":
+                updateServerAddress();
+                break;
+            case "pref_vehicle_type":
+                updateVehicleType();
+                break;
         }
+    }
+
+    /**
+     * Checks whether the vehicle service is still running by iterating through all services.
+     *
+     * @return whether the vehicle service is currently running or not
+     */
+    protected boolean isVehicleServiceRunning() {
+        ActivityManager manager =
+                (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service :
+                manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (VehicleService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Helper function that retrieves first valid (non-loopback) IP address
+     * over all available interfaces.
+     *
+     * @return Text representation of current local IP address.
+     */
+    public String getLocalIpAddress() {
+        try {
+            for (Enumeration<NetworkInterface> en = NetworkInterface
+                    .getNetworkInterfaces(); en.hasMoreElements(); ) {
+                NetworkInterface intf = en.nextElement();
+                for (Enumeration<InetAddress> enumIpAddr = intf
+                        .getInetAddresses(); enumIpAddr.hasMoreElements(); ) {
+                    InetAddress inetAddress = enumIpAddr.nextElement();
+                    if (!inetAddress.isLoopbackAddress() && inetAddress.getAddress().length == 4) {
+                        return inetAddress.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException ex) {
+            Log.e(TAG, "Failed to get local IP.", ex);
+        }
+        return null;
+    }
+
+    /**
+     * Updates the server address that is used by the vehicle.
+     */
+    public void updateServerAddress() {
+        SharedPreferences sharedPreferences =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+        String port = sharedPreferences.getString("pref_server_port", "11411");
+        mIpAddressText.setText(getLocalIpAddress() + ":" + port);
     }
 
     /**
@@ -223,86 +334,5 @@ public class LauncherFragment extends Fragment
         public void onProviderDisabled(String provider) {
             // Do nothing.
         }
-    }
-
-    /**
-     * Listens for checked events on "Launch" button and starts/stops vehicle service.
-     */
-    CompoundButton.OnCheckedChangeListener mLaunchListener = new CompoundButton.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-            // Disable the launch button temporarily (until the service is done processing).
-            mLaunchSwitch.setEnabled(false);
-            if (!isVehicleServiceRunning()) {
-                // If the service is not running, start it.
-                getActivity().startService(new Intent(getActivity(), VehicleService.class));
-                Log.i(TAG, "Vehicle service started.");
-            } else {
-                // If the service is running, stop it.
-                getActivity().stopService(new Intent(getActivity(), VehicleService.class));
-                Log.i(TAG, "Vehicle service stopped.");
-            }
-
-            // Schedule the button to update launch status and re-enable.
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    updateLaunchStatus();
-                    mLaunchSwitch.setEnabled(true);
-                }
-            }, 2000);
-        }
-    };
-
-    /**
-     * Checks whether the vehicle service is still running by iterating through all services.
-     * @return whether the vehicle service is currently running or not
-     */
-    protected boolean isVehicleServiceRunning() {
-        ActivityManager manager =
-                (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service :
-                manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (VehicleService.class.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Helper function that retrieves first valid (non-loopback) IP address
-     * over all available interfaces.
-     *
-     * @return Text representation of current local IP address.
-     */
-    public String getLocalIpAddress() {
-        try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface
-                    .getNetworkInterfaces(); en.hasMoreElements();) {
-                NetworkInterface intf = en.nextElement();
-                for (Enumeration<InetAddress> enumIpAddr = intf
-                        .getInetAddresses(); enumIpAddr.hasMoreElements();) {
-                    InetAddress inetAddress = enumIpAddr.nextElement();
-                    if (!inetAddress.isLoopbackAddress() && inetAddress.getAddress().length == 4) {
-                        return inetAddress.getHostAddress();
-                    }
-                }
-            }
-        } catch (SocketException ex) {
-            Log.e(TAG, "Failed to get local IP.", ex);
-        }
-        return null;
-    }
-
-    /**
-     * Updates the server address that is used by the vehicle.
-     */
-    public void updateServerAddress() {
-        SharedPreferences sharedPreferences =
-                PreferenceManager.getDefaultSharedPreferences(getActivity());
-
-        String port = sharedPreferences.getString("pref_server_port", "11411");
-        mIpAddressText.setText(getLocalIpAddress() + ":" + port);
     }
 }
