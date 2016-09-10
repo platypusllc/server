@@ -111,6 +111,10 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
             getPreferenceScreen().getSharedPreferences().edit()
                     .putString("pref_cloud_token", scanResult.getContents())
                     .commit();
+
+            // Log out and log in with the new token.
+            FirebaseAuth.getInstance().signOut();
+            FirebaseUtils.firebaseSignin(SettingsFragment.this.getActivity(), null, null);
         }
     }
 }
