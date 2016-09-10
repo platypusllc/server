@@ -12,7 +12,8 @@
     <string name="pref_cloud_sync_title">Synchronize Logs Now</string>
     <string name="pref_cloud_sync_summary">Synchronize all logs to the Platypus Cloud.</string>
     <string name="pref_cloud_token_title">Authentication Token</string>
-    <string name="pref_cloud_token_summary">Set the token used to identify this vehicle.</string>
+    <string name="pref_cloud_token_summary_auth">Authenticated to Platypus Cloud.</string>
+    <string name="pref_cloud_token_summary_noauth">Not connected to Platypus Cloud.</string>
     <string name="pref_cloud_autosync_enable_title">Enable Log Synchronization</string>
     <string name="pref_cloud_autosync_enable_summary">Enable or disable automatic log synchronization with the Platypus Cloud.</string>
     <string name="pref_cloud_sync_delete_title">Clear Logs After Upload</string>

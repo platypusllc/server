@@ -15,6 +15,9 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.FirebaseDatabase;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 
 /**
  * Utility classes for interacting with Firebase.
@@ -69,20 +72,39 @@ public class FirebaseUtils {
             });
         }
 
-        // Get the current auth token credentials and exit if empty.
+        // Get currently cached login credentials.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String token = preferences.getString("pref_cloud_token", "");
-        if (token.trim().isEmpty()) {
-            if (failure != null)
-                failure.onFailure(new FirebaseAuthInvalidUserException("No user provided.", "No user provided."));
+        String username;
+        String password;
+        try {
+            // Get the current token and exit if empty.
+            final String tokenJson = preferences.getString("pref_cloud_token", "");
+            if (tokenJson.trim().isEmpty()) {
+                Log.d(TAG, "No authentication credential provided.");
+                failure.onFailure(new FirebaseAuthInvalidUserException(
+                        "No credential provided.", "No credential provided."));
+                return;
+            }
 
+            // Attempt to parse token as valid JSON.
+            final JSONObject token = new JSONObject(tokenJson);
+            username = token.getString("username");
+            password = token.getString("password");
+        } catch (JSONException e) {
+            Log.w(TAG, "Token was not a valid authentication credential.");
+            Toast.makeText(context,
+                    "Invalid authentication token. " +
+                            "Please contact help@senseplatypus.com to get a new token.",
+                    Toast.LENGTH_LONG).show();
+            failure.onFailure(new FirebaseAuthInvalidUserException(
+                    "Invalid credential provided.", "Invalid credential provided."));
             return;
         }
 
         // Attempt to log into Firebase with the current token credential.
         // This links directly to a low-priority service account that can only be used for logs.
         FirebaseAuth.getInstance()
-                .signInWithEmailAndPassword("vehicle@senseplatypus.com", token)
+                .signInWithEmailAndPassword(username, password)
                 .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
                     @Override
                     public void onSuccess(final AuthResult authResult) {
