@@ -64,12 +64,15 @@ public class FirebaseUtils {
         // Check if we are already logged in:  if so, simply return.
         final FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            success.onSuccess(new AuthResult() {
-                @Override
-                public FirebaseUser getUser() {
-                    return user;
-                }
-            });
+            if (success != null) {
+                success.onSuccess(new AuthResult() {
+                    @Override
+                    public FirebaseUser getUser() {
+                        return user;
+                    }
+                });
+            }
+            return;
         }
 
         // Get currently cached login credentials.
@@ -112,6 +115,9 @@ public class FirebaseUtils {
                     public void onSuccess(final AuthResult authResult) {
                         Log.i(TAG, "Logged into Platypus Cloud as " +
                                 authResult.getUser().getDisplayName());
+                        Toast.makeText(context,
+                                "Authenticated to Platypus Cloud.",
+                                Toast.LENGTH_LONG).show();
 
                         // Call child handler if it was provided.
                         if (success != null)
