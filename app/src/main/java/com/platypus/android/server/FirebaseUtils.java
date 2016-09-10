@@ -81,8 +81,9 @@ public class FirebaseUtils {
             final String tokenJson = preferences.getString("pref_cloud_token", "");
             if (tokenJson.trim().isEmpty()) {
                 Log.d(TAG, "No authentication credential provided.");
-                failure.onFailure(new FirebaseAuthInvalidUserException(
-                        "No credential provided.", "No credential provided."));
+                if (failure != null)
+                    failure.onFailure(new FirebaseAuthInvalidUserException(
+                            "No credential provided.", "No credential provided."));
                 return;
             }
 
@@ -96,8 +97,9 @@ public class FirebaseUtils {
                     "Invalid authentication token. " +
                             "Please contact help@senseplatypus.com to get a new token.",
                     Toast.LENGTH_LONG).show();
-            failure.onFailure(new FirebaseAuthInvalidUserException(
-                    "Invalid credential provided.", "Invalid credential provided."));
+            if (failure != null)
+                failure.onFailure(new FirebaseAuthInvalidUserException(
+                        "Invalid credential provided.", "Invalid credential provided."));
             return;
         }
 
