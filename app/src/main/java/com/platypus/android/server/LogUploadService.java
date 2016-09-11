@@ -22,6 +22,7 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
+import com.google.firebase.crash.FirebaseCrash;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageMetadata;
@@ -151,10 +152,19 @@ public class LogUploadService extends JobService {
     @Override
     public boolean onStartJob(final JobParameters params) {
         // Create a reference to the appropriate storage location for log files for this vehicle.
-        final StorageReference logsRef = FirebaseStorage.getInstance()
-                .getReferenceFromUrl("gs://platypus-cloud-api.appspot.com")
-                .child("logs")
-                .child(Build.SERIAL);
+        StorageReference logsRefTemp;
+        try {
+            // TODO: turn this storage reference URL into a string resource.
+            logsRefTemp = FirebaseStorage.getInstance()
+                    .getReferenceFromUrl("gs://platypus-cloud-api.appspot.com")
+                    .child("logs")
+                    .child(Build.SERIAL);
+        } catch (IllegalArgumentException e) {
+            // If the bucket is not available for some reason, log an error but do not crash.
+            FirebaseCrash.logcat(Log.ERROR, TAG, "Unable to upload logs, bucket was not found.");
+            return false;
+        }
+        final StorageReference logsRef = logsRefTemp;
 
         // Log in with an authenticated user and scan and upload all log files.
         FirebaseUtils.firebaseSignin(this,
@@ -309,6 +319,7 @@ public class LogUploadService extends JobService {
                             @Override
                             public void onFailure(@NonNull Exception exception) {
                                 Log.w(TAG, "Failed to upload " + logFile.getName() + " to cloud.");
+                                FirebaseCrash.report(exception);
                                 uploadDone.countDown();
                             }
                         })
