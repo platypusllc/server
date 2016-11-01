@@ -18,10 +18,10 @@
             android:key="pref_cloud_sync"
             android:title="@string/pref_cloud_sync_title"
             android:summary="@string/pref_cloud_sync_summary"/>
-        <EditTextPreference
+        <Preference
             android:key="pref_cloud_token"
             android:title="@string/pref_cloud_token_title"
-            android:summary="@string/pref_cloud_token_summary" />
+            android:summary="@string/pref_cloud_token_summary_noauth" />
         <CheckBoxPreference
             android:defaultValue="false"
             android:key="pref_cloud_autosync_enable"
