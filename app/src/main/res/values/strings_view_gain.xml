@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gain_axis_title">Axis:</string>
+    <string-array name="gain_axis_entries">
+        <item>Thrust</item>
+        <item>Rudder</item>
+    </string-array>
+    <string-array name="gain_axis_values">
+        <item>0</item>
+        <item>5</item>
+    </string-array>
+    <string name="gain_p_title">P</string>
+    <string name="gain_i_title">I</string>
+    <string name="gain_d_title">D</string>
+    <string name="gain_hint">--</string>
+</resources>
