@@ -423,6 +423,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 reading.data = new double[]{ecData, tempData};
                             } catch (NumberFormatException e) {
                                 Log.w(TAG, "Received malformed ES2 Sensor Data: " + value);
+                                continue;
                             }
                         } else if (type.equalsIgnoreCase("atlas_do")) {
                             // Fill in readings from parsed sensor data.
@@ -449,7 +450,16 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                     continue;
                                 }
                             } else if (nmea.startsWith("$SDMTW")) { //Water Temperature
-                                continue;
+                                try {
+                                    double temp = Double.parseDouble((nmea.split(",")[1]));
+
+                                    reading.type = SensorType.HDS_TEMP;
+                                    reading.channel = sensor;
+                                    reading.data = new double[]{temp};
+                                } catch (Exception e) {
+                                    Log.w(TAG, "Failed to parse temperature reading: " + nmea);
+                                    continue;
+                                }
                             } else if (nmea.startsWith("$SDRMC")) { //GPS
                                 continue;
                             } else {
@@ -479,15 +489,23 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                             // TODO: Remove this hack to store winch depth
                             winch_depth_ = reading.data[0];
+                        } else {
+                            Log.w(TAG, "Received sensor data of unknown type '" + cmd + "'.");
+                            mLogger.warn(cmd);
+
+                            // Don't want to call sendSensor on unknown sensor type
+                            continue;
                         }
 
-                        // Send out and log the collected sensor reading.
-                        sendSensor(sensor, reading);
+                        // Attempt to log the collected sensor reading
                         mLogger.info(new JSONObject()
                                 .put("sensor", new JSONObject()
                                         .put("channel", reading.channel)
                                         .put("type", reading.type.toString())
                                         .put("data", new JSONArray(reading.data))));
+
+                        // Send out the collected sensor reading
+                        sendSensor(sensor, reading);
                     }
                 } else {
                     Log.w(TAG, "Received unknown param '" + cmd + "'.");
