@@ -134,7 +134,8 @@ public enum AirboatController {
             // update angle error
             prev_angle_destination = angle_destination;
             // Set the desired velocity
-            server.setVelocity(twist);
+            // server.setVelocity(twist);
+            server_impl.set_velocities(twist);
 		}
 	}),
 	/**

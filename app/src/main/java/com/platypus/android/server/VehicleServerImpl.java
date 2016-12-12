@@ -778,6 +778,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * Sets a desired 6D velocity for the vehicle.
      */
     public void setVelocity(Twist vel) {
+        //_velocities = vel.clone();
         setDesiredAngle(vel.drz()); // now use Twist.drz() in degrees to set desired heading
         setAutonomous(false);
 
@@ -797,6 +798,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 }
             }, VELOCITY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         }
+    }
+    public void set_velocities(Twist vel) {
+        _velocities = vel.clone();
     }
 
     @Override
