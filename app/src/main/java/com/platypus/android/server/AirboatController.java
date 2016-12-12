@@ -47,100 +47,94 @@ public enum AirboatController {
 		@Override
 		public void update(VehicleServer server, double dt) {
 
+            VehicleServerImpl server_impl = (VehicleServerImpl) server;
+
 			Twist twist = new Twist();
 			
 			// Get the position of the vehicle
 			UtmPose state = server.getPose();
 			Pose3D pose = state.pose;
 
-
-
-			// Get the current waypoint, or return if there are none
+			// Get the current waypoint, or return if there are none -- IF boat is autonomous
+            double angle_destination;
 			UtmPose[] waypoints = server.getWaypoints();
-			if (waypoints == null || waypoints.length <= 0) {
-				server.setVelocity(twist);
+			if (server.isAutonomous()) {
+				if (waypoints == null || waypoints.length <= 0) {
+					server.setVelocity(twist);
+					return;
+				}
 
-				return;
+                Pose3D waypoint = waypoints[0].pose;
+
+                double distanceSq = planarDistanceSq(pose, waypoint);
+
+                if (distanceSq <= 9) // TODO: define this required distance value elsewhere
+                {
+                    Log.i("POINT_AND_SHOOT:", "Arrived at Waypoint");
+                    // if reached the target, reset the buffer and previous angle
+                    bIndex = 0;
+                    bSum = 0;
+                    buffer = new double[BUFFER_SIZE];
+                    prev_angle_destination = 0;
+
+                    // If we are "at" the destination, de-queue current waypoint
+                    UtmPose[] queuedWaypoints = new UtmPose[waypoints.length - 1];
+                    System.arraycopy(waypoints, 1, queuedWaypoints, 0,
+                            queuedWaypoints.length);
+                    server.startWaypoints(queuedWaypoints,
+                            AirboatController.POINT_AND_SHOOT.toString());
+                    return;
+                }
+
+                // find destination angle between boat and waypoint position
+                angle_destination = angleBetween(pose, waypoint);
 			}
-			Pose3D waypoint = waypoints[0].pose;
+            else {
+                // get desired angle from TeleOp
+                angle_destination = server_impl.getDesiredAngle();
+            }
 
+            // use compass information to get heading of the boat
+            double angle_boat = pose.getRotation().toYaw();
+            double angle_between = normalizeAngle(angle_destination - angle_boat);
 
-			double distanceSq = planarDistanceSq(pose, waypoint);
-			// Simulation part, when oldtime count to 10, pose move to the next waypoint
-//			if(oldtime > 10){
-//				distanceSq = 0;
-//				oldtime = 0;
-//			}
-			if (distanceSq <= 9)
-			{
-				Log.i("POINT_AND_SHOOT:", "Arrived Waypoint");
-				// if reached the target, reset the buffer and previous angle
-				bIndex = 0;
-				bSum = 0;
-				buffer = new double[BUFFER_SIZE];
-				prev_angle_destination = 0;
-				
-				// If we are "at" the destination, de-queue current waypoint
-				UtmPose[] queuedWaypoints = new UtmPose[waypoints.length - 1];
-				System.arraycopy(waypoints, 1, queuedWaypoints, 0,
-						queuedWaypoints.length);
-				server.startWaypoints(queuedWaypoints,
-						AirboatController.POINT_AND_SHOOT.toString());
-			}
-			else
-			{
-				// Simulation part, when oldtime count to 10, pose move to the next waypoint
-				//oldtime+=1;
-				//Log.i("POINT_AND_SHOOT:", "On the way: " + oldtime);
-				// ANGLE CONTROL SEGMENT
+            // use gyro information from arduino to get rotation rate of heading
+            double[] _gyroReadings = server_impl.getGyro();
+            double drz = _gyroReadings[2];
 
-				// find destination angle between boat and waypoint position
-				double angle_destination = angleBetween(pose, waypoint);
-				
-				// use compass information to get heading of the boat
-				double angle_boat = pose.getRotation().toYaw();
-				double angle_between = normalizeAngle(angle_destination - angle_boat);
-				
-				// use gyro information from arduino to get rotation rate of heading
-				double[] _gyroReadings = ((VehicleServerImpl) server).getGyro();
-				double drz = _gyroReadings[2];
-				
-				// use previous data to get rate of change of destination angle
-				double angle_destination_change = (angle_destination - prev_angle_destination) / dt;
-				double error = angle_between;
-				bIndex++;
-				if (bIndex == BUFFER_SIZE)
-					bIndex = 0;
-				bSum -= buffer[bIndex];
-				bSum += error;
-				buffer[bIndex] = error;
-				
-				// Define PID constants and boundary pos constants
-				VehicleServerImpl server_impl = (VehicleServerImpl) server;
-				double[] rudder_pids = server_impl.getGains(5);
-				
-				double pos = rudder_pids[0]*(angle_between) + rudder_pids[2]*(angle_destination_change - drz) + rudder_pids[1]*bSum;
-				
-				// Ensure values are within bounds
-				if (pos < -1.0)
-					pos = -1.0;
-				else if (pos > 1.0)
-					pos = 1.0;
-				
-				// THRUST CONTROL SEGMENT
-				double[] thrust_pids = server_impl.getGains(0);
-				double thrust = 1.0 * thrust_pids[0]; // Use a normalized thrust value of 1.0.
-				
-				// update twist
-				twist.dx(thrust);
-				twist.drz(pos);
+            // use previous data to get rate of change of destination angle
+            double angle_destination_change = (angle_destination - prev_angle_destination) / dt;
+            double error = angle_between;
+            bIndex++;
+            if (bIndex == BUFFER_SIZE)
+                bIndex = 0;
+            bSum -= buffer[bIndex];
+            bSum += error;
+            buffer[bIndex] = error;
 
-				// update angle error
-				prev_angle_destination = angle_destination;
-				// Set the desired velocity
-				server.setVelocity(twist);
-				
-			}
+            // Define PID constants and boundary pos constants
+            double[] rudder_pids = server_impl.getGains(5);
+
+            double pos = rudder_pids[0]*(angle_between) + rudder_pids[2]*(angle_destination_change - drz) + rudder_pids[1]*bSum;
+
+            // Ensure values are within bounds
+            if (pos < -1.0)
+                pos = -1.0;
+            else if (pos > 1.0)
+                pos = 1.0;
+
+            // THRUST CONTROL SEGMENT
+            double[] thrust_pids = server_impl.getGains(0);
+            double thrust = 1.0 * thrust_pids[0]; // Use a normalized thrust value of 1.0.
+
+            // update twist
+            twist.dx(thrust);
+            twist.drz(pos);
+
+            // update angle error
+            prev_angle_destination = angle_destination;
+            // Set the desired velocity
+            server.setVelocity(twist);
 		}
 	}),
 	/**

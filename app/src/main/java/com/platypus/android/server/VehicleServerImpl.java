@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import robotutils.Pose3D;
 
@@ -58,7 +59,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     protected final Object _navigationLock = new Object();
     // Status information
     final AtomicBoolean _isConnected = new AtomicBoolean(false);
-    final AtomicBoolean _isAutonomous = new AtomicBoolean(false);
+    final AtomicBoolean _isAutonomous = new AtomicBoolean(true); // to avoid errant startup PID
     final AtomicBoolean _isRunning = new AtomicBoolean(true);
     // Internal references.
     final Context _context;
@@ -75,7 +76,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     private final Timer _captureTimer = new Timer();
     protected UtmPose[] _waypoints = new UtmPose[0];
     protected TimerTask _captureTask = null;
-    protected TimerTask _navigationTask = null;
+
     ScheduledFuture mVelocityFuture = null;
     /**
      * Inertial state vector, currently containing a 6D pose estimate:
@@ -208,6 +209,49 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
     };
 
+    final AtomicInteger desired_angle = new AtomicInteger(0); // represents degrees
+    private void setDesiredAngle(double angle) {
+        desired_angle.set((int)angle);
+    }
+    public double getDesiredAngle() {
+        double angle = desired_angle.get()*Math.PI/180.0;
+        //while (Math.abs(angle) > Math.PI) {
+        //    angle -= 2*Math.PI*Math.signum(angle);
+        //}
+        return angle;
+    }
+    protected TimerTask _navigationTask = new TimerTask() {
+        final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
+
+        // always run Point and Shoot
+        VehicleController vc = AirboatController.POINT_AND_SHOOT.controller;
+
+        @Override
+        public void run() {
+            synchronized (_navigationLock) {
+                // always enter controller update
+                vc.update(VehicleServerImpl.this, dt); // TODO: actually measure dt
+                if (_waypoints.length > 0 && !_isAutonomous.get()) {
+                    // Have waypoints, but not autonomous
+                    Log.i(TAG, "Paused or TeleOp");
+                    sendWaypointUpdate(WaypointState.PAUSED);
+                } else if (_waypoints.length == 0 && _isAutonomous.get()) {
+                    // Are autonomous, but no waypoints
+                    setAutonomous(false);
+                    Log.i(TAG, "Done");
+                    sendWaypointUpdate(WaypointState.DONE);
+                    setVelocity(new Twist(DEFAULT_TWIST));
+                } else {
+                    // Are autonomous, with waypoints
+                    sendWaypointUpdate(WaypointState.GOING);
+                    Log.i(TAG, "Waypoint Status: POINT_AND_SHOOT");
+                }
+            }
+        }
+    };
+
+
+
     /**
      * Creates a new instance of the vehicle implementation. This function
      * should only be used internally when the corresponding vehicle service is
@@ -257,6 +301,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         });
         receiveThread.setDaemon(true);
         receiveThread.start();
+
+        _navigationTimer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
     }
 
     /**
@@ -661,66 +707,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         Log.i(TAG, "Starting waypoints with " + controller + ": "
                 + Arrays.toString(waypoints));
 
-        // Create a waypoint navigation task
-        TimerTask newNavigationTask = new TimerTask() {
-            final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
-
-            // Retrieve the appropriate controller in initializer
-            VehicleController vc = DEFAULT_CONTROLLER;
-
-            {
-                try {
-                    vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
-                    //Log.i(TAG, "vc:"+ vc.toString() + "controller" + controller );
-                } catch (IllegalArgumentException e) {
-                    Log.w(TAG, "Unknown controller specified (using " + vc
-                            + " instead): " + controller);
-                }
-            }
-
-            @Override
-            public void run() {
-                synchronized (_navigationLock) {
-                    //Log.i(TAG, "Synchronized");
-
-                    if (!_isAutonomous.get()) {
-                        // If we are not autonomous, do nothing
-                        Log.i(TAG, "Paused");
-                        sendWaypointUpdate(WaypointState.PAUSED);
-                    } else if (_waypoints.length == 0) {
-                        // If we are finished with waypoints, stop in place
-                        Log.i(TAG, "Done");
-                        sendWaypointUpdate(WaypointState.DONE);
-                        setVelocity(new Twist(DEFAULT_TWIST));
-                        this.cancel();
-                        _navigationTask = null;
-
-                    } else {
-                        // If we are still executing waypoints, use a
-                        // controller to figure out how to get to waypoint
-                        // TODO: measure dt directly instead of approximating
-                        Log.i(TAG, "controller :" + controller);
-                        vc.update(VehicleServerImpl.this, dt);
-                        sendWaypointUpdate(WaypointState.GOING);
-                        //Log.i(TAG, "Waypoint Status: POINT_AND_SHOOT");
-                    }
-                }
-            }
-        };
-
-        synchronized (_navigationLock) {
-            // Change waypoints to new set of waypoints
-            _waypoints = new UtmPose[waypoints.length];
-            System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
-
-            // Cancel any previous navigation tasks
-            if (_navigationTask != null)
-                _navigationTask.cancel();
-
-            // Schedule this task for execution
-            _navigationTask = newNavigationTask;
-            _navigationTimer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
-        }
+        // only update the waypoints queue
+        setWaypoints(waypoints);
 
         // Report the new waypoint in the log file.
         try {
@@ -759,6 +747,14 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         return wpts;
     }
 
+    public void setWaypoints(UtmPose[] new_waypoints) {
+        synchronized (_navigationLock) {
+            // Change waypoints to new set of waypoints
+            _waypoints = new UtmPose[new_waypoints.length];
+            System.arraycopy(new_waypoints, 0, _waypoints, 0, _waypoints.length);
+        }
+    }
+
     @Override
     public WaypointState getWaypointStatus() {
         synchronized (_navigationLock) {
@@ -782,7 +778,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * Sets a desired 6D velocity for the vehicle.
      */
     public void setVelocity(Twist vel) {
-        _velocities = vel.clone();
+        setDesiredAngle(vel.drz()); // now use Twist.drz() in degrees to set desired heading
+        setAutonomous(false);
 
         // Schedule a task to shutdown the velocity if no command is received within the timeout.
         // Normally, this task will be canceled by a subsequent call to the setVelocity function,
