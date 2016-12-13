@@ -487,6 +487,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                             // TODO: Remove this hack to store winch depth
                             winch_depth_ = reading.data[0];
                         }
+                        else{   // this is for cases where the type is not parsable
+                            Log.w(TAG, "Received sensing of unknown type: '" + type + "'.");
+                            continue;
+                        }
 
                         // Send out and log the collected sensor reading.
                         sendSensor(sensor, reading);
