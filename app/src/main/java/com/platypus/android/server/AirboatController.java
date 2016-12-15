@@ -57,6 +57,7 @@ public enum AirboatController {
 
 			// Get the current waypoint, or return if there are none -- IF boat is autonomous
             double angle_destination;
+			double thrust;
 			UtmPose[] waypoints = server.getWaypoints();
 			if (server.isAutonomous()) {
 				if (waypoints == null || waypoints.length <= 0) {
@@ -88,10 +89,15 @@ public enum AirboatController {
 
                 // find destination angle between boat and waypoint position
                 angle_destination = angleBetween(pose, waypoint);
+
+				// THRUST CONTROL SEGMENT
+				double[] thrust_pids = server_impl.getGains(0);
+				thrust = 1.0 * thrust_pids[0]; // Use a normalized thrust value of 1.0.
 			}
             else {
                 // get desired angle from TeleOp
                 angle_destination = server_impl.getDesiredAngle();
+				thrust = server_impl.getDesiredThrust();
             }
 
             // use compass information to get heading of the boat
@@ -123,10 +129,6 @@ public enum AirboatController {
             else if (pos > 1.0)
                 pos = 1.0;
 
-            // THRUST CONTROL SEGMENT
-            double[] thrust_pids = server_impl.getGains(0);
-            double thrust = 1.0 * thrust_pids[0]; // Use a normalized thrust value of 1.0.
-
             // update twist
             twist.dx(thrust);
             twist.drz(pos);
@@ -134,7 +136,6 @@ public enum AirboatController {
             // update angle error
             prev_angle_destination = angle_destination;
             // Set the desired velocity
-            // server.setVelocity(twist);
             server_impl.set_velocities(twist);
 		}
 	}),

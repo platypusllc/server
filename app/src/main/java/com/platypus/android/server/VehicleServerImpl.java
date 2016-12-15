@@ -210,6 +210,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     };
 
     final AtomicInteger desired_angle = new AtomicInteger(0); // represents degrees
+    double desired_thrust = 0;
     private void setDesiredAngle(double angle) {
         desired_angle.set((int)angle);
     }
@@ -220,6 +221,17 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         //}
         return angle;
     }
+    private void setDesiredThrust(double thrust) {
+        synchronized (_navigationLock) {
+            desired_thrust = thrust;
+        }
+    }
+    public double getDesiredThrust() {
+        synchronized (_navigationLock) {
+            return desired_thrust;
+        }
+    }
+
     protected TimerTask _navigationTask = new TimerTask() {
         final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
@@ -780,6 +792,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public void setVelocity(Twist vel) {
         //_velocities = vel.clone();
         setDesiredAngle(vel.drz()); // now use Twist.drz() in degrees to set desired heading
+        setDesiredThrust(vel.dx()); // now use Twist.dx() to represent thrust magnitude
         setAutonomous(false);
 
         // Schedule a task to shutdown the velocity if no command is received within the timeout.
