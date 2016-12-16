@@ -739,8 +739,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         // navigation process, clear all the waypoints, and stop the vehicle.
         synchronized (_navigationLock) {
             if (_navigationTask != null) {
-                _navigationTask.cancel();
-                _navigationTask = null;
                 _waypoints = new UtmPose[0];
                 setVelocity(new Twist(DEFAULT_TWIST));
                 Log.i(TAG, "StopWaypoint");
