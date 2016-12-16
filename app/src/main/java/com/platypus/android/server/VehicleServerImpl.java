@@ -790,10 +790,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * Sets a desired 6D velocity for the vehicle.
      */
     public void setVelocity(Twist vel) {
-        //_velocities = vel.clone();
+        System.out.println("calling setVelocity()...");
         setDesiredAngle(vel.drz()); // now use Twist.drz() in degrees to set desired heading
         setDesiredThrust(vel.dx()); // now use Twist.dx() to represent thrust magnitude
         setAutonomous(false);
+        double current_yaw = getPose().pose.getRotation().toYaw();
+        final Twist reset_twist = new Twist();
+        reset_twist.drz(current_yaw*180.0/Math.PI);
 
         // Schedule a task to shutdown the velocity if no command is received within the timeout.
         // Normally, this task will be canceled by a subsequent call to the setVelocity function,
@@ -807,7 +810,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             mVelocityFuture = mVelocityExecutor.schedule(new Runnable() {
                 @Override
                 public void run() {
-                    setVelocity(new Twist());
+                    setVelocity(reset_twist);
                 }
             }, VELOCITY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         }

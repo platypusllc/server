@@ -62,6 +62,7 @@ public enum AirboatController {
 			if (server.isAutonomous()) {
 				if (waypoints == null || waypoints.length <= 0) {
 					server.setVelocity(twist);
+					System.out.println("autonomous but no WPs");
 					return;
 				}
 
@@ -93,11 +94,14 @@ public enum AirboatController {
 				// THRUST CONTROL SEGMENT
 				double[] thrust_pids = server_impl.getGains(0);
 				thrust = 1.0 * thrust_pids[0]; // Use a normalized thrust value of 1.0.
+
+				System.out.println("Autonomous PID: des_ang = " + angle_destination + "  des_thr = " + thrust);
 			}
             else {
                 // get desired angle from TeleOp
                 angle_destination = server_impl.getDesiredAngle();
 				thrust = server_impl.getDesiredThrust();
+				System.out.println("TeleOp PID: des_ang = " + angle_destination + "  des_thr = " + thrust);
             }
 
             // use compass information to get heading of the boat
