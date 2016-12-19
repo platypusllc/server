@@ -102,6 +102,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     // TODO: Remove this variable, it is totally arbitrary
     private double winch_depth_ = Double.NaN;
+    private double[]    grab_sampler_status = new double[4];
     // Last known temperature and EC values for sensor compensation
     private double _lastTemp = 20.0; // Deg C
     private double _lastEC = 0.0; // uS/cm
@@ -307,6 +308,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             return t_PID.clone();
         else if (axis == 3)
             return new double[]{winch_depth_, 0.0, 0.0};
+        else if (axis == 7)
+            return grab_sampler_status;
         else
             return NAN_GAINS;
     }
@@ -357,6 +360,30 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     .putFloat("gain_tI", (float)t_PID[1])
                     .putFloat("gain_tD", (float)t_PID[2])
                     .apply();
+        }else if (axis == 7){
+            for (int i = 0; i < k.length;i++) {
+                JSONObject command = new JSONObject();
+                JSONObject gsSettings = new JSONObject();
+                grab_sampler_status = Arrays.copyOf(k, k.length);
+                try {
+                    //Set enable
+                    if (k[i] != 0.0)
+                        gsSettings.put("e", i);
+                    else
+                        gsSettings.put("d", i);
+
+                    command.put("s3", gsSettings);
+
+                    mController.send(command);
+                    mLogger.info(new JSONObject().put("GrabSampler", command));
+                } catch (JSONException e) {
+                    Log.w(TAG, "Unable to construct JSON string from GrabSampler command: " + Arrays.toString(k));
+                } catch (IOException e) {
+                    Log.w(TAG, "Unable to send GrabSample command: " + command.toString(), e);
+                }
+            }
+            return;
+
         }
 
         // Log the new gain settings to the logfile.
