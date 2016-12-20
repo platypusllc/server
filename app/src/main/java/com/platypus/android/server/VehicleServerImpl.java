@@ -51,7 +51,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
     public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
     public static final double SAFE_VECTORED_THRUST = 1.0;
-    public static final long VELOCITY_TIMEOUT_MS = 2000;
+    public static final long VELOCITY_TIMEOUT_MS = 5000;
     private static final String TAG = VehicleServerImpl.class.getName();
     protected final SharedPreferences mPrefs;
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
@@ -216,9 +216,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     }
     public double getDesiredAngle() {
         double angle = desired_angle.get()*Math.PI/180.0;
-        //while (Math.abs(angle) > Math.PI) {
-        //    angle -= 2*Math.PI*Math.signum(angle);
-        //}
+        while (Math.abs(angle) > Math.PI) {
+            angle -= 2*Math.PI*Math.signum(angle);
+        }
         return angle;
     }
     private void setDesiredThrust(double thrust) {
@@ -232,31 +232,44 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
     }
 
+    // always run Point and Shoot
+    VehicleController vc = AirboatController.POINT_AND_SHOOT.controller;
     protected TimerTask _navigationTask = new TimerTask() {
         final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
-        // always run Point and Shoot
-        VehicleController vc = AirboatController.POINT_AND_SHOOT.controller;
-
         @Override
         public void run() {
+            int waypoint_length = 0;
             synchronized (_navigationLock) {
-                // always enter controller update
-                vc.update(VehicleServerImpl.this, dt); // TODO: actually measure dt
-                if (_waypoints.length > 0 && !_isAutonomous.get()) {
-                    // Have waypoints, but not autonomous
-                    Log.i(TAG, "Paused or TeleOp");
-                    sendWaypointUpdate(WaypointState.PAUSED);
-                } else if (_waypoints.length == 0 && _isAutonomous.get()) {
+                waypoint_length = _waypoints.length;
+            }
+            // always enter controller update
+            System.out.println("navigation task...");
+            System.out.println("isAutonomous = " + _isAutonomous.get() + "   _waypoints.length = " + waypoint_length);
+            vc.update(VehicleServerImpl.this, dt); // TODO: actually measure dt
+
+            if (_isAutonomous.get()) { // autonomous
+                if (waypoint_length > 0) {
+                    // Are autonomous, with waypoints
+                    System.out.println("Are autonomous, and have waypoints");
+                    sendWaypointUpdate(WaypointState.GOING);
+                    Log.i(TAG, "Waypoint Status: POINT_AND_SHOOT");
+                }
+                else {
                     // Are autonomous, but no waypoints
+                    System.out.println("Are autonomous, but no waypoints");
                     setAutonomous(false);
                     Log.i(TAG, "Done");
                     sendWaypointUpdate(WaypointState.DONE);
                     setVelocity(new Twist(DEFAULT_TWIST));
-                } else {
-                    // Are autonomous, with waypoints
-                    sendWaypointUpdate(WaypointState.GOING);
-                    Log.i(TAG, "Waypoint Status: POINT_AND_SHOOT");
+                }
+            }
+            else { // not autonomous
+                if (waypoint_length > 0) {
+                    // Have waypoints, but not autonomous
+                    System.out.println("Have waypoints, but not autonomous");
+                    Log.i(TAG, "Paused or TeleOp");
+                    sendWaypointUpdate(WaypointState.PAUSED);
                 }
             }
         }
@@ -741,6 +754,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             if (_navigationTask != null) {
                 _waypoints = new UtmPose[0];
                 setVelocity(new Twist(DEFAULT_TWIST));
+                System.out.println("stopWaypoints()");
                 Log.i(TAG, "StopWaypoint");
             }
         }
@@ -799,6 +813,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         // Schedule a task to shutdown the velocity if no command is received within the timeout.
         // Normally, this task will be canceled by a subsequent call to the setVelocity function,
         // but if no call is made within the timeout, the task will execute, stopping the vehicle.
+
         synchronized (mVelocityExecutor) {
             // Cancel the previous shutdown task.
             if (mVelocityFuture != null)
@@ -808,10 +823,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             mVelocityFuture = mVelocityExecutor.schedule(new Runnable() {
                 @Override
                 public void run() {
-                    setVelocity(reset_twist);
+                    if (!_isAutonomous.get()) {
+                        setVelocity(reset_twist);
+                    }
                 }
             }, VELOCITY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         }
+
     }
     public void set_velocities(Twist vel) {
         _velocities = vel.clone();

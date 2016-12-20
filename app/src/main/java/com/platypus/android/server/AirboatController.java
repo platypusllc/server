@@ -47,6 +47,8 @@ public enum AirboatController {
 		@Override
 		public void update(VehicleServer server, double dt) {
 
+			System.out.println("AirboatController.update()...");
+
             VehicleServerImpl server_impl = (VehicleServerImpl) server;
 
 			Twist twist = new Twist();
@@ -61,7 +63,7 @@ public enum AirboatController {
 			UtmPose[] waypoints = server.getWaypoints();
 			if (server.isAutonomous()) {
 				if (waypoints == null || waypoints.length <= 0) {
-					server.setVelocity(twist);
+					server_impl.set_velocities(twist);
 					System.out.println("autonomous but no WPs");
 					return;
 				}
