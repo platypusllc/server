@@ -24,6 +24,8 @@ import android.widget.Toast;
 
 import com.platypus.android.server.gui.SwipeOnlySwitch;
 
+import org.json.JSONObject;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -48,6 +50,7 @@ public class LauncherFragment extends Fragment
     protected TextView mIpAddressText;
     protected Switch mLaunchSwitch;
     protected Button mSetHomeButton;
+    protected Button mSetSensorsButton;
     protected ImageView mVehicleImage;
     protected LocationManager mLocationManager;
     /**
@@ -97,6 +100,7 @@ public class LauncherFragment extends Fragment
         mIpAddressText = (TextView) view.findViewById(R.id.ip_address_text);
         mLaunchSwitch = (SwipeOnlySwitch) view.findViewById(R.id.launcher_launch_switch);
         mSetHomeButton = (Button) view.findViewById(R.id.launcher_home_button);
+        mSetSensorsButton = (Button) view.findViewById(R.id.launcher_sensors_button);
         mVehicleImage = (ImageView) view.findViewById(R.id.launcher_vehicle_image);
 
         // Add listener for starting/stopping vehicle service.
@@ -104,6 +108,9 @@ public class LauncherFragment extends Fragment
 
         // Add listener for home button click.
         mSetHomeButton.setOnLongClickListener(new SetHomeListener());
+
+        // Add listener for sensors update button click
+        mSetSensorsButton.setOnLongClickListener(new UpdateSensorsListener());
 
         return view;
     }
@@ -244,6 +251,36 @@ public class LauncherFragment extends Fragment
         String port = sharedPreferences.getString("pref_server_port", "11411");
         mIpAddressText.setText(getLocalIpAddress() + ":" + port);
     }
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Listens for long-click events on "Update Sensors" button and updates sensor types
+     */
+    class UpdateSensorsListener implements View.OnLongClickListener {
+        @Override
+        public boolean onLongClick(View v) {
+            JSONObject sensor_JSON = updateSensorsJSON();
+            // TODO: SEND THE JSON OBJECT TO ARDUINO
+            return true;
+        }
+    }
+    JSONObject updateSensorsJSON()
+    {
+        SharedPreferences sharedPreferences =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+        JSONObject sensor_JSON = new JSONObject();
+        switch (sharedPreferences.getString("pref_sensor_1_type_values", "NONE"))
+        {
+            // TODO: SET UP JSON OBJECT
+            case "NONE":
+                break;
+            default:
+                break;
+        }
+        return sensor_JSON;
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Listens for long-click events on "Set Home" button and updates home location.

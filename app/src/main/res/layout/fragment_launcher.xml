@@ -93,4 +93,13 @@
             android:singleLine="true"
             android:text="@string/launcher_swipe_right_text_content" />
     </RelativeLayout>
+
+    <Button
+        android:text="PRESS AND HOLD TO UPDATE SENSOR TYPES"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/launcher_sensors_button"
+        android:layout_alignParentEnd="true" />
 </RelativeLayout>
