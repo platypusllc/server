@@ -17,6 +17,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
+import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
@@ -41,7 +42,9 @@ import com.platypus.crw.udp.UdpVehicleService;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.measure.unit.NonSI;
@@ -75,6 +78,36 @@ public class VehicleService extends Service {
 
     // Reference to vehicle controller;
     private Controller mController;
+    public void send(JSONObject jsonObject)
+    {
+        System.out.println("VehicleService.send() called...");
+        try
+        {
+            if (mController.isConnected())
+            {
+                System.out.println("    sending this JSON: ");
+                System.out.println(jsonObject.toString());
+                mController.send(jsonObject);
+            }
+            else
+            {
+                System.out.println("    mController is NOT connected");
+            }
+        }
+        catch (IOException e)
+        {
+            Log.w(TAG, "Failed to send command.", e);
+        }
+    }
+
+
+    public class LocalBinder extends Binder {
+        VehicleService getService() {
+            System.out.println("VehicleService: binding in process...");
+            return VehicleService.this;
+        }
+    }
+    private final IBinder mBinder = new LocalBinder();
 
     // Objects implementing actual functionality
     private VehicleServerImpl _vehicleServerImpl;
@@ -507,10 +540,9 @@ public class VehicleService extends Service {
         super.onDestroy();
     }
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return mBinder;
     }
 
     public void sendNotification(CharSequence text) {

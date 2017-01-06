@@ -57,7 +57,7 @@
         <item>Atlas DO</item>
         <item>Atlas pH</item>
         <item>ES2</item>
-        <item>Lowrance</item>
+        <item>Lowrance HDS</item>
         <item>Adafruit GPS</item>
         <item>AHRS+</item>
         <item>BlueBox</item>
@@ -69,7 +69,7 @@
         <item>ATLAS_DO</item>
         <item>ATLAS_PH</item>
         <item>ES2</item>
-        <item>LOWRANCE</item>
+        <item>HDS</item>
         <item>ADAFRUIT_GPS</item>
         <item>AHRS_PLUS</item>
         <item>BLUEBOX</item>
@@ -81,7 +81,7 @@
         <item>Atlas DO</item>
         <item>Atlas pH</item>
         <item>ES2</item>
-        <item>Lowrance</item>
+        <item>Lowrance HDS</item>
         <item>Adafruit GPS</item>
         <item>AHRS+</item>
         <item>BlueBox</item>
@@ -93,7 +93,7 @@
         <item>ATLAS_DO</item>
         <item>ATLAS_PH</item>
         <item>ES2</item>
-        <item>LOWRANCE</item>
+        <item>HDS</item>
         <item>ADAFRUIT_GPS</item>
         <item>AHRS_PLUS</item>
         <item>BLUEBOX</item>
@@ -105,7 +105,7 @@
         <item>Atlas DO</item>
         <item>Atlas pH</item>
         <item>ES2</item>
-        <item>Lowrance</item>
+        <item>Lowrance HDS</item>
         <item>Adafruit GPS</item>
         <item>AHRS+</item>
         <item>BlueBox</item>
@@ -117,7 +117,7 @@
         <item>ATLAS_DO</item>
         <item>ATLAS_PH</item>
         <item>ES2</item>
-        <item>LOWRANCE</item>
+        <item>HDS</item>
         <item>ADAFRUIT_GPS</item>
         <item>AHRS_PLUS</item>
         <item>BLUEBOX</item>

@@ -2,14 +2,17 @@ package com.platypus.android.server;
 
 import android.app.ActivityManager;
 import android.app.Fragment;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,6 +27,7 @@ import android.widget.Toast;
 
 import com.platypus.android.server.gui.SwipeOnlySwitch;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.InetAddress;
@@ -44,6 +48,26 @@ public class LauncherFragment extends Fragment
 
     private static final String TAG = LauncherFragment.class.getSimpleName();
 
+    // bind the VehicleService so we can send sensor type JSON commands
+    // https://developer.android.com/guide/components/bound-services.html
+    VehicleService mService;
+    boolean mBound = false;
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            System.out.println("LauncherFragment: onServiceConnected() called...");
+            VehicleService.LocalBinder binder = (VehicleService.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+            sendSensorsJSON();
+        }
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            System.out.println("LauncherFragment: onServiceDisconnected() called...");
+            mBound= false;
+        }
+    };
+
     final Handler mHandler = new Handler();
 
     protected TextView mHomeText;
@@ -63,10 +87,14 @@ public class LauncherFragment extends Fragment
             mLaunchSwitch.setEnabled(false);
             if (!isVehicleServiceRunning()) {
                 // If the service is not running, start it.
-                getActivity().startService(new Intent(getActivity(), VehicleService.class));
+                System.out.println("LauncherFragment: slider listener called...");
+                Intent intent = new Intent(getActivity(), VehicleService.class);
+                getActivity().startService(intent);
+                getActivity().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
                 Log.i(TAG, "Vehicle service started.");
             } else {
                 // If the service is running, stop it.
+                getActivity().unbindService(mConnection);
                 getActivity().stopService(new Intent(getActivity(), VehicleService.class));
                 Log.i(TAG, "Vehicle service stopped.");
             }
@@ -259,26 +287,82 @@ public class LauncherFragment extends Fragment
     class UpdateSensorsListener implements View.OnLongClickListener {
         @Override
         public boolean onLongClick(View v) {
-            JSONObject sensor_JSON = updateSensorsJSON();
-            // TODO: SEND THE JSON OBJECT TO ARDUINO
+            sendSensorsJSON();
             return true;
         }
     }
-    JSONObject updateSensorsJSON()
+    void sendSensorsJSON()
+    {
+        System.out.println("LauncherFragment: sendSensorsJSON() called...");
+
+        if (mBound)
+        {
+            JSONObject sensors_JSON = generateSensorsJSON();
+            System.out.println("    sensor JSON: ");
+            System.out.println(sensors_JSON.toString());
+            // TODO: SEND THE JSON OBJECT TO ARDUINO
+            mService.send(sensors_JSON);
+        }
+        else
+        {
+            System.out.println("    mBound = false, sending nothing");
+        }
+    }
+    JSONObject generateSensorsJSON()
+    {
+        JSONObject sensors_JSON = new JSONObject();
+        for (int i = 1; i < 4; i++)
+        {
+            insertSensorJSON(i, sensors_JSON);
+        }
+        return sensors_JSON;
+    }
+    void insertSensorJSON(int sensorID, JSONObject sensors_JSON)
     {
         SharedPreferences sharedPreferences =
                 PreferenceManager.getDefaultSharedPreferences(getActivity());
-
-        JSONObject sensor_JSON = new JSONObject();
-        switch (sharedPreferences.getString("pref_sensor_1_type_values", "NONE"))
+        String sensor_array_name = "pref_sensor_" + Integer.toString(sensorID) + "_type";
+        try
         {
-            // TODO: SET UP JSON OBJECT
-            case "NONE":
-                break;
-            default:
-                break;
+            switch (sharedPreferences.getString(sensor_array_name, "NONE"))
+            {
+                case "NONE":
+                    break;
+                case "ATLAS_DO":
+                    sensors_JSON.put(String.format("i%d", sensorID), "AtlasDO");
+                    break;
+                case "ATLAS_PH":
+                    sensors_JSON.put(String.format("i%d", sensorID), "AtlasPH");
+                    break;
+                case "ES2":
+                    sensors_JSON.put(String.format("i%d", sensorID), "ES2");
+                    break;
+                case "HDS":
+                    sensors_JSON.put(String.format("i%d", sensorID), "HDS");
+                    break;
+                case "ADAFRUIT_GPS":
+                    sensors_JSON.put(String.format("i%d", sensorID), "AdaGPS");
+                    break;
+                case "AHRS_PLUS":
+                    sensors_JSON.put(String.format("i%d", sensorID), "AHRSp");
+                    break;
+                case "BLUEBOX":
+                    sensors_JSON.put(String.format("i%d", sensorID), "BlueBox");
+                    break;
+                case "WINCH":
+                    sensors_JSON.put(String.format("i%d", sensorID), "Winch");
+                    break;
+                case "SAMPLER":
+                    sensors_JSON.put(String.format("i%d", sensorID), "Sampler");
+                    break;
+                default:
+                    break;
+            }
         }
-        return sensor_JSON;
+        catch (JSONException e)
+        {
+            Log.w(TAG, "Failed to serialize sensor type.", e);
+        }
     }
     ///////////////////////////////////////////////////////////////////////////////////////
 

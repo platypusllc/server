@@ -86,7 +86,7 @@
             android:title="@string/pref_vehicle_type_title"
             android:summary="@string/pref_vehicle_type_summary" />
         <ListPreference
-            android:key="pref_sensor_type"
+            android:key="pref_sensor_1_type"
             android:title="Sensor 1 Type"
             android:dialogTitle="Sensor 1 Type"
             android:defaultValue="ATLAS_DO"
@@ -94,7 +94,7 @@
             android:entryValues="@array/pref_sensor_1_type_values"
             android:summary="Set the type of sensor in socket 1" />
         <ListPreference
-            android:key="pref_sensor_type"
+            android:key="pref_sensor_2_type"
             android:title="Sensor 2 Type"
             android:dialogTitle="Sensor 2 Type"
             android:defaultValue="ATLAS_PH"
@@ -102,7 +102,7 @@
             android:entryValues="@array/pref_sensor_2_type_values"
             android:summary="Set the type of sensor in socket 2" />
         <ListPreference
-            android:key="pref_sensor_type"
+            android:key="pref_sensor_3_type"
             android:title="Sensor 3 Type"
             android:dialogTitle="Sensor 3 Type"
             android:defaultValue="ES2"
