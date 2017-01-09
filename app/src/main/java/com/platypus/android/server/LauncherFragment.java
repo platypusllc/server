@@ -327,6 +327,7 @@ public class LauncherFragment extends Fragment
             switch (sharedPreferences.getString(sensor_array_name, "NONE"))
             {
                 case "NONE":
+                    sensors_JSON.put(String.format("i%d", sensorID), "None");
                     break;
                 case "ATLAS_DO":
                     sensors_JSON.put(String.format("i%d", sensorID), "AtlasDO");
