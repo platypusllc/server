@@ -247,7 +247,7 @@ public class VehicleService extends Service {
                         _udpService.shutdown();
 
                     try {
-                        final int port = Integer.parseInt(preferences.getString("pref_server_port", "11411"));
+                        final int port = Integer.parseInt(preferences.getString("pref_server_port", "11411").trim());
                         _udpService = new UdpVehicleService(port, _vehicleServerImpl);
                         Log.i(TAG, "UdpVehicleService launched on port " + port + ".");
                     } catch (Exception e) {
