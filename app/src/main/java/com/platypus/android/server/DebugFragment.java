@@ -8,6 +8,7 @@ import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.util.Log;
 
 import com.platypus.android.server.gui.GainView;
 import com.platypus.android.server.gui.SensorView;
@@ -25,6 +26,10 @@ import java.net.InetSocketAddress;
 public class DebugFragment extends Fragment
         implements SharedPreferences.OnSharedPreferenceChangeListener {
     protected UdpVehicleServer mServer = null;
+
+    private final String portStr = "11411";
+    private static final String TAG = DebugFragment.class.getSimpleName();
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -97,7 +102,17 @@ public class DebugFragment extends Fragment
         @Override
         protected Void doInBackground(SharedPreferences... params) {
             // Update the connection of the vehicle server to use the current port.
-            int port = Short.parseShort(params[0].getString("pref_server_port", "11411"));
+            int port;
+            try {
+                port = Short.parseShort(params[0].getString("pref_server_port", portStr).trim());
+            } catch (NumberFormatException e) {
+                String errorMsg = "Invalid port number entered: " +
+                                    params[0].getString("pref_server_port", portStr);
+                Log.w(TAG, errorMsg);
+
+                port = Short.parseShort(portStr);
+            }
+
             mServer.setVehicleService(new InetSocketAddress("localhost", port));
             return null;
         }
