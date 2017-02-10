@@ -279,8 +279,7 @@ public class LauncherFragment extends Fragment
         String port = sharedPreferences.getString("pref_server_port", "11411");
         mIpAddressText.setText(getLocalIpAddress() + ":" + port);
     }
-
-    ///////////////////////////////////////////////////////////////////////////////////////
+    
     /**
      * Listens for long-click events on "Update Sensors" button and updates sensor types
      */
@@ -300,7 +299,6 @@ public class LauncherFragment extends Fragment
             JSONObject sensors_JSON = generateSensorsJSON();
             System.out.println("    sensor JSON: ");
             System.out.println(sensors_JSON.toString());
-            // TODO: SEND THE JSON OBJECT TO ARDUINO
             mService.send(sensors_JSON);
         }
         else
@@ -365,7 +363,6 @@ public class LauncherFragment extends Fragment
             Log.w(TAG, "Failed to serialize sensor type.", e);
         }
     }
-    ///////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Listens for long-click events on "Set Home" button and updates home location.
