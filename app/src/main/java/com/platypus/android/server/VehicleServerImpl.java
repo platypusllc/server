@@ -486,6 +486,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                             // TODO: Remove this hack to store winch depth
                             winch_depth_ = reading.data[0];
+                        } else if (type.equalsIgnoreCase("bluebox")) {
+                            // need to log sensor types that don't appear in the core library enum
+                            mLogger.info(value);
+                            continue;
                         }
                         else { // unrecognized sensor type
                             Log.w(TAG, "Received data from sensor of unknown type: " + type);
