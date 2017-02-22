@@ -783,8 +783,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public WaypointState getWaypointStatus() {
         synchronized (_navigationLock) {
             if (_waypoints.length > 0) {
-                return _isAutonomous.get() ? WaypointState.PAUSED
-                        : WaypointState.GOING;
+                ////// ISN'T THIS BACKWARDS? IF IT IS AUTONOMOUS, IT SHOULD BE GOING, NOT PAUSED
+                return _isAutonomous.get() ? WaypointState.PAUSED : WaypointState.GOING;
             } else {
                 return WaypointState.DONE;
             }
@@ -855,7 +855,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         stopWaypoints();
         stopCamera();
 
-        _isAutonomous.set(false);
+        _waypoints = new UtmPose[0];
+        _isAutonomous.set(true);
         _isConnected.set(false);
         _isRunning.set(false);
 

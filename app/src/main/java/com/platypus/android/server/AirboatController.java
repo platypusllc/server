@@ -72,7 +72,7 @@ public enum AirboatController {
 
                 double distanceSq = planarDistanceSq(pose, waypoint);
 
-                if (distanceSq <= 9) // TODO: define this required distance value elsewhere
+                if (distanceSq <= (3*3)) // TODO: define this required distance value elsewhere
                 {
                     Log.i("POINT_AND_SHOOT:", "Arrived at Waypoint");
                     // if reached the target, reset the buffer and previous angle
