@@ -14,6 +14,9 @@ import com.platypus.crw.data.Twist;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
 
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,7 +31,11 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
+
 import robotutils.Pose3D;
+import robotutils.Quaternion;
 
 /**
  * Contains the actual implementation of vehicle functionality, accessible as a
@@ -496,8 +503,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                             // Don't want to call sendSensor on unknown sensor type
                             continue;
                         }
+                        else { // unrecognized sensor type
+                            Log.w(TAG, "Received data from sensor of unknown type: " + type);
+                            continue;
+                        }
 
-                        // Attempt to log the collected sensor reading
                         mLogger.info(new JSONObject()
                                 .put("sensor", new JSONObject()
                                         .put("channel", reading.channel)
@@ -507,6 +517,42 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         // Send out the collected sensor reading
                         sendSensor(sensor, reading);
                     }
+                } else if (name.startsWith("g")) {
+                    int gpsReceiver = name.charAt(1) - 48;
+                    double latitude = -999.;
+                    double longitude = -999.;
+                    long time_ = 0;
+                    if (value.has("lat")) {
+                        latitude = value.getDouble("lat");
+                    } else {
+                        continue;
+                    }
+                    if (value.has("lon")) {
+                        longitude = value.getDouble("lon");
+                    } else {
+                        continue;
+                    }
+                    if (value.has("time")) {
+                        time_ = value.getLong("time");
+                    } else {
+                        continue;
+                    }
+
+                    // Convert from lat/long to UTM coordinates
+                    UTM utmLoc = UTM.latLongToUtm(
+                            LatLong.valueOf(latitude, longitude, NonSI.DEGREE_ANGLE),
+                            ReferenceEllipsoid.WGS84);
+
+                    // Convert to UTM data structure
+                    Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
+                            utmLoc.northingValue(SI.METER),
+                            0.0,
+                            Quaternion.fromEulerAngles(0, 0, 0));
+                    Utm origin = new Utm(utmLoc.longitudeZone(),
+                            utmLoc.latitudeZone() > 'O');
+                    UtmPose utm = new UtmPose(pose, origin);
+
+                    filter.gpsUpdate(utm, time_);
                 } else {
                     Log.w(TAG, "Received unknown param '" + cmd + "'.");
                 }
