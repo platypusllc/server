@@ -57,6 +57,7 @@ public class Controller {
     private ParcelFileDescriptor mUsbDescriptor = null;
     private FileInputStream mUsbInputStream = null;
     private FileOutputStream mUsbOutputStream = null;
+
     /**
      * Listen for disconnection events for accessory and close connection if we were using it.
      */
