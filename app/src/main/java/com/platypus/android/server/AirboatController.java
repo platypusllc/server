@@ -71,7 +71,7 @@ public enum AirboatController {
 //				distanceSq = 0;
 //				oldtime = 0;
 //			}
-			if (distanceSq <= 9)
+			if (distanceSq <= (3*3))
 			{
 				Log.i("POINT_AND_SHOOT:", "Arrived Waypoint");
 				// if reached the target, reset the buffer and previous angle

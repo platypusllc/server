@@ -63,6 +63,8 @@
         <item>BlueBox</item>
         <item>Winch</item>
         <item>Sampler</item>
+        <item>RC (SBUS)</item>
+        <item>RC (PWM)</item>
     </string-array>
     <string-array name="pref_sensor_1_type_values">
         <item>NONE</item>
@@ -75,6 +77,8 @@
         <item>BLUEBOX</item>
         <item>WINCH</item>
         <item>SAMPLER</item>
+        <item>RC_SBUS</item>
+        <item>RC_PWM</item>
     </string-array>
     <string-array name="pref_sensor_2_type_entries">
         <item>None</item>
@@ -87,6 +91,8 @@
         <item>BlueBox</item>
         <item>Winch</item>
         <item>Sampler</item>
+        <item>RC (SBUS)</item>
+        <item>RC (PWM)</item>
     </string-array>
     <string-array name="pref_sensor_2_type_values">
         <item>NONE</item>
@@ -99,6 +105,8 @@
         <item>BLUEBOX</item>
         <item>WINCH</item>
         <item>SAMPLER</item>
+        <item>RC_SBUS</item>
+        <item>RC_PWM</item>
     </string-array>
     <string-array name="pref_sensor_3_type_entries">
         <item>None</item>
@@ -111,6 +119,8 @@
         <item>BlueBox</item>
         <item>Winch</item>
         <item>Sampler</item>
+        <item>RC (SBUS)</item>
+        <item>RC (PWM)</item>
     </string-array>
     <string-array name="pref_sensor_3_type_values">
         <item>NONE</item>
@@ -123,5 +133,7 @@
         <item>BLUEBOX</item>
         <item>WINCH</item>
         <item>SAMPLER</item>
+        <item>RC_SBUS</item>
+        <item>RC_PWM</item>
     </string-array>
 </resources>

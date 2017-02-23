@@ -297,6 +297,29 @@ public class LauncherFragment extends Fragment
         if (mBound)
         {
             JSONObject sensors_JSON = generateSensorsJSON();
+
+            // TODO: Add vehicle type to this as well
+            SharedPreferences sharedPreferences =
+                    PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String vehicle_array_name = "pref_vehicle_type";
+            try
+            {
+                switch (sharedPreferences.getString(vehicle_array_name, "DIFFERENTIAL")) {
+                    case "DIFFERENTIAL":
+                        sensors_JSON.put("t0", "Prop");
+                        break;
+                    case "VECTORED":
+                        sensors_JSON.put("t0", "Air");
+                        break;
+                    default:
+                        break;
+                }
+            }
+            catch (JSONException e)
+            {
+                Log.w(TAG, "Failed to serialize vehicle type.", e);
+            }
+
             System.out.println("    sensor JSON: ");
             System.out.println(sensors_JSON.toString());
             mService.send(sensors_JSON);
@@ -353,6 +376,12 @@ public class LauncherFragment extends Fragment
                     break;
                 case "SAMPLER":
                     sensors_JSON.put(String.format("i%d", sensorID), "Sampler");
+                    break;
+                case "RC_SBUS":
+                    sensors_JSON.put(String.format("i%d", sensorID), "RC_SBUS");
+                    break;
+                case "RC_PWM":
+                    sensors_JSON.put(String.format("i%d", sensorID), "RC_PWM");
                     break;
                 default:
                     break;
