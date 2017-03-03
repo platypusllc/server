@@ -24,7 +24,9 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledFuture;
@@ -111,12 +113,22 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     private double _lastEC = 0.0; // uS/cm
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    SharedPreferences sharedPreferences;
+
     //Define Notification Manager
     NotificationManager notificationManager;
     //Define sound URI
     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
     boolean[] received_expected_sensor_type = {false, false, false};
+    public void reset_expected_sensors()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            received_expected_sensor_type[i] = false;
+        }
+    }
+
     private final Timer _sensorTypeTimer = new Timer();
     private TimerTask expect_sensor_type_task = new TimerTask() {
         @Override
@@ -125,13 +137,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             {
                 if (!received_expected_sensor_type[i])
                 {
-                    String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
+                    String sensor_array_name = "pref_sensor_" + Integer.toString(i+1) + "_type";
                     String expected_type = mPrefs.getString(sensor_array_name, "NONE");
                     if (expected_type.equals("NONE"))
                     {
                         continue;
                     }
-                    String message = "Have not received expected sensor type s" + i + " = " + expected_type;
+                    String message = "s" + (i+1) + " expects " + expected_type + " not received yet";
                     Log.w(TAG, message);
                     NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
                             .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
@@ -139,6 +151,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                             .setContentText(message)
                             .setSound(soundUri); //This sets the sound to play
                     notificationManager.notify(0, mBuilder.build());
+                }
+                try {
+                    Thread.sleep(1000);                 //1000 milliseconds is one second.
+                } catch(InterruptedException ex) {
+                    Thread.currentThread().interrupt();
                 }
             }
         }
@@ -268,7 +285,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
-        _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 3000);
+        _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Load PID values from SharedPreferences.
@@ -454,7 +471,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                     // check sensor type expected in the preferences
                     String sensor_array_name = "pref_sensor_" + Integer.toString(sensor) + "_type";
-                    String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+                    String expected_type = mPrefs.getString(sensor_array_name, "ASDF");
                     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                     // Hacks to send sensor information
@@ -463,38 +480,30 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                         // check if received type matches expected type
-                        if (! type.equals(expected_type))
-                        {
-                            String message = "Expected sensor type = " + expected_type + "  but received type = " + type;
-                            Log.w(TAG, message);
-                            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
-                                    .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
-                                    .setContentTitle("Sensor Warning")
-                                    .setContentText(message)
-                                    .setSound(soundUri); //This sets the sound to play
-                            notificationManager.notify(0, mBuilder.build());
+                        if (!type.equalsIgnoreCase("battery")) {
+                            if (type.equalsIgnoreCase(expected_type)) {
+                                received_expected_sensor_type[sensor - 1] = true;
+                                /*
+                                String message = "s" + sensor + ": expected = " + expected_type + " received = " + type;
+                                Log.w(TAG, message);
+                                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
+                                        .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
+                                        .setContentTitle("Sensor Success")
+                                        .setContentText(message)
+                                        .setSound(soundUri); //This sets the sound to play
+                                notificationManager.notify(0, mBuilder.build());
+                                */
+                            } else {
+                                String message = "s" + sensor + ": expected = " + expected_type + " received = " + type;
+                                Log.w(TAG, message);
+                                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
+                                        .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
+                                        .setContentTitle("Sensor Warning")
+                                        .setContentText(message)
+                                        .setSound(soundUri); //This sets the sound to play
+                                notificationManager.notify(0, mBuilder.build());
+                            }
                         }
-                        else
-                        {
-                            received_expected_sensor_type[sensor-1] = true;
-                        }
-
-                        /*
-                        //Define Notification Manager
-                        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-
-                        //Define sound URI
-                        Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-
-                        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext())
-                                .setSmallIcon(icon)
-                                .setContentTitle(title)
-                                .setContentText(message)
-                                .setSound(soundUri); //This sets the sound to play
-
-                        //Display notification
-                        notificationManager.notify(0, mBuilder.build());
-                        */
                         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                         SensorData reading = new SensorData();

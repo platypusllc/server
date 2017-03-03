@@ -300,6 +300,7 @@ public class LauncherFragment extends Fragment
             System.out.println("    sensor JSON: ");
             System.out.println(sensors_JSON.toString());
             mService.send(sensors_JSON);
+            mService.getServer().reset_expected_sensors(); // reset sensor type checks
         }
         else
         {
