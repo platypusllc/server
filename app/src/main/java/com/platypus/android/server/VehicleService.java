@@ -80,30 +80,37 @@ public class VehicleService extends Service {
     private Controller mController;
     public void send(JSONObject jsonObject)
     {
-        System.out.println("VehicleService.send() called...");
-        try
+        Log.d(TAG, "VehicleService.send() called...");
+        if (mController != null)
         {
-            if (mController.isConnected())
+            try
             {
-                System.out.println("    sending this JSON: ");
-                System.out.println(jsonObject.toString());
-                mController.send(jsonObject);
+                if (mController.isConnected())
+                {
+                    Log.d(TAG, "    sending this JSON: ");
+                    Log.d(TAG, jsonObject.toString());
+                    mController.send(jsonObject);
+                }
+                else
+                {
+                    Log.w(TAG, "    mController is NOT connected");
+                }
             }
-            else
+            catch (IOException e)
             {
-                System.out.println("    mController is NOT connected");
+                Log.w(TAG, "Failed to send command.", e);
             }
         }
-        catch (IOException e)
+        else
         {
-            Log.w(TAG, "Failed to send command.", e);
+            Log.w(TAG, "    mController is null");
         }
     }
 
 
     public class LocalBinder extends Binder {
         VehicleService getService() {
-            System.out.println("VehicleService: binding in process...");
+            Log.d(TAG, "VehicleService: binding in process...");
             return VehicleService.this;
         }
     }

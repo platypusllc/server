@@ -24,9 +24,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledFuture;
@@ -112,9 +110,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     private double _lastTemp = 20.0; // Deg C
     private double _lastEC = 0.0; // uS/cm
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    SharedPreferences sharedPreferences;
-
     //Define Notification Manager
     NotificationManager notificationManager;
     //Define sound URI
@@ -135,6 +130,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         public void run() {
             for (int i = 0; i < 3; i++)
             {
+                try {
+                    Thread.sleep(1000); // sleep for all sensor slots, even if empty
+                } catch(InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
                 if (!received_expected_sensor_type[i])
                 {
                     String sensor_array_name = "pref_sensor_" + Integer.toString(i+1) + "_type";
@@ -152,17 +152,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                             .setSound(soundUri); //This sets the sound to play
                     notificationManager.notify(0, mBuilder.build());
                 }
-                try {
-                    Thread.sleep(1000);                 //1000 milliseconds is one second.
-                } catch(InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                }
             }
         }
     };
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
     /**
      * Internal update function called at regular intervals to process command
@@ -283,10 +275,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         // Connect to the Shared Preferences for this process.
         mPrefs = PreferenceManager.getDefaultSharedPreferences(_context);
 
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
         _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
@@ -468,17 +458,14 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 } else if (name.startsWith("s")) {
                     int sensor = name.charAt(1) - 48;
 
-                    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                     // check sensor type expected in the preferences
                     String sensor_array_name = "pref_sensor_" + Integer.toString(sensor) + "_type";
-                    String expected_type = mPrefs.getString(sensor_array_name, "ASDF");
-                    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    String expected_type = mPrefs.getString(sensor_array_name, "NONE");
 
                     // Hacks to send sensor information
                     if (value.has("type")) {
                         String type = value.getString("type");
 
-                        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                         // check if received type matches expected type
                         if (!type.equalsIgnoreCase("battery")) {
                             if (type.equalsIgnoreCase(expected_type)) {
@@ -504,7 +491,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 notificationManager.notify(0, mBuilder.build());
                             }
                         }
-                        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                         SensorData reading = new SensorData();
 

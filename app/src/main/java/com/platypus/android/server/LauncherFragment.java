@@ -55,7 +55,7 @@ public class LauncherFragment extends Fragment
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
-            System.out.println("LauncherFragment: onServiceConnected() called...");
+            Log.d(TAG, "LauncherFragment: onServiceConnected() called...");
             VehicleService.LocalBinder binder = (VehicleService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
@@ -63,7 +63,7 @@ public class LauncherFragment extends Fragment
         }
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            System.out.println("LauncherFragment: onServiceDisconnected() called...");
+            Log.d(TAG, "LauncherFragment: onServiceDisconnected() called...");
             mBound= false;
         }
     };
@@ -87,7 +87,7 @@ public class LauncherFragment extends Fragment
             mLaunchSwitch.setEnabled(false);
             if (!isVehicleServiceRunning()) {
                 // If the service is not running, start it.
-                System.out.println("LauncherFragment: slider listener called...");
+                Log.d(TAG, "LauncherFragment: slider listener called...");
                 Intent intent = new Intent(getActivity(), VehicleService.class);
                 getActivity().startService(intent);
                 getActivity().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
@@ -292,19 +292,19 @@ public class LauncherFragment extends Fragment
     }
     void sendSensorsJSON()
     {
-        System.out.println("LauncherFragment: sendSensorsJSON() called...");
+        Log.d(TAG, "LauncherFragment: sendSensorsJSON() called...");
 
         if (mBound)
         {
             JSONObject sensors_JSON = generateSensorsJSON();
-            System.out.println("    sensor JSON: ");
-            System.out.println(sensors_JSON.toString());
+            Log.d(TAG, "    sensor JSON: ");
+            Log.d(TAG, sensors_JSON.toString());
             mService.send(sensors_JSON);
             mService.getServer().reset_expected_sensors(); // reset sensor type checks
         }
         else
         {
-            System.out.println("    mBound = false, sending nothing");
+            Log.w(TAG, "    mBound = false, sending nothing");
         }
     }
     JSONObject generateSensorsJSON()
