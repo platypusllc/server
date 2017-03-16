@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "23.0.3"
+    buildToolsVersion '25.0.0'
 
     defaultConfig {
         applicationId "com.platypus.android.server"
@@ -19,8 +19,13 @@ android {
     }
 }
 
+repositories{
+    mavenCentral()
+    maven { url "https://raw.githubusercontent.com/PlatypusLLC/core/mvn_repo" }
+}
+
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:24.0.0'
     compile 'com.android.support:support-v13:24.0.0'
@@ -30,6 +35,12 @@ dependencies {
     compile 'com.google.firebase:firebase-auth:9.2.0'
     compile 'com.google.firebase:firebase-crash:9.2.0'
     compile 'com.journeyapps:zxing-android-embedded:3.3.0'
+
+    // Included until automatic resolution from repo is fixed
+    compile files('libs/platypus-core-1.0.1-20170316.122337-1-jar-with-dependencies.jar')
+
+    // Should request jar from mvn-repo but cannot resolve at the moment
+    //compile 'com.platypus.crw:platypus-core:1.0.1-SNAPSHOT'
 }
 
 // Google Services are required to support Firebase.

@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.hardware.usb.UsbManager;
 import android.support.v4.content.LocalBroadcastManager;
-import android.util.Log;
 
 /**
  * Launcher that propagates a connection event to USB peripheral when it is detected.
