@@ -1,1 +1,1 @@
-include ':app', ':platypus-core'
+include ':app'
