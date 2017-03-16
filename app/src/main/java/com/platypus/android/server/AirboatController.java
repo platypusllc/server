@@ -4,14 +4,12 @@ import android.util.Log;
 
 import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleServer;
+import com.platypus.crw.data.Pose3D;
 import com.platypus.crw.data.Twist;
 import com.platypus.crw.data.UtmPose;
 
 import java.util.Timer;
 import java.util.TimerTask;
-
-import robotutils.Pose3D;
-
 /**
  * A library of available navigation controllers that are accessible through the
  * high-level API.

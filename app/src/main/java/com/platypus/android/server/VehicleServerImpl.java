@@ -9,6 +9,7 @@ import com.platypus.crw.AbstractVehicleServer;
 import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleFilter;
 import com.platypus.crw.VehicleServer;
+import com.platypus.crw.data.Pose3D;
 import com.platypus.crw.data.SensorData;
 import com.platypus.crw.data.Twist;
 import com.platypus.crw.data.Utm;
@@ -27,9 +28,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import robotutils.Pose3D;
-
 /**
  * Contains the actual implementation of vehicle functionality, accessible as a
  * singleton that is updated and maintained by a background service.
