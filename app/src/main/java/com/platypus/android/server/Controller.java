@@ -248,8 +248,8 @@ public class Controller {
 
             try {
                 mUsbOutputStream.write(message);
-                mUsbOutputStream.write('\r');
-                mUsbOutputStream.write('\n');
+                //mUsbOutputStream.write('\r'); //test each of these commenting/uncommenting?!?!
+                //mUsbOutputStream.write('\n');
                 mUsbOutputStream.flush();
             } catch (IOException e) {
                 disconnect();

@@ -106,6 +106,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     // Last known temperature and EC values for sensor compensation
     private double _lastTemp = 20.0; // Deg C
     private double _lastEC = 0.0; // uS/cm
+	  
+	private double[] winchData = new double[2]; //should hold winch
+																									//height and battery
+																									//although battery
+																									//isnt being sent yet
     /**
      * Internal update function called at regular intervals to process command
      * and control events.
@@ -165,7 +170,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                         // Send and log the transmitted command.
                         if (mController.isConnected())
-                            mController.send(command);
+													mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
                     } catch (JSONException e) {
                         Log.w(TAG, "Failed to serialize command.", e);
@@ -307,7 +312,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         else if (axis == 0)
             return t_PID.clone();
         else if (axis == 3)
-            return new double[]{winch_depth_, 0.0, 0.0};
+            return winchData;
         else if (axis == 7)
             return grab_sampler_status;
         else
@@ -321,28 +326,54 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public void setGains(int axis, double[] k) {
         // TODO: Get rid of this, it is a hack.
         // Special case to handle winch commands...
+
         if (axis == 3) {
             JSONObject command = new JSONObject();
             JSONObject winchSettings = new JSONObject();
-
-            // Call command to adjust winch
-            try {
-                //Set desired winch movement distance
-                winchSettings.put("p", (float) Math.abs(k[0]));
-
-                //Hardcoded velocity - get rid of this eventually
-                winchSettings.put("v", 500 * Math.signum(k[0]));
-                command.put("s2", winchSettings);
-
+            try
+            {
+                if (k.length > 1)
+                {
+                    winchSettings.put("g","depth"); //send the height in k[0] to the depth
+                }
+                else {
+                    winchSettings.put("d", k[0]); //send the height in k[0] to the depth
+                    command.put("s2", winchSettings);
+                }
                 mController.send(command);
-                mLogger.info(new JSONObject().put("winch", command));
-            } catch (JSONException e) {
+                mLogger.info(new JSONObject().put("cmd", command));
+            }
+            catch (JSONException e)
+            {
                 Log.w(TAG, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
                 Log.w(TAG, "Unable to send winch command.", e);
             }
-            return;
-        } else if (axis == 5) {
+        }
+        /*else if (axis == 10)
+        {
+            JSONObject command = new JSONObject();
+            JSONObject winchHeight = new JSONObject();
+            try {
+                winchHeight.put("g", "depth");
+                command.put("s2",command);
+                mController.send(command);
+                mLogger.info(new JSONObject().put("cmd",command));
+            }
+            catch(JSONException e)
+            {
+                Log.w(TAG, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
+            }
+            catch (IOException e)
+            {
+                Log.w(TAG, "Unable to send winch command.", e);
+            }
+
+        }
+*/
+        else if (axis == 5) {
             r_PID = k.clone();
 
             // Save the PID values to the SharedPreferences as well.
@@ -431,6 +462,18 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             String name = keyIterator.next();
             try {
                 JSONObject value = cmd.getJSONObject(name);
+
+                System.out.println(name);
+                //if (name.startsWith("\"s2\"")) //json passthrough winch
+                if (name.startsWith("s2")) //json passthrough winch
+                {
+                    Iterator<String> values = value.keys();
+                    //System.out.println("depth is: " + value.getDouble("depth"));
+                    System.out.println("depth command is  " + value.toString());
+                    String[] data = value.getString("depth").trim().split(" ");
+                    System.out.println("depth is " + data[0]);
+                    winchData[0] = Double.parseDouble(data[0]);
+                }
                 if (name.startsWith("m")) {
                     int motor = name.charAt(1) - 48;
                 } else if (name.startsWith("s")) {
@@ -440,7 +483,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     if (value.has("type")) {
                         String type = value.getString("type");
                         SensorData reading = new SensorData();
-
+												
                         if (type.equalsIgnoreCase("es2")) {
                             try {
                                 // Parse out temperature and ec values
@@ -512,6 +555,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                             // TODO: Remove this hack to store winch depth
                             winch_depth_ = reading.data[0];
                         }
+
 
                         // Send out and log the collected sensor reading.
                         sendSensor(sensor, reading);
