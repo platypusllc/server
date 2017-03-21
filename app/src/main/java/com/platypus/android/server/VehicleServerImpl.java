@@ -465,7 +465,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                 System.out.println(name);
                 //if (name.startsWith("\"s2\"")) //json passthrough winch
-                if (name.startsWith("s2")) //json passthrough winch
+                if (name.startsWith("winch")) //json passthrough winch
                 {
                     Iterator<String> values = value.keys();
                     //System.out.println("depth is: " + value.getDouble("depth"));
