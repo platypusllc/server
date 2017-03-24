@@ -41,8 +41,6 @@ public enum AirboatController {
 		double[] buffer = new double[BUFFER_SIZE];
 		int bIndex = 0;
 		double bSum = 0;
-		// Simulation part. The current pose will change to the nearest waypoint after seconds
-		int oldtime = 0;
 
 		@Override
 		public void update(VehicleServer server, double dt) {
@@ -53,8 +51,6 @@ public enum AirboatController {
 			UtmPose state = server.getPose();
 			Pose3D pose = state.pose;
 
-
-
 			// Get the current waypoint, or return if there are none
 			UtmPose[] waypoints = server.getWaypoints();
 			if (waypoints == null || waypoints.length <= 0) {
@@ -64,13 +60,9 @@ public enum AirboatController {
 			}
 			Pose3D waypoint = waypoints[0].pose;
 
-
 			double distanceSq = planarDistanceSq(pose, waypoint);
-			// Simulation part, when oldtime count to 10, pose move to the next waypoint
-//			if(oldtime > 10){
-//				distanceSq = 0;
-//				oldtime = 0;
-//			}
+			Log.d("POINT_AND_SHOOT:", String.format("%s vs. %s --> distanceSq = %.2f", pose.toString(), waypoint.toString(), distanceSq));
+
 			if (distanceSq <= (3*3))
 			{
 				Log.i("POINT_AND_SHOOT:", "Arrived Waypoint");
@@ -81,17 +73,16 @@ public enum AirboatController {
 				prev_angle_destination = 0;
 				
 				// If we are "at" the destination, de-queue current waypoint
+				VehicleServerImpl server_impl = (VehicleServerImpl) server;
+				server_impl.incrementWaypointIndex();
 				UtmPose[] queuedWaypoints = new UtmPose[waypoints.length - 1];
 				System.arraycopy(waypoints, 1, queuedWaypoints, 0,
 						queuedWaypoints.length);
-				server.startWaypoints(queuedWaypoints,
+				server_impl.internal_startWaypoints_wrapper(queuedWaypoints,
 						AirboatController.POINT_AND_SHOOT.toString());
 			}
 			else
 			{
-				// Simulation part, when oldtime count to 10, pose move to the next waypoint
-				//oldtime+=1;
-				//Log.i("POINT_AND_SHOOT:", "On the way: " + oldtime);
 				// ANGLE CONTROL SEGMENT
 
 				// find destination angle between boat and waypoint position
