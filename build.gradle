@@ -12,6 +12,9 @@ buildscript {
 
         // Google Services are required to support Firebase.
         classpath 'com.google.gms:google-services:3.0.0'
+
+        // Add gradle-play-publisher to deploy to Google Play store.
+        classpath 'com.github.triplet.gradle:play-publisher:1.2.0'
     }
 }
 
