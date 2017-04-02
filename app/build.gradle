@@ -29,6 +29,9 @@ android {
     }
     dexOptions {
         javaMaxHeapSize '3g'
+        // Skip pre-dexing when running on Travis CI or when disabled via -Dpre-dex=false.
+        // See: https://guides.codepath.com/android/Setting-up-Travis-CI
+        preDexLibraries = preDexEnabled && !travisBuild
     }
 }
 
