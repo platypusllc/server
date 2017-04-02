@@ -3,10 +3,18 @@ language: android
 jdk: oraclejdk8
 android:
   components:
-    - platform-tools
-    - tools
-    - build-tools-25.0.2
-    - android-25
-    - extra-google-m2repository
-    - extra-android-m2repository
-script: './gradlew build check'
+  - platform-tools
+  - tools
+  - build-tools-25.0.2
+  - android-25
+  - extra-google-m2repository
+  - extra-android-m2repository
+script: "./gradlew build check"
+deploy:
+  provider: releases
+  api_key:
+    secure: SzonDecstyEHJuiuYeHisXsXWPIRFvIdali89uGo4lfzQ5E0+zqzyMJR4B8eyFiVn0VXCCGaUj9IUFRHGjlEafWmv+YFyAC2doZwOk4EKq2ZcK85XAUyLQEA6X1RrKUx11VSxn5gxtXA/4fyarv139PzELQw3liNIVPx44CipiA=
+  file: app/build/outputs/apk/app-release.apk
+  on:
+    repo: platypusllc/server
+    branch: feature/autobuild
