@@ -12,39 +12,39 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
 
+    playAccountConfigs {
+        release {
+            jsonFile = file(System.getenv("ANDROID_PLAY_ACCOUNT_JSON") ?: ".")
+        }
+    }
+    signingConfigs {
+        release {
+            keyAlias System.getenv("ANDROID_RELEASE_KEY_ALIAS") ?: "EXAMPLE_ALIAS"
+            keyPassword System.getenv("ANDROID_RELEASE_KEY_PASSWORD") ?: "EXAMPLE_PASSWORD"
+            storeFile file(System.getenv("ANDROID_RELEASE_STORE_FILE") ?: ".")
+            storePassword System.getenv("ANDROID_RELEASE_STORE_PASSWORD") ?: "EXAMPLE_PASSWORD"
+        }
+    }
     defaultConfig {
         applicationId "com.platypus.android.server"
         minSdkVersion 21
         targetSdkVersion 25
         versionCode 2
         versionName "1.2"
-    }
-    playAccountConfigs {
-        release {
-            jsonFile = file('../keys.json')
-        }
-    }
-    signingConfigs {
-        release {
-            keyAlias bpm_meter_android_key_alias
-            keyPassword bpm_meter_android_key_password
-            storeFile file('../release.keystore')
-            storePassword bpm_meter_android_keystore_password
-        }
+        playAccountConfig = playAccountConfigs.release
     }
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
-            playAccountConfig = playAccountConfigs.release
         }
     }
     lintOptions {
         abortOnError false
     }
     dexOptions {
-        javaMaxHeapSize '3g'
+        javaMaxHeapSize '4g'
         // Skip pre-dexing when running on Travis CI or when disabled via -Dpre-dex=false.
         // See: https://guides.codepath.com/android/Setting-up-Travis-CI
         preDexLibraries = preDexEnabled && !travisBuild
@@ -52,8 +52,8 @@ android {
 }
 
 play {
-    jsonFile = new File('playstore-apikey.json');
     track = 'alpha'
+    untrackOld = true
 }
 
 dependencies {
