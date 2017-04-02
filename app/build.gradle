@@ -14,7 +14,7 @@ android {
 
     playAccountConfigs {
         release {
-            jsonFile = file(System.getenv("ANDROID_PLAY_ACCOUNT_JSON") ?: ".")
+            jsonFile = file(System.getenv("ANDROID_PLAY_JSON_FILE") ?: ".")
         }
     }
     signingConfigs {
@@ -23,14 +23,15 @@ android {
             keyPassword System.getenv("ANDROID_RELEASE_KEY_PASSWORD") ?: "EXAMPLE_PASSWORD"
             storeFile file(System.getenv("ANDROID_RELEASE_STORE_FILE") ?: ".")
             storePassword System.getenv("ANDROID_RELEASE_STORE_PASSWORD") ?: "EXAMPLE_PASSWORD"
+            v2SigningEnabled true
         }
     }
     defaultConfig {
         applicationId "com.platypus.android.server"
         minSdkVersion 21
         targetSdkVersion 25
-        versionCode 2
-        versionName "1.2"
+        versionCode 3
+        versionName "1.3"
         playAccountConfig = playAccountConfigs.release
     }
     buildTypes {
