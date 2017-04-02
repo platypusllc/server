@@ -4,21 +4,21 @@ import android.util.Log;
 
 import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleServer;
+import com.platypus.crw.data.Pose3D;
 import com.platypus.crw.data.Twist;
 import com.platypus.crw.data.UtmPose;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
-import robotutils.Pose3D;
 
 /**
  * A library of available navigation controllers that are accessible through the
  * high-level API.
- * 
+ *
  * @author pkv
  * @author kss
- * 
+ *
  */
 public enum AirboatController {
 
@@ -29,13 +29,13 @@ public enum AirboatController {
 	 * but instead of velocities, it passes in servo commands to the thruster and rudder. The process of converting desired velocities
 	 * to thrust and angle commands used to be done in the Arduino but has been moved here. The thruster and rudder commands will be
 	 * at indexes 0 and 5 respectively.
-	 * UPDATE: renamed POINT_AND_SHOOT to be compatible with all code. 
+	 * UPDATE: renamed POINT_AND_SHOOT to be compatible with all code.
 	 */
 
 	POINT_AND_SHOOT(new VehicleController() {
-		// variable for monitoring previous destination angle for error calculation 
+		// variable for monitoring previous destination angle for error calculation
 		private double prev_angle_destination = 0;
-		
+
 		// variables for buffer and integration term
 		final int BUFFER_SIZE = 100;
 		double[] buffer = new double[BUFFER_SIZE];
@@ -48,7 +48,7 @@ public enum AirboatController {
 		public void update(VehicleServer server, double dt) {
 
 			Twist twist = new Twist();
-			
+
 			// Get the position of the vehicle
 			UtmPose state = server.getPose();
 			Pose3D pose = state.pose;
@@ -79,7 +79,7 @@ public enum AirboatController {
 				bSum = 0;
 				buffer = new double[BUFFER_SIZE];
 				prev_angle_destination = 0;
-				
+
 				// If we are "at" the destination, de-queue current waypoint
 				UtmPose[] queuedWaypoints = new UtmPose[waypoints.length - 1];
 				System.arraycopy(waypoints, 1, queuedWaypoints, 0,
@@ -96,15 +96,15 @@ public enum AirboatController {
 
 				// find destination angle between boat and waypoint position
 				double angle_destination = angleBetween(pose, waypoint);
-				
+
 				// use compass information to get heading of the boat
 				double angle_boat = pose.getRotation().toYaw();
 				double angle_between = normalizeAngle(angle_destination - angle_boat);
-				
+
 				// use gyro information from arduino to get rotation rate of heading
 				double[] _gyroReadings = ((VehicleServerImpl) server).getGyro();
 				double drz = _gyroReadings[2];
-				
+
 				// use previous data to get rate of change of destination angle
 				double angle_destination_change = (angle_destination - prev_angle_destination) / dt;
 				double error = angle_between;
@@ -114,23 +114,23 @@ public enum AirboatController {
 				bSum -= buffer[bIndex];
 				bSum += error;
 				buffer[bIndex] = error;
-				
+
 				// Define PID constants and boundary pos constants
 				VehicleServerImpl server_impl = (VehicleServerImpl) server;
 				double[] rudder_pids = server_impl.getGains(5);
-				
+
 				double pos = rudder_pids[0]*(angle_between) + rudder_pids[2]*(angle_destination_change - drz) + rudder_pids[1]*bSum;
-				
+
 				// Ensure values are within bounds
 				if (pos < -1.0)
 					pos = -1.0;
 				else if (pos > 1.0)
 					pos = 1.0;
-				
+
 				// THRUST CONTROL SEGMENT
 				double[] thrust_pids = server_impl.getGains(0);
 				double thrust = 1.0 * thrust_pids[0]; // Use a normalized thrust value of 1.0.
-				
+
 				// update twist
 				twist.dx(thrust);
 				twist.drz(pos);
@@ -139,7 +139,7 @@ public enum AirboatController {
 				prev_angle_destination = angle_destination;
 				// Set the desired velocity
 				server.setVelocity(twist);
-				
+
 			}
 		}
 	}),
@@ -160,35 +160,35 @@ public enum AirboatController {
 		@Override
 		public void update(final VehicleServer server, double dt) {
 			server.setVelocity(new Twist(VehicleServerImpl.DEFAULT_TWIST));
-			
+
 			final double[] first = new double[3]; // angle, time, thrust
 			first[0] = server.getWaypoints()[0].pose.getX();
 			first[1] = server.getWaypoints()[0].pose.getY() * 1000; // convert to ms
 			first[2] = server.getWaypoints()[0].pose.getZ();
-			
+
 			final double[] second = new double[3];
 			second[0] = server.getWaypoints()[1].pose.getX();
 			second[1] = server.getWaypoints()[1].pose.getY() * 1000; // convert to ms
 			second[2] = server.getWaypoints()[1].pose.getZ();
-			
+
 			final double[] third = new double[3]; // angle, time, thrust
 			third[0] = server.getWaypoints()[2].pose.getX();
 			third[1] = server.getWaypoints()[2].pose.getY() * 1000; // convert to ms
 			third[2] = server.getWaypoints()[2].pose.getZ();
-			
+
 			final double[] fourth = new double[3];
 			fourth[0] = server.getWaypoints()[3].pose.getX();
 			fourth[1] = server.getWaypoints()[3].pose.getY() * 1000; // convert to ms
 			fourth[2] = server.getWaypoints()[3].pose.getZ();
-			
+
 			if (first[1] < 0 || second[1] < 0 || third[1] < 0 || fourth[1] < 0)
 			{
 				first[1] = 5000; second[1] = 5000; third[1] = 5000; fourth[1] = 5000;
 			}
-			
+
 			final Timer t = new Timer();
 			final Timer log = new Timer();
-			
+
 			TimerTask first_step = new TimerTask() {
 				@Override
 				public void run() {
@@ -202,7 +202,7 @@ public enum AirboatController {
 				public void run() {
 					// TODO Auto-generated method stub
 					server.setVelocity(new Twist(second[2], 0, 0, 0, 0, second[0]));
-					
+
 				}
 			};
 			TimerTask third_step = new TimerTask() {
@@ -210,7 +210,7 @@ public enum AirboatController {
 				public void run() {
 					// TODO Auto-generated method stub
 					server.setVelocity(new Twist(third[2], 0, 0, 0, 0, third[0]));
-					
+
 				}
 			};
 			TimerTask fourth_step = new TimerTask() {
@@ -218,11 +218,11 @@ public enum AirboatController {
 				public void run() {
 					// TODO Auto-generated method stub
 					server.setVelocity(new Twist(fourth[2], 0, 0, 0, 0, fourth[0]));
-					
+
 				}
 			};
 			TimerTask close = new TimerTask() {
-				
+
 				@Override
 				public void run() {
 					// TODO Auto-generated method stub
@@ -235,7 +235,7 @@ public enum AirboatController {
 				}
 			};
 			TimerTask logging = new TimerTask() {
-				
+
 				@Override
 				public void run() {
 					// TODO Auto-generated method stub
@@ -250,7 +250,7 @@ public enum AirboatController {
 					double thrust = server_impl.getVelocity().dx();
 				}
 			};
-			
+
 			t.schedule(first_step, 0);
 			t.schedule(second_step, (long) first[1]);
 			t.schedule(third_step, (long) (first[1] + second[1]));
@@ -259,7 +259,7 @@ public enum AirboatController {
 			log.scheduleAtFixedRate(logging, 0, 200); // 200 ms logging rate
 		}
 	}),
-	
+
 	/**
 	 * This controller shoots a picture only if it moves to a significantly
 	 * different pose
@@ -321,7 +321,7 @@ public enum AirboatController {
 		/**
 		 * Takes a pose and determines whether the image to be taken is novel or
 		 * not
-		 * 
+		 *
 		 * @param pose
 		 *            The current pose
 		 * @param waypoint
@@ -397,7 +397,7 @@ public enum AirboatController {
 
 	/**
 	 * Instantiates a library entry with the specified controller.
-	 * 
+	 *
 	 * @param controller
 	 *            the controller to be used by this entry.
 	 */
@@ -407,7 +407,7 @@ public enum AirboatController {
 
 	/**
 	 * Takes an angle and shifts it to be in the range -Pi to Pi.
-	 * 
+	 *
 	 * @param angle
 	 *            an angle in radians
 	 * @return the same angle as given, normalized to the range -Pi to Pi.
@@ -424,7 +424,7 @@ public enum AirboatController {
 	 * Computes the squared XY-planar Euclidean distance between two points.
 	 * Using the squared distance is cheaper (it avoid a sqrt), and for constant
 	 * comparisons, it makes no difference (just square the constant).
-	 * 
+	 *
 	 * @param a
 	 *            the first pose
 	 * @param b
@@ -442,7 +442,7 @@ public enum AirboatController {
 	 * projected onto the XY-plane. Returns an angle representing the direction
 	 * in the XY-plane to take if starting at the source pose to reach the
 	 * destination pose.
-	 * 
+	 *
 	 * @param src
 	 *            the source (starting) pose
 	 * @param dest

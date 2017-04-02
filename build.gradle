@@ -5,7 +5,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.0'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -26,23 +26,9 @@ task clean(type: Delete) {
 }
 
 // Disables pre-dexing (used to speed up automated builds which cannot use it).
-// See:
-// https://circleci.com/docs/android#disable-pre-dexing-to-improve-build-performance
-// http://tools.android.com/tech-docs/new-build-system/tips#TOC-Improving-Build-Server-performance
-project.ext.preDexLibs = !project.hasProperty('disablePreDex')
-subprojects {
-    project.plugins.whenPluginAdded { plugin ->
-        if ("com.android.build.gradle.AppPlugin".equals(plugin.class.name)) {
-            project.android.dexOptions.preDexLibraries = rootProject.ext.preDexLibs
-        } else if ("com.android.build.gradle.LibraryPlugin".equals(plugin.class.name)) {
-            project.android.dexOptions.preDexLibraries = rootProject.ext.preDexLibs
-        }
-    }
-}
-
-buildscript {
-    dependencies {
-        // Add this line
-
-    }
+// See: https://guides.codepath.com/android/Setting-up-Travis-CI
+ext {
+    travisBuild = System.getenv("TRAVIS") == "true"
+    // allows for -Dpre-dex=false to be set
+    preDexEnabled = "true".equals(System.getProperty("pre-dex", "true"))
 }

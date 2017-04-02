@@ -34,6 +34,8 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ServerValue;
 import com.platypus.crw.CrwSecurityManager;
+import com.platypus.crw.data.Pose3D;
+import com.platypus.crw.data.Quaternion;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
 import com.platypus.crw.udp.UdpVehicleService;
@@ -47,8 +49,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import robotutils.Pose3D;
-import robotutils.Quaternion;
 
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
