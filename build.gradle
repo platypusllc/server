@@ -39,10 +39,3 @@ subprojects {
         }
     }
 }
-
-buildscript {
-    dependencies {
-        // Add this line
-
-    }
-}
