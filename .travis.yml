@@ -11,11 +11,11 @@ android:
   - extra-android-m2repository
 env:
   global:
-  - secure: VHnQ+5lcaQ6ByO5fWH04NyGWmvPSKWgAc45QxjBY23NRFpRZ2sm7FozeG8IShxGPBy7gqnPKTRzEGTp7H6CNKMEb7dYmouXg9roxYyGHBBolvwhPGXULDVjLNtBIAFhSSrCOptOjteJbNLKSmWnqB7fgTBUC/Uu4GrxlnWm7dOQ=
-  - secure: gMSi8mHop+fFoy7ERq3DpNKGm5ru1FQyzGg5qBfoF++6obUTMJ/CRW+q54wH3bVFVylsR2r5qaHJtQF5uI/Zuw65ROGSSYXGhcacgmq043hT4jpLuLN75rGppStqU2FWhHfFbE0dI+XZECYmFnWT2cuWnlnyBqr5WmoAwsR+7ro=
-  - secure: SK+ww/E1Q6B6YajCZ3huC3n90upSC/fh73df4fhCjsHf91lg9wDmoySHIWErXRUx44OxPs/sHjW83GqoByuwNBnymX8egW1g3wp7SCGaAX8UlAezeN9+2HYPzCdSRExJ26LwpaPCWypd/vzOHQ2WZO4y4PfHzBy/wEPYYUD9ZzY=
   - ANDROID_PLAY_JSON_FILE="../creds/google-play.json"
   - ANDROID_RELEASE_STORE_FILE="../creds/platypus-android.jks"
+  - secure: eHqN5ncAt4zJMM5OR+wQqn6WRiNEJx/MKZtO1BpkfOQVW67U0a7ZDQ2LF3tqlfJBRnW/4E9BJysi15WKigjHpeaPNVZh2V9cb2vejUd0P/DZZHYYcFvyoXh9R0ZnfJNr1Ui9q6Ll7kgSxgsOa5UrNMP4Q8vraw+fijEdMyh4yvU=
+  - secure: D0uqmhG2Rit16cbHwjvZhXG0caS0RxOZvQaP1nQtLIfq0uPWU/mDqv6gVHnpuZpxIuIKuMRe+MOZvSDuT6LhZLzXVs43Ikzrq7Yr4yNr16Nwo2//qv9B2OxuepunlduCv8B95lJQX5S9zjAAl7e1eQMXphC3IsDs4nbd7pDpRmk=
+  - secure: VKHCNY+p91IDd3AZl/FGUHkokAZLkx0tlwRh9u9jHksVky2PFLDrOYU9yF2BPvs2QlSbCdVF/+/TyaImZmZ0e5XJAocjM4Ew2z9QbMiuo8KMtzixni/iINRQlEVNOZRCOHcOhnBCccteYk9kQ1oRB56AXoukzmscco2d1Bx7sgk=
 before_install:
 - openssl aes-256-cbc -K $encrypted_3a18627f5297_key -iv $encrypted_3a18627f5297_iv
   -in secrets.tar.enc -out secrets.tar -d
