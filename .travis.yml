@@ -22,7 +22,7 @@ before_install:
 - tar xvf secrets.tar
 script: "./gradlew build check"
 deploy:
-  provider: releases
+- provider: releases
   api_key:
     secure: SzonDecstyEHJuiuYeHisXsXWPIRFvIdali89uGo4lfzQ5E0+zqzyMJR4B8eyFiVn0VXCCGaUj9IUFRHGjlEafWmv+YFyAC2doZwOk4EKq2ZcK85XAUyLQEA6X1RrKUx11VSxn5gxtXA/4fyarv139PzELQw3liNIVPx44CipiA=
   file: app/build/outputs/apk/app-release.apk
@@ -30,5 +30,9 @@ deploy:
   on:
     repo: platypusllc/server
     branch: feature/autobuild
-after_deploy:
-  - "./gradlew publishApkRelease"
+- provider: script
+  script: "./gradlew publishApkRelease"
+  skip_cleanup: true
+  on:
+    repo: platypusllc/server
+    branch: feature/autobuild

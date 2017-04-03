@@ -22,7 +22,5 @@ ANDROID_RELEASE_KEY_PASSWORD
 
 This deployment is based on the following setups:
 - https://github.com/codepath/android_guides/wiki/Automating-Publishing-to-the-Play-Store
-- https://github.com/Triple-T/gradle-play-publisher
-- https://docs.travis-ci.com/user/encrypting-files/
 - https://github.com/larsgrefer/bpm-meter-android/blob/master/.travis.yml
-- https://medium.com/@imkiran/build-a-signed-meteor-android-app-on-travis-ci-and-push-it-to-github-releases-d39c66eada6c
+- https://github.com/Triple-T/gradle-play-publisher
