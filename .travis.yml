@@ -19,7 +19,7 @@ env:
 before_install:
 - openssl aes-256-cbc -K $encrypted_3a18627f5297_key -iv $encrypted_3a18627f5297_iv
   -in secrets.tar.enc -out secrets.tar -d
-- tar xf secrets.tar
+- tar xvf secrets.tar
 script: "./gradlew build check"
 deploy:
   provider: releases
