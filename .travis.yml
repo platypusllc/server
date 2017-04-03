@@ -30,3 +30,5 @@ deploy:
   on:
     repo: platypusllc/server
     branch: feature/autobuild
+after_deploy:
+  - "./gradlew publishApkRelease"
