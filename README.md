@@ -9,7 +9,7 @@ controlling the platforms using high-level commands.
 ----
 
 Code in this repository is automatically built by Travis-CI.  Any tags of this
-repostory will be automatically compiled to an APK and uploaded both named
+repostory will be automatically compiled to an APK and uploaded to both named
 Github Releases and the `alpha` channel on the Google Play store.
 
 In order to do signed builds, the following environment variables must be set:
