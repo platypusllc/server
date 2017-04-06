@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'com.github.triplet.play'
+apply plugin: 'com.google.gms.google-services'
 
 repositories {
     mavenCentral()
@@ -72,6 +73,3 @@ dependencies {
     }
     compile group: 'com.platypus.crw', name: 'platypus-core', version: '+', changing: true
 }
-
-// Google Services are required to support Firebase.
-apply plugin: 'com.google.gms.google-services'
