@@ -6,3 +6,7 @@
 .DS_Store
 /build
 /captures
+
+# Ignore build credentials.
+/creds
+secrets.tar
