@@ -1,8 +1,12 @@
 package com.platypus.android.server;
 
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.platypus.crw.AbstractVehicleServer;
@@ -105,6 +109,53 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     // Last known temperature and EC values for sensor compensation
     private double _lastTemp = 20.0; // Deg C
     private double _lastEC = 0.0; // uS/cm
+
+    //Define Notification Manager
+    NotificationManager notificationManager;
+    //Define sound URI
+    Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+    boolean[] received_expected_sensor_type = {false, false, false};
+    public void reset_expected_sensors()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            received_expected_sensor_type[i] = false;
+        }
+    }
+
+    private final Timer _sensorTypeTimer = new Timer();
+    private TimerTask expect_sensor_type_task = new TimerTask() {
+        @Override
+        public void run() {
+            for (int i = 0; i < 3; i++)
+            {
+                try {
+                    Thread.sleep(1000); // sleep for all sensor slots, even if empty
+                } catch(InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                if (!received_expected_sensor_type[i])
+                {
+                    String sensor_array_name = "pref_sensor_" + Integer.toString(i+1) + "_type";
+                    String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+                    if (expected_type.equals("NONE"))
+                    {
+                        continue;
+                    }
+                    String message = "s" + (i+1) + " expects " + expected_type + " not received yet";
+                    Log.w(TAG, message);
+                    NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
+                            .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
+                            .setContentTitle("Sensor Warning")
+                            .setContentText(message)
+                            .setSound(soundUri); //This sets the sound to play
+                    notificationManager.notify(0, mBuilder.build());
+                }
+            }
+        }
+    };
+
     /**
      * Internal update function called at regular intervals to process command
      * and control events.
@@ -223,6 +274,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         // Connect to the Shared Preferences for this process.
         mPrefs = PreferenceManager.getDefaultSharedPreferences(_context);
+
+        notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
+        _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
@@ -404,9 +458,40 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 } else if (name.startsWith("s")) {
                     int sensor = name.charAt(1) - 48;
 
+                    // check sensor type expected in the preferences
+                    String sensor_array_name = "pref_sensor_" + Integer.toString(sensor) + "_type";
+                    String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+
                     // Hacks to send sensor information
                     if (value.has("type")) {
                         String type = value.getString("type");
+
+                        // check if received type matches expected type
+                        if (!type.equalsIgnoreCase("battery")) {
+                            if (type.equalsIgnoreCase(expected_type)) {
+                                received_expected_sensor_type[sensor - 1] = true;
+                                /*
+                                String message = "s" + sensor + ": expected = " + expected_type + " received = " + type;
+                                Log.w(TAG, message);
+                                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
+                                        .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
+                                        .setContentTitle("Sensor Success")
+                                        .setContentText(message)
+                                        .setSound(soundUri); //This sets the sound to play
+                                notificationManager.notify(0, mBuilder.build());
+                                */
+                            } else {
+                                String message = "s" + sensor + ": expected = " + expected_type + " received = " + type;
+                                Log.w(TAG, message);
+                                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
+                                        .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
+                                        .setContentTitle("Sensor Warning")
+                                        .setContentText(message)
+                                        .setSound(soundUri); //This sets the sound to play
+                                notificationManager.notify(0, mBuilder.build());
+                            }
+                        }
+
                         SensorData reading = new SensorData();
 
                         if (type.equalsIgnoreCase("es2")) {

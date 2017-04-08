@@ -52,4 +52,76 @@
         <item>DIFFERENTIAL</item>
         <item>VECTORED</item>
     </string-array>
+    <string-array name="pref_sensor_1_type_entries">
+        <item>None</item>
+        <item>Atlas DO</item>
+        <item>Atlas pH</item>
+        <item>ES2</item>
+        <item>Lowrance HDS</item>
+        <item>Adafruit GPS</item>
+        <item>AHRS+</item>
+        <item>BlueBox</item>
+        <item>Winch</item>
+        <item>Sampler</item>
+    </string-array>
+    <string-array name="pref_sensor_1_type_values">
+        <item>NONE</item>
+        <item>ATLAS_DO</item>
+        <item>ATLAS_PH</item>
+        <item>ES2</item>
+        <item>HDS</item>
+        <item>ADAFRUIT_GPS</item>
+        <item>AHRS_PLUS</item>
+        <item>BLUEBOX</item>
+        <item>WINCH</item>
+        <item>SAMPLER</item>
+    </string-array>
+    <string-array name="pref_sensor_2_type_entries">
+        <item>None</item>
+        <item>Atlas DO</item>
+        <item>Atlas pH</item>
+        <item>ES2</item>
+        <item>Lowrance HDS</item>
+        <item>Adafruit GPS</item>
+        <item>AHRS+</item>
+        <item>BlueBox</item>
+        <item>Winch</item>
+        <item>Sampler</item>
+    </string-array>
+    <string-array name="pref_sensor_2_type_values">
+        <item>NONE</item>
+        <item>ATLAS_DO</item>
+        <item>ATLAS_PH</item>
+        <item>ES2</item>
+        <item>HDS</item>
+        <item>ADAFRUIT_GPS</item>
+        <item>AHRS_PLUS</item>
+        <item>BLUEBOX</item>
+        <item>WINCH</item>
+        <item>SAMPLER</item>
+    </string-array>
+    <string-array name="pref_sensor_3_type_entries">
+        <item>None</item>
+        <item>Atlas DO</item>
+        <item>Atlas pH</item>
+        <item>ES2</item>
+        <item>Lowrance HDS</item>
+        <item>Adafruit GPS</item>
+        <item>AHRS+</item>
+        <item>BlueBox</item>
+        <item>Winch</item>
+        <item>Sampler</item>
+    </string-array>
+    <string-array name="pref_sensor_3_type_values">
+        <item>NONE</item>
+        <item>ATLAS_DO</item>
+        <item>ATLAS_PH</item>
+        <item>ES2</item>
+        <item>HDS</item>
+        <item>ADAFRUIT_GPS</item>
+        <item>AHRS_PLUS</item>
+        <item>BLUEBOX</item>
+        <item>WINCH</item>
+        <item>SAMPLER</item>
+    </string-array>
 </resources>
