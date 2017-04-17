@@ -38,8 +38,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import robotutils.Pose3D;
-import robotutils.Quaternion;
+import com.platypus.crw.data.Pose3D;
+import com.platypus.crw.data.Quaternion;
 
 /**
  * Contains the actual implementation of vehicle functionality, accessible as a
@@ -774,9 +774,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public int getNumSensors() {
-        // return NUM_SENSORS;
-        Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
-        return current_waypoint_index;
+        return NUM_SENSORS;
+        //Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
+        //return current_waypoint_index;
     }
 
     @Override
@@ -940,6 +940,12 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 return WaypointState.DONE;
             }
         }
+    }
+
+    @Override
+    public int getWaypointsIndex() {
+        Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
+        return current_waypoint_index;
     }
 
     /**

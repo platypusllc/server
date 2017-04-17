@@ -5,8 +5,8 @@ import com.platypus.crw.data.Twist;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
 
-import robotutils.Pose3D;
-import robotutils.Quaternion;
+import com.platypus.crw.data.Pose3D;
+import com.platypus.crw.data.Quaternion;
 
 /**
  * A basic filter that uses weighted averages and a first-order approximate
