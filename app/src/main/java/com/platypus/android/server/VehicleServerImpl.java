@@ -409,7 +409,45 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         String type = value.getString("type");
                         SensorData reading = new SensorData();
 
-                        if (type.equalsIgnoreCase("es2")) {
+                        if (type.equalsIgnoreCase("imu")) {
+                            try {
+                                String[] data = value.getString("data").trim().split(",");
+                                double yawDeg = Double.parseDouble(data[0]);
+                                int sysCalib = Integer.parseInt(data[1]);
+                                int magCalib = Integer.parseInt(data[2]);
+                                int gyroCalib = Integer.parseInt(data[3]);
+                                int accelCalib = Integer.parseInt(data[4]);
+
+
+                                // Convert to radians
+                                double yawRad = Math.PI * yawDeg / 180.0;
+                                // Shift yaw value to match phone standard
+                                yawRad = (yawRad + 3.0*Math.PI/2.0) % (2.0 * Math.PI);
+
+                                // Change yaw to be from - PI to PI
+                                double yaw = Math.PI - yawRad;
+
+                                if (sysCalib > 2) {
+                                    filter.compassUpdate(yaw, System.currentTimeMillis());
+                                }
+
+                                if (sysCalib < 2){
+                                    Log.w(TAG, "IMU sys calib low: " + yawDeg);
+                                }
+                                //Log.w(TAG, "IMU value: " + yaw);
+
+                                /*reading.data = new double[]{yaw, value.getDouble("data")};
+                                mLogger.info(new JSONObject()
+                                        .put("sensor", new JSONObject()
+                                                .put("channel", sensor)
+                                                .put("type", "imu")
+                                                .put("data", new JSONArray(reading.data))));*/
+
+                                continue;
+                            } catch (Exception e){
+                                Log.w(TAG, "IMU ERROR: An error occured while processing IMU data");
+                            }
+                        } else if (type.equalsIgnoreCase("es2")) {
                             try {
                                 // Parse out temperature and ec values
                                 String[] data = value.getString("data").trim().split(" ");

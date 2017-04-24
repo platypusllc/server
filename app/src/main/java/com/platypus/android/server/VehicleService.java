@@ -96,9 +96,9 @@ public class VehicleService extends Service {
                 double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
 
                 if (_vehicleServerImpl != null) {
-                    _vehicleServerImpl.filter.compassUpdate(yaw,
-                            System.currentTimeMillis());
-//					logger.info("COMPASS: " + yaw);
+                    //_vehicleServerImpl.filter.compassUpdate(yaw, System.currentTimeMillis());
+                    //Log.w(TAG, "Compass reading: " + yaw);
+					//mLogger.info("COMPASS: " + yaw);
                 }
             }
         }
@@ -133,8 +133,9 @@ public class VehicleService extends Service {
                     + rotationMatrix[7] * event.values[1] + rotationMatrix[8]
                     * event.values[2];
 
-            if (_vehicleServerImpl != null)
-                _vehicleServerImpl.setPhoneGyro(gyroValues);
+            if (_vehicleServerImpl != null) {
+                //_vehicleServerImpl.setPhoneGyro(gyroValues);
+            }
         }
 
         @Override
