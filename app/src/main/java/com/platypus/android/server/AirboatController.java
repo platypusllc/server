@@ -5,6 +5,7 @@ import android.util.Log;
 import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleServer;
 import com.platypus.crw.data.Twist;
+import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
 
 import java.util.Timer;
@@ -12,14 +13,6 @@ import java.util.TimerTask;
 
 import com.platypus.crw.data.Pose3D;
 
-/**
- * A library of available navigation controllers that are accessible through the
- * high-level API.
- * 
- * @author pkv
- * @author kss
- * 
- */
 public enum AirboatController {
 
 	POINT_AND_SHOOT(new VehicleController() {
@@ -30,7 +23,12 @@ public enum AirboatController {
 		final int BUFFER_SIZE = 100;
 		double[] buffer = new double[BUFFER_SIZE];
 		int bIndex = 0;
-		double bSum = 0;
+		double bSum = 0.0;
+
+		public void reset()
+		{
+			bSum = 0.0;
+		}
 
 		@Override
 		public void update(VehicleServer server, double dt) {
@@ -139,7 +137,7 @@ public enum AirboatController {
 
 	/**
 	 * Instantiates a library entry with the specified controller.
-	 * 
+	 *
 	 * @param controller
 	 *            the controller to be used by this entry.
 	 */
@@ -149,7 +147,7 @@ public enum AirboatController {
 
 	/**
 	 * Takes an angle and shifts it to be in the range -Pi to Pi.
-	 * 
+	 *
 	 * @param angle
 	 *            an angle in radians
 	 * @return the same angle as given, normalized to the range -Pi to Pi.
@@ -166,7 +164,7 @@ public enum AirboatController {
 	 * Computes the squared XY-planar Euclidean distance between two points.
 	 * Using the squared distance is cheaper (it avoid a sqrt), and for constant
 	 * comparisons, it makes no difference (just square the constant).
-	 * 
+	 *
 	 * @param a
 	 *            the first pose
 	 * @param b
@@ -184,7 +182,7 @@ public enum AirboatController {
 	 * projected onto the XY-plane. Returns an angle representing the direction
 	 * in the XY-plane to take if starting at the source pose to reach the
 	 * destination pose.
-	 * 
+	 *
 	 * @param src
 	 *            the source (starting) pose
 	 * @param dest
@@ -195,4 +193,17 @@ public enum AirboatController {
 		return Math.atan2((dest.getY() - src.getY()),
 				(dest.getX() - src.getX()));
 	}
+
+	public static double minAngleBetween(double algebraic_difference)
+    {
+        if (Math.abs(algebraic_difference - 2*Math.PI) < Math.abs(algebraic_difference))
+        {
+            return algebraic_difference - 2*Math.PI;
+        }
+        if (Math.abs(algebraic_difference + 2*Math.PI) < Math.abs(algebraic_difference))
+        {
+            return algebraic_difference + 2*Math.PI;
+        }
+        return algebraic_difference;
+    }
 }

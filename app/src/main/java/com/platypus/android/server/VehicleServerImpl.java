@@ -52,7 +52,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     public static final int UPDATE_INTERVAL_MS = 100;
     public static final int NUM_SENSORS = 5;
-    public static final VehicleController DEFAULT_CONTROLLER = AirboatController.STOP.controller;
+
     /**
      * Defines the PID gains that will be returned if there is an error.
      */
@@ -87,6 +87,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     private final Timer _captureTimer = new Timer();
     protected UtmPose[] _waypoints = new UtmPose[0];
     int current_waypoint_index = -1;
+    public int getCurrentWaypointIndex()
+    {
+        synchronized (_waypointLock)
+        {
+            return current_waypoint_index;
+        }
+    }
     public void incrementWaypointIndex()
     {
         synchronized (_waypointLock)
@@ -102,6 +109,20 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             if (current_waypoint_index >= 0)
             {
                 return _waypoints[current_waypoint_index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public UtmPose getSpecificWaypoint(int i)
+    {
+        synchronized (_waypointLock)
+        {
+            if (i < _waypoints.length)
+            {
+                return _waypoints[i];
             }
             else
             {
@@ -139,9 +160,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     // TODO: Remove this variable, it is totally arbitrary
     private double winch_depth_ = Double.NaN;
-    // Last known temperature and EC values for sensor compensation
-    private double _lastTemp = 20.0; // Deg C
-    private double _lastEC = 0.0; // uS/cm
 
     //Define Notification Manager
     NotificationManager notificationManager;
@@ -850,7 +868,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         TimerTask newNavigationTask = new TimerTask() {
             final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
-            VehicleController vc = AirboatController.POINT_AND_SHOOT.controller;
+            LineFollowController lf = new LineFollowController();
+            VehicleController vc = (VehicleController) lf;
 
             @Override
             public void run() {
