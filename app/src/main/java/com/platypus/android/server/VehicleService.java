@@ -178,7 +178,7 @@ public class VehicleService extends Service {
 
             // Apply update using filter object
             if (_vehicleServerImpl != null) {
-                _vehicleServerImpl.filter.gpsUpdate(utm, location.getTime());
+                //_vehicleServerImpl.filter.gpsUpdate(utm, location.getTime());
 //				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
 //						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
 //						+ ", " + location.getBearing());

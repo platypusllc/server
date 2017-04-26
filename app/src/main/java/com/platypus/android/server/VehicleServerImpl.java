@@ -10,11 +10,15 @@ import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleFilter;
 import com.platypus.crw.VehicleServer;
 import com.platypus.crw.data.Pose3D;
+import com.platypus.crw.data.Quaternion;
 import com.platypus.crw.data.SensorData;
 import com.platypus.crw.data.Twist;
 import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
 
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,6 +32,9 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
 
 
 /**
@@ -427,7 +434,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 // Change yaw to be from - PI to PI
                                 double yaw = Math.PI - yawRad;
 
-                                if (sysCalib > 2) {
+                                if (magCalib > 1) {
                                     filter.compassUpdate(yaw, System.currentTimeMillis());
                                 }
 
@@ -447,6 +454,56 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                             } catch (Exception e){
                                 Log.w(TAG, "IMU ERROR: An error occured while processing IMU data");
                             }
+                        } else if (type.equalsIgnoreCase("gps")){
+                            String nmea[] = value.getString("data").split(",");
+
+                            if (!nmea[0].equalsIgnoreCase("$GPRMC")){
+                                // Unknown NMEA sentence
+                                continue;
+                            }
+
+                            if (!nmea[2].equalsIgnoreCase("A")){
+                                // No GPS Lock
+                                continue;
+                            }
+
+                            char lat[] = nmea[3].toCharArray();
+
+                            double latitude = Double.parseDouble(nmea[3].substring(0,2));
+                            double latMinutes = Double.parseDouble(nmea[3].substring(2));
+                            latitude += (latMinutes / 60.0);
+
+                            double longitude = Double.parseDouble(nmea[5].substring(0,3));
+                            double longMinutes = Double.parseDouble((nmea[5].substring(3)));
+                            longitude += (longMinutes / 60.0);
+
+                            char latHemisphere = nmea[4].charAt(0);
+                            char longHemisphere = nmea[6].charAt(0);
+
+                            if (latHemisphere == 'S'){
+                                latitude *= -1.0;
+                            }
+
+                            if (longHemisphere == 'W'){
+                                longitude *= -1.0;
+                            }
+
+                            // Convert from lat/long to UTM coordinates
+                            UTM utmLoc = UTM.latLongToUtm(
+                                    LatLong.valueOf(latitude, longitude, NonSI.DEGREE_ANGLE),
+                                    ReferenceEllipsoid.WGS84);
+
+                            // Convert to UTM data structure
+                            Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
+                                    utmLoc.northingValue(SI.METER), 0.0,
+                                    Quaternion.fromEulerAngles(0, 0, 0));
+                            Utm origin = new Utm(utmLoc.longitudeZone(),
+                                    utmLoc.latitudeZone() > 'O');
+                            UtmPose utm = new UtmPose(pose, origin);
+
+                            filter.gpsUpdate(utm, System.currentTimeMillis());
+                            continue;
+
                         } else if (type.equalsIgnoreCase("es2")) {
                             try {
                                 // Parse out temperature and ec values
