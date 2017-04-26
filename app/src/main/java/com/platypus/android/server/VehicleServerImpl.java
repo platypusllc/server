@@ -67,6 +67,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
     protected final Object _captureLock = new Object();
     protected final Object _navigationLock = new Object();
+    protected final Object _waypointLock = new Object();
     // Status information
     final AtomicBoolean _isConnected = new AtomicBoolean(false);
     final AtomicBoolean _isAutonomous = new AtomicBoolean(false);
@@ -86,12 +87,30 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     private final Timer _captureTimer = new Timer();
     protected UtmPose[] _waypoints = new UtmPose[0];
     int current_waypoint_index = -1;
-    boolean start_waypoints_from_tablet = true;
     public void incrementWaypointIndex()
     {
-        current_waypoint_index++;
-        Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index));
+        synchronized (_waypointLock)
+        {
+            current_waypoint_index++;
+            Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index));
+        }
     }
+    public UtmPose getCurrentWaypoint()
+    {
+        synchronized (_waypointLock)
+        {
+            if (current_waypoint_index >= 0)
+            {
+                return _waypoints[current_waypoint_index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+
+
     protected TimerTask _captureTask = null;
     protected TimerTask _navigationTask = null;
     ScheduledFuture mVelocityFuture = null;
@@ -775,8 +794,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public int getNumSensors() {
         return NUM_SENSORS;
-        //Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
-        //return current_waypoint_index;
     }
 
     @Override
@@ -813,77 +830,68 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         sendState(_utmPose);
     }
 
-    public void internal_startWaypoints_wrapper(final UtmPose[] waypoints,
-                                                final String controller)
-    {
-        // This is allows the phone to tell the difference between an internal call and one from the operator
-        start_waypoints_from_tablet = false;
-        startWaypoints(waypoints, controller);
-    }
-
     @Override
-    public void startWaypoints(final UtmPose[] waypoints,
-                               final String controller) {
-
+    public void startWaypoints(final UtmPose[] waypoints, final String controller)
+    {
         Log.i(TAG, "Starting waypoints with " + controller + ": "
                 + Arrays.toString(waypoints));
+
+        synchronized (_waypointLock)
+        {
+            if (waypoints.length > 0)
+            {
+                current_waypoint_index = 0;
+            }
+            _waypoints = new UtmPose[waypoints.length];
+            System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
+        }
 
         // Create a waypoint navigation task
         TimerTask newNavigationTask = new TimerTask() {
             final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
-            // Retrieve the appropriate controller in initializer
-            VehicleController vc = DEFAULT_CONTROLLER;
-
-            {
-                try {
-                    vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
-                    //Log.i(TAG, "vc:"+ vc.toString() + "controller" + controller );
-                } catch (IllegalArgumentException e) {
-                    Log.w(TAG, "Unknown controller specified (using " + vc
-                            + " instead): " + controller);
-                }
-            }
+            VehicleController vc = AirboatController.POINT_AND_SHOOT.controller;
 
             @Override
             public void run() {
-                synchronized (_navigationLock) {
-                    //Log.i(TAG, "Synchronized");
-
-                    if (!_isAutonomous.get()) {
-                        // If we are not autonomous, do nothing
-                        Log.i(TAG, "Paused");
-                        sendWaypointUpdate(WaypointState.PAUSED);
-                    } else if (_waypoints.length == 0) {
-                        // If we are finished with waypoints, stop in place
+                int wp_index;
+                synchronized (_waypointLock)
+                {
+                    wp_index = current_waypoint_index;
+                }
+                if (!_isAutonomous.get())
+                {
+                    // If we are not autonomous, do nothing
+                    Log.i(TAG, "Paused");
+                    sendWaypointUpdate(WaypointState.PAUSED);
+                }
+                else if (wp_index == _waypoints.length)
+                {
+                    // finished
+                    synchronized (_waypointLock)
+                    {
                         current_waypoint_index = -1;
-                        Log.i(TAG, "Done");
-                        sendWaypointUpdate(WaypointState.DONE);
+                    }
+                    Log.i(TAG, "Done");
+                    sendWaypointUpdate(WaypointState.DONE);
+                    synchronized (_navigationLock)
+                    {
                         setVelocity(new Twist(DEFAULT_TWIST));
                         this.cancel();
                         _navigationTask = null;
-
-                    } else {
-                        // If we are still executing waypoints, use a
-                        // controller to figure out how to get to waypoint
-                        // TODO: measure dt directly instead of approximating
-                        Log.d(TAG, "controller :" + controller);
-                        vc.update(VehicleServerImpl.this, dt);
-                        sendWaypointUpdate(WaypointState.GOING);
                     }
+                }
+                else
+                {
+                    // TODO: measure dt directly instead of approximating
+                    Log.d(TAG, "controller.update(), " + controller);
+                    vc.update(VehicleServerImpl.this, dt);
+                    sendWaypointUpdate(WaypointState.GOING);
                 }
             }
         };
 
         synchronized (_navigationLock) {
-            // Change waypoints to new set of waypoints
-            _waypoints = new UtmPose[waypoints.length];
-
-            if (start_waypoints_from_tablet) current_waypoint_index = 0;
-            start_waypoints_from_tablet = true;
-
-            System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
-
             // Cancel any previous navigation tasks
             if (_navigationTask != null) _navigationTask.cancel();
 
@@ -911,11 +919,14 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             if (_navigationTask != null) {
                 _navigationTask.cancel();
                 _navigationTask = null;
-                _waypoints = new UtmPose[0];
-                current_waypoint_index = -1;
                 setVelocity(new Twist(DEFAULT_TWIST));
                 Log.i(TAG, "StopWaypoint");
             }
+        }
+        synchronized (_waypointLock)
+        {
+            _waypoints = new UtmPose[0];
+            current_waypoint_index = -1;
         }
         sendWaypointUpdate(WaypointState.CANCELLED);
     }
@@ -923,7 +934,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public UtmPose[] getWaypoints() {
         UtmPose[] wpts;
-        synchronized (_navigationLock) {
+        synchronized (_waypointLock) {
             wpts = new UtmPose[_waypoints.length];
             System.arraycopy(_waypoints, 0, wpts, 0, wpts.length);
         }
@@ -932,7 +943,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public WaypointState getWaypointStatus() {
-        synchronized (_navigationLock) {
+        synchronized (_waypointLock) {
             if (_waypoints.length > 0) {
                 return _isAutonomous.get() ? WaypointState.PAUSED
                         : WaypointState.GOING;
