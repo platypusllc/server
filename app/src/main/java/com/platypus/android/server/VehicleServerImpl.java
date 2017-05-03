@@ -34,6 +34,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -128,6 +129,85 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     NotificationManager notificationManager;
     //Define sound URI
     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+    private final Object _failsafe_check_lock = new Object();
+    double battery_voltage = 16.0;
+    final private long HEARTBEAT_MAX_WAIT_MS = 30000;
+    final private double FAILSAFE_TRIGGER_VOLTAGE = 14.0;
+    private AtomicLong last_heartbeat = new AtomicLong(0);
+    private AtomicBoolean is_executing_failsafe = new AtomicBoolean(false);
+    private final Timer _failsafe_timer = new Timer();
+    private TimerTask failsafe_check = new TimerTask() {
+        double local_battery_voltage;
+        long ms_since_last_heartbeat;
+        @Override
+        public void run() {
+            ms_since_last_heartbeat = System.currentTimeMillis() - last_heartbeat.get();
+            synchronized (_failsafe_check_lock) { local_battery_voltage = battery_voltage; }
+            if (!is_executing_failsafe.get()) //
+            {
+                if (local_battery_voltage < FAILSAFE_TRIGGER_VOLTAGE)
+                {
+                    is_executing_failsafe.set(true);
+                }
+                else if ((ms_since_last_heartbeat > HEARTBEAT_MAX_WAIT_MS) && !_isAutonomous.get())
+                {
+                    is_executing_failsafe.set(true);
+                }
+
+                if (is_executing_failsafe.get())
+                {
+                    // need to execute a single start waypoints command
+                    // need current position and home position
+                    UtmPose[] waypoints = new UtmPose[1];
+                    double home_latitude = 0.0;
+                    double home_longitude = 0.0;
+                    UTM home_utm = UTM.latLongToUtm(
+                            LatLong.valueOf(home_latitude, home_longitude, NonSI.DEGREE_ANGLE),
+                            ReferenceEllipsoid.WGS84);
+                    // Convert to UTM data structure
+                    Pose3D home_pose = new Pose3D(home_utm.eastingValue(SI.METER),
+                            home_utm.northingValue(SI.METER),
+                            0.0,
+                            Quaternion.fromEulerAngles(0, 0, 0));
+                    Utm origin = new Utm(home_utm.longitudeZone(),
+                            home_utm.latitudeZone() > 'O');
+                    UtmPose home_utmpose = new UtmPose(home_pose, origin);
+                    waypoints[0] = home_utmpose;
+                    startWaypoints(waypoints, AirboatController.POINT_AND_SHOOT.toString());
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // already executing the failsafe
+                // if operator heartbeat reappears, stop returning home
+                if (ms_since_last_heartbeat < HEARTBEAT_MAX_WAIT_MS &&
+                        local_battery_voltage > FAILSAFE_TRIGGER_VOLTAGE)
+                {
+                    stopWaypoints();
+                }
+            }
+
+            /*
+            ASDF
+            Check voltage
+            Check operator heartbeat
+            Check if executing waypoints
+            If voltage < preferences setting, execute failsafe
+            If time since last operator heartbeat > preferences setting and not executing waypoints, execute failsafe
+            If current executing failsafe and voltage > minimum allowed and now there is an operator heartbeat, stop executing failsafe
+
+            Executing failsafe:
+                set is_executing_failsafe boolean to true
+                create list of waypoints to follow to return home (simple is just the home waypoint)
+                start executing those waypoints
+             */
+        }
+    };
 
     boolean[] received_expected_sensor_type = {false, false, false};
     public void reset_expected_sensors()
@@ -292,6 +372,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
         _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
+        _failsafe_timer.scheduleAtFixedRate(failsafe_check, 0, 10000);
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
@@ -571,6 +652,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 // Parse out voltage and motor velocity values
                                 String[] data = value.getString("data").trim().split(" ");
                                 double voltage = Double.parseDouble(data[0]);
+                                synchronized (_failsafe_check_lock)
+                                {
+                                    battery_voltage = voltage;
+                                }
                                 double motor0Velocity = Double.parseDouble(data[1]);
                                 double motor1Velocity = Double.parseDouble(data[2]);
 
@@ -856,6 +941,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         sendWaypointUpdate(WaypointState.PAUSED);
                     } else if (_waypoints.length == 0) {
                         // If we are finished with waypoints, stop in place
+                        _isAutonomous.set(false);
                         current_waypoint_index = -1;
                         Log.i(TAG, "Done");
                         sendWaypointUpdate(WaypointState.DONE);
@@ -912,6 +998,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 _navigationTask.cancel();
                 _navigationTask = null;
                 _waypoints = new UtmPose[0];
+                _isAutonomous.set(false);
                 current_waypoint_index = -1;
                 setVelocity(new Twist(DEFAULT_TWIST));
                 Log.i(TAG, "StopWaypoint");
@@ -944,6 +1031,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public int getWaypointsIndex() {
+        last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
         Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
         return current_waypoint_index;
     }
