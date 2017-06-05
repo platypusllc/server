@@ -352,7 +352,38 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     .putFloat("gain_tI", (float) t_PID[1])
                     .putFloat("gain_tD", (float) t_PID[2])
                     .apply();
+        } else if (axis == 7)
+        {
+            //k[0]
+            JSONObject command = new JSONObject();
+            JSONObject samplerSettings = new JSONObject();
+            try
+            {
+                if (k[0] != -1)
+                {
+                    String sampler = Double.toString(k[0]);
+                    samplerSettings.put("e",sampler); //sends enable
+
+                } else if (k[0] == -1)
+                {
+                    samplerSettings.put("r",""); //sends reset
+                }
+                //this s1 probably should not be hardcoded and should be handled by the firmware and made into a s2 from like "GrabSampler"
+                System.out.println(k[0]);
+                command.put("s1", samplerSettings);
+                mController.send(command);
+                mLogger.info(new JSONObject().put("cmd", command));
+            }
+            catch (JSONException e)
+            {
+                Log.w(TAG, "Unable to construct JSON string from sampler command: " + Arrays.toString(k));
+            }
+            catch (IOException e)
+            {
+                Log.w(TAG, "Unable to send sampler command.", e);
+            }
         }
+
 
         // Log the new gain settings to the logfile.
         try {
