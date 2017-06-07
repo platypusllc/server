@@ -26,14 +26,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -165,6 +168,89 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     NotificationManager notificationManager;
     //Define sound URI
     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+    private UTM home_UTM = null;
+    private Object home_lock = new Object();
+    boolean first_autonomy = true; // used to generate a home_UTM automatically once
+    public UTM UtmPose_to_UTM(UtmPose utmPose)
+    {
+        return UTM.valueOf (
+                utmPose.origin.zone,
+                utmPose.origin.isNorth ? 'T' : 'L',
+                utmPose.pose.getX(),
+                utmPose.pose.getY(),
+                SI.METER
+        );
+    }
+    public LatLong UtmPose_to_LatLng(UtmPose utmPose)
+    {
+        return UTM.utmToLatLong(UtmPose_to_UTM(utmPose), ReferenceEllipsoid.WGS84);
+    }
+    public UtmPose UTM_to_UtmPose(UTM utm)
+    {
+        Pose3D pose = new Pose3D(utm.eastingValue(SI.METER),
+                utm.northingValue(SI.METER),
+                0.0,
+                Quaternion.fromEulerAngles(0, 0, 0));
+        Utm origin = new Utm(utm.longitudeZone(),
+                utm.latitudeZone() > 'O');
+        return new UtmPose(pose, origin);
+    }
+    public UtmPose LatLng_to_UtmPose(LatLong latlong)
+    {
+        // Convert from lat/long to UTM coordinates
+        UTM utm = UTM.latLongToUtm(latlong, ReferenceEllipsoid.WGS84);
+        return UTM_to_UtmPose(utm);
+    }
+    private final Object _failsafe_check_lock = new Object();
+    double battery_voltage = 16.0;
+    final private long HEARTBEAT_MAX_WAIT_MS = 30000;
+    final private double FAILSAFE_TRIGGER_VOLTAGE = 14.0;
+    private AtomicLong last_heartbeat = new AtomicLong(0);
+    private AtomicBoolean is_executing_failsafe = new AtomicBoolean(false);
+    private final Timer _failsafe_timer = new Timer();
+    private TimerTask failsafe_check = new TimerTask() {
+        double local_battery_voltage;
+        long ms_since_last_heartbeat;
+        @Override
+        public void run()
+        {
+            ms_since_last_heartbeat = System.currentTimeMillis() - last_heartbeat.get();
+            synchronized (_failsafe_check_lock) { local_battery_voltage = battery_voltage; }
+            if (!is_executing_failsafe.get()) //
+            {
+                if (local_battery_voltage < FAILSAFE_TRIGGER_VOLTAGE)
+                {
+                    is_executing_failsafe.set(true);
+                }
+                else if ((ms_since_last_heartbeat > HEARTBEAT_MAX_WAIT_MS) && !_isAutonomous.get())
+                {
+                    is_executing_failsafe.set(true);
+                }
+
+                if (is_executing_failsafe.get())
+                {
+                    startGoHome();
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // already executing the failsafe
+                // if operator heartbeat reappears and battery voltage is enough, stop returning home
+                /*
+                if (ms_since_last_heartbeat < HEARTBEAT_MAX_WAIT_MS &&
+                        local_battery_voltage > FAILSAFE_TRIGGER_VOLTAGE)
+                {
+                    stopWaypoints();
+                }
+                */
+            }
+        }
+    };
 
     boolean[] received_expected_sensor_type = {false, false, false};
     public void reset_expected_sensors()
@@ -329,6 +415,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
         _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
+        _failsafe_timer.scheduleAtFixedRate(failsafe_check, 0, 10000);
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
@@ -410,6 +497,54 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             return new double[]{winch_depth_, 0.0, 0.0};
         else
             return NAN_GAINS;
+    }
+
+    @Override
+    public void setHome(UtmPose utmPose)
+    {
+        synchronized (home_lock)
+        {
+            home_UTM = UtmPose_to_UTM(utmPose);
+        }
+    }
+
+    @Override
+    public UtmPose getHome()
+    {
+        synchronized (home_lock)
+        {
+            return UTM_to_UtmPose(home_UTM);
+        }
+    }
+
+    @Override
+    public void startGoHome()
+    {
+        is_executing_failsafe.set(true);
+        // need to execute a single start waypoints command
+        // need current position and home position
+        // START the go home action
+        UTM current_location = UTM.valueOf(
+                _utmPose.origin.zone,
+                _utmPose.origin.isNorth ? 'T' : 'L',
+                _utmPose.pose.getX(),
+                _utmPose.pose.getY(),
+                SI.METER);
+
+        /////////////////////////////////////////////
+        // List<Long> path_crumb_indices = Crumb.aStar(current_location, home_UTM);
+        List<Long> path_crumb_indices = Crumb.straightHome(current_location, home_UTM);
+        /////////////////////////////////////////////
+
+        UtmPose[] path_waypoints = new UtmPose[path_crumb_indices.size()];
+        int wp_index = 0;
+        for (long index : path_crumb_indices)
+        {
+            UTM wp = Crumb.crumbs_by_index.get(index).getLocation();
+            path_waypoints[wp_index] = UTM_to_UtmPose(wp);
+            wp_index++;
+        }
+        startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
     }
 
     /**
@@ -608,6 +743,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 // Parse out voltage and motor velocity values
                                 String[] data = value.getString("data").trim().split(" ");
                                 double voltage = Double.parseDouble(data[0]);
+                                synchronized (_failsafe_check_lock)
+                                {
+                                    battery_voltage = voltage;
+                                }
                                 double motor0Velocity = Double.parseDouble(data[1]);
                                 double motor1Velocity = Double.parseDouble(data[2]);
 
@@ -974,6 +1113,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public int getWaypointsIndex() {
+        last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
         Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
         return current_waypoint_index;
     }
@@ -1017,6 +1157,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public void setAutonomous(boolean isAutonomous) {
         _isAutonomous.set(isAutonomous);
+        if (isAutonomous && first_autonomy)
+        {
+            first_autonomy = false;
+            home_UTM = UtmPose_to_UTM(_utmPose);
+        }
 
         // Set velocities to zero to allow for safer transitions
         _velocities = new Twist(DEFAULT_TWIST);
