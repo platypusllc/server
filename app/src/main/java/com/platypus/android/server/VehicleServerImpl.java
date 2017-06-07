@@ -193,30 +193,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                 if (is_executing_failsafe.get())
                 {
-                    // need to execute a single start waypoints command
-                    // need current position and home position
-                    // START the go home action
-                    UTM current_location = UTM.valueOf(
-                            _utmPose.origin.zone,
-                            _utmPose.origin.isNorth ? 'T' : 'L',
-                            _utmPose.pose.getX(),
-                            _utmPose.pose.getY(),
-                            SI.METER);
-
-                    /////////////////////////////////////////////
-                    // List<Long> path_crumb_indices = Crumb.aStar(current_location, home_UTM);
-                    List<Long> path_crumb_indices = Crumb.straightHome(current_location, home_UTM);
-                    /////////////////////////////////////////////
-
-                    UtmPose[] path_waypoints = new UtmPose[path_crumb_indices.size()];
-                    int wp_index = 0;
-                    for (long index : path_crumb_indices)
-                    {
-                        UTM wp = Crumb.crumbs_by_index.get(index).getLocation();
-                        path_waypoints[wp_index] = UTM_to_UtmPose(wp);
-                        wp_index++;
-                    }
-                    startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
+                    startGoHome();
                 }
                 else
                 {
@@ -483,6 +460,54 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             return new double[]{winch_depth_, 0.0, 0.0};
         else
             return NAN_GAINS;
+    }
+
+    @Override
+    public void setHome(UtmPose utmPose)
+    {
+        synchronized (home_lock)
+        {
+            home_UTM = UtmPose_to_UTM(utmPose);
+        }
+    }
+
+    @Override
+    public UtmPose getHome()
+    {
+        synchronized (home_lock)
+        {
+            return UTM_to_UtmPose(home_UTM);
+        }
+    }
+
+    @Override
+    public void startGoHome()
+    {
+        is_executing_failsafe.set(true);
+        // need to execute a single start waypoints command
+        // need current position and home position
+        // START the go home action
+        UTM current_location = UTM.valueOf(
+                _utmPose.origin.zone,
+                _utmPose.origin.isNorth ? 'T' : 'L',
+                _utmPose.pose.getX(),
+                _utmPose.pose.getY(),
+                SI.METER);
+
+        /////////////////////////////////////////////
+        // List<Long> path_crumb_indices = Crumb.aStar(current_location, home_UTM);
+        List<Long> path_crumb_indices = Crumb.straightHome(current_location, home_UTM);
+        /////////////////////////////////////////////
+
+        UtmPose[] path_waypoints = new UtmPose[path_crumb_indices.size()];
+        int wp_index = 0;
+        for (long index : path_crumb_indices)
+        {
+            UTM wp = Crumb.crumbs_by_index.get(index).getLocation();
+            path_waypoints[wp_index] = UTM_to_UtmPose(wp);
+            wp_index++;
+        }
+        startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
     }
 
     /**
