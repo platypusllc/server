@@ -46,7 +46,6 @@ public class Crumb
 		public static Map<Long, List<Long>> neighbors = new HashMap<>();
 
 		// Static methods
-
 		public static double distanceBetweenUTM(UTM location_i, UTM location_j)
 		{
 				return Math.sqrt(
@@ -96,6 +95,17 @@ public class Crumb
 						}
 				}
 				return new_index;
+		}
+
+		public static List<Long> straightHome(UTM start, UTM goal)
+		{
+				// Simple: go straight home from the start
+				List<Long> path_sequence = new ArrayList<>();
+				long start_index = newCrumb(start);
+				long goal_index = newCrumb(goal);
+				path_sequence.add(start_index);
+				path_sequence.add(goal_index);
+				return path_sequence;
 		}
 
 		public static List<Long> aStar(UTM start, UTM goal)

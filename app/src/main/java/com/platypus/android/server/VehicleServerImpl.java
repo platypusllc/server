@@ -26,8 +26,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledFuture;
@@ -130,6 +132,39 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     //Define sound URI
     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
+    private UTM home_UTM = null;
+    private Object home_lock = new Object();
+    boolean first_autonomy = true; // used to generate a home_UTM automatically once
+    public UTM UtmPose_to_UTM(UtmPose utmPose)
+    {
+        return UTM.valueOf (
+                utmPose.origin.zone,
+                utmPose.origin.isNorth ? 'T' : 'L',
+                utmPose.pose.getX(),
+                utmPose.pose.getY(),
+                SI.METER
+        );
+    }
+    public LatLong UtmPose_to_LatLng(UtmPose utmPose)
+    {
+        return UTM.utmToLatLong(UtmPose_to_UTM(utmPose), ReferenceEllipsoid.WGS84);
+    }
+    public UtmPose UTM_to_UtmPose(UTM utm)
+    {
+        Pose3D pose = new Pose3D(utm.eastingValue(SI.METER),
+                utm.northingValue(SI.METER),
+                0.0,
+                Quaternion.fromEulerAngles(0, 0, 0));
+        Utm origin = new Utm(utm.longitudeZone(),
+                utm.latitudeZone() > 'O');
+        return new UtmPose(pose, origin);
+    }
+    public UtmPose LatLng_to_UtmPose(LatLong latlong)
+    {
+        // Convert from lat/long to UTM coordinates
+        UTM utm = UTM.latLongToUtm(latlong, ReferenceEllipsoid.WGS84);
+        return UTM_to_UtmPose(utm);
+    }
     private final Object _failsafe_check_lock = new Object();
     double battery_voltage = 16.0;
     final private long HEARTBEAT_MAX_WAIT_MS = 30000;
@@ -141,7 +176,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         double local_battery_voltage;
         long ms_since_last_heartbeat;
         @Override
-        public void run() {
+        public void run()
+        {
             ms_since_last_heartbeat = System.currentTimeMillis() - last_heartbeat.get();
             synchronized (_failsafe_check_lock) { local_battery_voltage = battery_voltage; }
             if (!is_executing_failsafe.get()) //
@@ -159,22 +195,28 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 {
                     // need to execute a single start waypoints command
                     // need current position and home position
-                    UtmPose[] waypoints = new UtmPose[1];
-                    double home_latitude = 0.0;
-                    double home_longitude = 0.0;
-                    UTM home_utm = UTM.latLongToUtm(
-                            LatLong.valueOf(home_latitude, home_longitude, NonSI.DEGREE_ANGLE),
-                            ReferenceEllipsoid.WGS84);
-                    // Convert to UTM data structure
-                    Pose3D home_pose = new Pose3D(home_utm.eastingValue(SI.METER),
-                            home_utm.northingValue(SI.METER),
-                            0.0,
-                            Quaternion.fromEulerAngles(0, 0, 0));
-                    Utm origin = new Utm(home_utm.longitudeZone(),
-                            home_utm.latitudeZone() > 'O');
-                    UtmPose home_utmpose = new UtmPose(home_pose, origin);
-                    waypoints[0] = home_utmpose;
-                    startWaypoints(waypoints, AirboatController.POINT_AND_SHOOT.toString());
+                    // START the go home action
+                    UTM current_location = UTM.valueOf(
+                            _utmPose.origin.zone,
+                            _utmPose.origin.isNorth ? 'T' : 'L',
+                            _utmPose.pose.getX(),
+                            _utmPose.pose.getY(),
+                            SI.METER);
+
+                    /////////////////////////////////////////////
+                    // List<Long> path_crumb_indices = Crumb.aStar(current_location, home_UTM);
+                    List<Long> path_crumb_indices = Crumb.straightHome(current_location, home_UTM);
+                    /////////////////////////////////////////////
+
+                    UtmPose[] path_waypoints = new UtmPose[path_crumb_indices.size()];
+                    int wp_index = 0;
+                    for (long index : path_crumb_indices)
+                    {
+                        UTM wp = Crumb.crumbs_by_index.get(index).getLocation();
+                        path_waypoints[wp_index] = UTM_to_UtmPose(wp);
+                        wp_index++;
+                    }
+                    startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
                 }
                 else
                 {
@@ -184,28 +226,15 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             else
             {
                 // already executing the failsafe
-                // if operator heartbeat reappears, stop returning home
+                // if operator heartbeat reappears and battery voltage is enough, stop returning home
+                /*
                 if (ms_since_last_heartbeat < HEARTBEAT_MAX_WAIT_MS &&
                         local_battery_voltage > FAILSAFE_TRIGGER_VOLTAGE)
                 {
                     stopWaypoints();
                 }
+                */
             }
-
-            /*
-            ASDF
-            Check voltage
-            Check operator heartbeat
-            Check if executing waypoints
-            If voltage < preferences setting, execute failsafe
-            If time since last operator heartbeat > preferences setting and not executing waypoints, execute failsafe
-            If current executing failsafe and voltage > minimum allowed and now there is an operator heartbeat, stop executing failsafe
-
-            Executing failsafe:
-                set is_executing_failsafe boolean to true
-                create list of waypoints to follow to return home (simple is just the home waypoint)
-                start executing those waypoints
-             */
         }
     };
 
@@ -1075,6 +1104,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public void setAutonomous(boolean isAutonomous) {
         _isAutonomous.set(isAutonomous);
+        if (isAutonomous && first_autonomy)
+        {
+            first_autonomy = false;
+            home_UTM = UtmPose_to_UTM(_utmPose);
+        }
 
         // Set velocities to zero to allow for safer transitions
         _velocities = new Twist(DEFAULT_TWIST);
