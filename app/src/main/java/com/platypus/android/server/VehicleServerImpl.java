@@ -38,8 +38,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-//import robotutils.Pose3D;
-//import robotutils.Quaternion;
 import com.platypus.crw.data.Pose3D;
 import com.platypus.crw.data.Quaternion;
 
@@ -87,6 +85,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     private final Timer _navigationTimer = new Timer();
     private final Timer _captureTimer = new Timer();
     protected UtmPose[] _waypoints = new UtmPose[0];
+    int current_waypoint_index = -1;
+    boolean start_waypoints_from_tablet = true;
+    public void incrementWaypointIndex()
+    {
+        current_waypoint_index++;
+        Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index));
+    }
     protected TimerTask _captureTask = null;
     protected TimerTask _navigationTask = null;
     ScheduledFuture mVelocityFuture = null;
@@ -770,6 +775,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public int getNumSensors() {
         return NUM_SENSORS;
+        //Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
+        //return current_waypoint_index;
     }
 
     @Override
@@ -806,9 +813,18 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         sendState(_utmPose);
     }
 
+    public void internal_startWaypoints_wrapper(final UtmPose[] waypoints,
+                                                final String controller)
+    {
+        // This is allows the phone to tell the difference between an internal call and one from the operator
+        start_waypoints_from_tablet = false;
+        startWaypoints(waypoints, controller);
+    }
+
     @Override
     public void startWaypoints(final UtmPose[] waypoints,
                                final String controller) {
+
         Log.i(TAG, "Starting waypoints with " + controller + ": "
                 + Arrays.toString(waypoints));
 
@@ -840,6 +856,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         sendWaypointUpdate(WaypointState.PAUSED);
                     } else if (_waypoints.length == 0) {
                         // If we are finished with waypoints, stop in place
+                        current_waypoint_index = -1;
                         Log.i(TAG, "Done");
                         sendWaypointUpdate(WaypointState.DONE);
                         setVelocity(new Twist(DEFAULT_TWIST));
@@ -850,10 +867,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         // If we are still executing waypoints, use a
                         // controller to figure out how to get to waypoint
                         // TODO: measure dt directly instead of approximating
-                        Log.i(TAG, "controller :" + controller);
+                        Log.d(TAG, "controller :" + controller);
                         vc.update(VehicleServerImpl.this, dt);
                         sendWaypointUpdate(WaypointState.GOING);
-                        //Log.i(TAG, "Waypoint Status: POINT_AND_SHOOT");
                     }
                 }
             }
@@ -862,11 +878,14 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         synchronized (_navigationLock) {
             // Change waypoints to new set of waypoints
             _waypoints = new UtmPose[waypoints.length];
+
+            if (start_waypoints_from_tablet) current_waypoint_index = 0;
+            start_waypoints_from_tablet = true;
+
             System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
 
             // Cancel any previous navigation tasks
-            if (_navigationTask != null)
-                _navigationTask.cancel();
+            if (_navigationTask != null) _navigationTask.cancel();
 
             // Schedule this task for execution
             _navigationTask = newNavigationTask;
@@ -893,6 +912,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 _navigationTask.cancel();
                 _navigationTask = null;
                 _waypoints = new UtmPose[0];
+                current_waypoint_index = -1;
                 setVelocity(new Twist(DEFAULT_TWIST));
                 Log.i(TAG, "StopWaypoint");
             }
@@ -920,6 +940,12 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 return WaypointState.DONE;
             }
         }
+    }
+
+    @Override
+    public int getWaypointsIndex() {
+        Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
+        return current_waypoint_index;
     }
 
     /**

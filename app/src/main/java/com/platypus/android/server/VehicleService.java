@@ -50,8 +50,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-//import robotutils.Pose3D;
-//import robotutils.Quaternion;
 import com.platypus.crw.data.Pose3D;
 import com.platypus.crw.data.Quaternion;
 
