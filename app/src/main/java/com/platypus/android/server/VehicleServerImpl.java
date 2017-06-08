@@ -171,7 +171,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     private UTM home_UTM = null;
     private Object home_lock = new Object();
-    boolean first_autonomy = true; // used to generate a home_UTM automatically once
+    AtomicBoolean first_autonomy = new AtomicBoolean(true); // used to generate a home_UTM automatically once
     public UTM UtmPose_to_UTM(UtmPose utmPose)
     {
         return UTM.valueOf (
@@ -204,32 +204,36 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     }
     private final Object _failsafe_check_lock = new Object();
     double battery_voltage = 16.0;
-    final private long HEARTBEAT_MAX_WAIT_MS = 30000;
+    final private long HEARTBEAT_MAX_WAIT_MS = 60000;
     final private double FAILSAFE_TRIGGER_VOLTAGE = 14.0;
-    private AtomicLong last_heartbeat = new AtomicLong(0);
+    private AtomicLong last_heartbeat = new AtomicLong(System.currentTimeMillis());
     private AtomicBoolean is_executing_failsafe = new AtomicBoolean(false);
     private final Timer _failsafe_timer = new Timer();
     private TimerTask failsafe_check = new TimerTask() {
-        double local_battery_voltage;
+        double local_battery_voltage = 0;
         long ms_since_last_heartbeat;
         @Override
         public void run()
         {
+            if (first_autonomy.get()) return; // don't even bother with these checks until the boat is autonomous once
             ms_since_last_heartbeat = System.currentTimeMillis() - last_heartbeat.get();
             synchronized (_failsafe_check_lock) { local_battery_voltage = battery_voltage; }
             if (!is_executing_failsafe.get()) //
             {
                 if (local_battery_voltage < FAILSAFE_TRIGGER_VOLTAGE)
                 {
+                    Log.e(TAG, "triggering failsafe, battery is low");
                     is_executing_failsafe.set(true);
                 }
                 else if ((ms_since_last_heartbeat > HEARTBEAT_MAX_WAIT_MS) && !_isAutonomous.get())
                 {
+                    Log.e(TAG, "triggering failsafe, no operator heartbeat");
                     is_executing_failsafe.set(true);
                 }
 
                 if (is_executing_failsafe.get())
                 {
+                    Log.e(TAG, "triggering failsafe...");
                     startGoHome();
                 }
                 else
@@ -520,6 +524,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public void startGoHome()
     {
+        if (home_UTM == null)
+        {
+            Log.e(TAG, "Cannot trigger failsafe, home is null");
+        }
         is_executing_failsafe.set(true);
         // need to execute a single start waypoints command
         // need current position and home position
@@ -990,6 +998,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public void startWaypoints(final UtmPose[] waypoints, final String controller)
     {
+        last_heartbeat.set(System.currentTimeMillis());
         Log.i(TAG, "Starting waypoints with " + controller + ": "
                 + Arrays.toString(waypoints));
 
@@ -1071,6 +1080,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public void stopWaypoints() {
+        last_heartbeat.set(System.currentTimeMillis());
         // Stop the thread that is doing the "navigation" by terminating its
         // navigation process, clear all the waypoints, and stop the vehicle.
         synchronized (_navigationLock) {
@@ -1129,6 +1139,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * Sets a desired 6D velocity for the vehicle.
      */
     public void setVelocity(Twist vel) {
+        last_heartbeat.set(System.currentTimeMillis());
         _velocities = vel.clone();
 
         // Schedule a task to shutdown the velocity if no command is received within the timeout.
@@ -1156,10 +1167,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public void setAutonomous(boolean isAutonomous) {
+        last_heartbeat.set(System.currentTimeMillis());
         _isAutonomous.set(isAutonomous);
-        if (isAutonomous && first_autonomy)
+        if (isAutonomous && first_autonomy.get())
         {
-            first_autonomy = false;
+            first_autonomy.set(false);
             home_UTM = UtmPose_to_UTM(_utmPose);
         }
 
