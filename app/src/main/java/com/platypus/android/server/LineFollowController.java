@@ -22,6 +22,7 @@ class LineFollowController implements VehicleController {
     double[] rudder_pids;
     double[] thrust_pids;
     double base_thrust, thrust_coefficient;
+    String logTag = "LineFollow";
 
     private double x_dest, x_source, x_current, y_dest, y_source, y_current, th_full, th_current;
     private double x_projected, y_projected, x_lookahead, y_lookahead;
@@ -46,17 +47,20 @@ class LineFollowController implements VehicleController {
         int current_wp_index = server_impl.getCurrentWaypointIndex();
         if (current_wp_index < 0)
         {
+            Log.d(logTag, "No waypoints. T = 0, R = 0");
             server.setVelocity(twist);
             return;
         }
         if (last_wp_index != current_wp_index)
         {
+            Log.d(logTag, "New/Next waypoint");
             heading_error_accum = 0.0; // reset any integral terms
             last_wp_index = current_wp_index;
 
             UtmPose destination_UtmPose = server_impl.getCurrentWaypoint();
             if (destination_UtmPose == null)
             {
+                Log.d(logTag, "Next waypoint is null. T = 0, R = 0");
                 server.setVelocity(twist);
                 return;
             }
@@ -65,22 +69,27 @@ class LineFollowController implements VehicleController {
             if (current_wp_index == 0)
             {
                 source_pose = current_pose.clone();
+                Log.d(logTag, "First waypoint. Source pose = current pose");
             }
             else
             {
                 UtmPose source_UtmPose = server_impl.getSpecificWaypoint(current_wp_index-1);
                 source_pose = source_UtmPose.pose;
+                Log.d(logTag, String.format("Next waypoint. Source pose = index %d", current_wp_index-1));
             }
 
             x_dest = destination_pose.getX();
             y_dest = destination_pose.getY();
             x_source = source_pose.getX();
             y_source = source_pose.getY();
+            Log.d(logTag, String.format("Source X = %.0f, Y = %.0f", x_source, y_source));
+            Log.d(logTag, String.format("Dest X = %.0f, Y = %.0f", x_dest, y_dest));
         }
 
         double distanceSq = planarDistanceSq(current_pose, destination_pose);
         if (distanceSq < SUFFICIENT_PROXIMITY*SUFFICIENT_PROXIMITY)
         {
+            Log.d(logTag, String.format("distance^2 = %.0f, switch to next waypoint", distanceSq));
             server_impl.incrementWaypointIndex();
         }
         else
@@ -88,6 +97,7 @@ class LineFollowController implements VehicleController {
             x_current = current_pose.getX();
             y_current = current_pose.getY();
             heading_current = current_pose.getRotation().toYaw();
+            Log.d(logTag, String.format("current X = %.0f, Y = %.0f, th = %.3f", x_current, y_current, heading_current));
 
             dx_full = x_dest - x_source;
             dx_current = x_dest - x_current;
@@ -95,27 +105,34 @@ class LineFollowController implements VehicleController {
             dy_current = y_dest - y_current;
             L_full = Math.sqrt(Math.pow(dx_full, 2.) + Math.pow(dy_full, 2.));
             L_current = Math.sqrt(Math.pow(dx_current, 2.) + Math.pow(dy_current, 2.));
+            Log.d(logTag, String.format("L-full = %.0f, L_current = %.0f", L_full, L_current));
             th_full = Math.atan2(dy_full, dx_full);
             th_current = Math.atan2(dy_current, dx_current);
             dth = Math.abs(AirboatController.minAngleBetween(th_full - th_current));
             projected_length = L_current*Math.cos(dth);
             distance_from_ideal_line = L_current*Math.sin(dth);
-            x_projected = x_source + L_current*Math.cos(th_full);
-            y_projected = y_source + L_current*Math.sin(th_full);
+            Log.d(logTag, String.format("d_to_line = %.2f", distance_from_ideal_line));
+            x_projected = x_dest - projected_length*Math.cos(th_full);
+            y_projected = y_dest - projected_length*Math.sin(th_full);
             x_lookahead = x_projected + LOOKAHEAD_DISTANCE*Math.cos(th_full);
             y_lookahead = y_projected + LOOKAHEAD_DISTANCE*Math.sin(th_full);
-            if (L_current + LOOKAHEAD_DISTANCE > L_full)
+
+            // never use a projected point beyond the destination
+            if (Math.sqrt(Math.pow((x_lookahead - x_source), 2.) + Math.pow((y_lookahead - y_source), 2.)) > L_full)
             {
                 x_lookahead = x_dest;
                 y_lookahead = y_dest;
             }
             dx_lookahead = x_lookahead - x_current;
             dy_lookahead = y_lookahead - y_current;
+            Log.d(logTag, String.format("dx_lookahead = %.1f, dy_lookahead = %.1f", dx_lookahead, dy_lookahead));
             heading_desired = Math.atan2(dy_lookahead, dx_lookahead);
-            heading_error = minAngleBetween(heading_current - heading_desired);
+            heading_error = minAngleBetween(heading_desired - heading_current);
+            Log.d(logTag, String.format("th_desired = %.3f, th_error = %.3f", heading_desired, heading_error));
 
             // PID
             rudder_pids = server_impl.getGains(5);
+            Log.d(logTag, String.format("Rudder PID = %.2f, %.2f, %.2f", rudder_pids[0], rudder_pids[1], rudder_pids[2]));
             heading_error_deriv = (heading_error - heading_error_old)/dt;
             if (rudder_pids[1] > 0.0)
             {
@@ -125,15 +142,23 @@ class LineFollowController implements VehicleController {
             heading_signal = rudder_pids[0]*heading_error
                     + rudder_pids[1]*heading_error_accum
                     + rudder_pids[2]*heading_error_deriv;
+            Log.d(logTag, String.format("heading signal = %.2f = %.2f + %.2f + %.2f",
+                    heading_signal,
+                    rudder_pids[0]*heading_error,
+                    rudder_pids[1]*heading_error_accum,
+                    rudder_pids[2]*heading_error_deriv));
 
             if (Math.abs(heading_signal) > 1.0)
             {
                 heading_signal = Math.copySign(1.0, heading_signal);
+                Log.d(logTag, String.format("heading_signal clipped to %.1f", heading_signal));
             }
 
             // thrust
             thrust_pids = server_impl.getGains(0);
+            Log.d(logTag, String.format("Thrust PID = %.2f, %.2f, %.2f", thrust_pids[0], thrust_pids[1], thrust_pids[2]));
             base_thrust = thrust_pids[0];
+            thrust_coefficient = 1.0;
             angle_from_projected_to_boat = Math.atan2(y_projected - y_current,
                     x_projected - x_current);
             cross_product = Math.cos(th_full)*Math.sin(angle_from_projected_to_boat) -
@@ -142,14 +167,17 @@ class LineFollowController implements VehicleController {
             {
                 if (cross_product < 0. && minAngleBetween(th_full - heading_current) < 0.)
                 {
+                    Log.d(logTag, "X-product negative, boat pointing away, do not thrust");
                     thrust_coefficient = 0.0;
                 }
                 if (cross_product > 0. && minAngleBetween(th_full - heading_current) < 0.)
                 {
+                    Log.d(logTag, "X-product positive, boat pointing away, do not thrust");
                     thrust_coefficient = 0.0;
                 }
             }
             thrust_signal = thrust_coefficient*base_thrust;
+            Log.d(logTag, String.format("Thrust signal = %.2f", thrust_signal));
 
             twist.dx(thrust_signal);
             twist.drz(heading_signal);

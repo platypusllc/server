@@ -169,7 +169,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     //Define sound URI
     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
-    private UTM home_UTM = null;
+    private UTM home_UTM = UtmPose_to_UTM(_utmPose); // cannot be null or core lib will crash
     private Object home_lock = new Object();
     AtomicBoolean first_autonomy = new AtomicBoolean(true); // used to generate a home_UTM automatically once
     public UTM UtmPose_to_UTM(UtmPose utmPose)
@@ -188,6 +188,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     }
     public UtmPose UTM_to_UtmPose(UTM utm)
     {
+        if (utm == null) return null;
         Pose3D pose = new Pose3D(utm.eastingValue(SI.METER),
                 utm.northingValue(SI.METER),
                 0.0,
