@@ -9,7 +9,7 @@ import com.platypus.crw.data.UtmPose;
 
 import com.platypus.crw.data.Pose3D;
 
-class LineFollowController implements VehicleController {
+public class LineFollowController implements VehicleController {
 
     private int last_wp_index = -2;
     private Pose3D source_pose;
@@ -175,6 +175,11 @@ class LineFollowController implements VehicleController {
                     Log.d(logTag, "X-product positive, boat pointing away, do not thrust");
                     thrust_coefficient = 0.0;
                 }
+            }
+            if (Math.abs(heading_error) > Math.PI/4.0)
+            {
+                Log.d(logTag, "heading error > 45 degrees, do not thrust");
+                thrust_coefficient = 0.0;
             }
             thrust_signal = thrust_coefficient*base_thrust;
             Log.d(logTag, String.format("Thrust signal = %.2f", thrust_signal));

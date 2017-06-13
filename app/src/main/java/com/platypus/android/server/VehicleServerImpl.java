@@ -64,7 +64,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
     public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
     public static final double SAFE_VECTORED_THRUST = 1.0;
-    public static final long VELOCITY_TIMEOUT_MS = 2000;
+    public static final long VELOCITY_TIMEOUT_MS = 10000;
     private static final String TAG = VehicleServerImpl.class.getName();
     protected final SharedPreferences mPrefs;
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
@@ -299,6 +299,32 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
     };
 
+    double[] scaleDown(double[] raw_signals)
+    {
+        double[] scaled_signals = raw_signals.clone();
+        boolean needs_scaling = false;
+        double max_signal = 0.0;
+        for (double signal : raw_signals)
+        {
+            if (Math.abs(signal) > 1.0)
+            {
+                needs_scaling = true;
+            }
+            if (Math.abs(signal) > max_signal)
+            {
+                max_signal = Math.abs(signal);
+            }
+        }
+        if (needs_scaling)
+        {
+            for (int i = 0; i < raw_signals.length; i++)
+            {
+                scaled_signals[i] = raw_signals[i]/max_signal;
+            }
+        }
+        return scaled_signals;
+    }
+
     /**
      * Internal update function called at regular intervals to process command
      * and control events.
@@ -326,12 +352,14 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     _context.getResources().getString(R.string.pref_vehicle_type_default));
             switch (vehicleType) {
                 case "DIFFERENTIAL":
+                {
                     // Construct objects to hold velocities
                     JSONObject velocity0 = new JSONObject();
                     JSONObject velocity1 = new JSONObject();
 
                     // Send velocities as a JSON command
-                    try {
+                    try
+                    {
                         double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -1.0, 1.0);
                         double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -1.0, 1.0);
 
@@ -353,20 +381,27 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         if (mController.isConnected())
                             mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
-                    } catch (JSONException e) {
+                    }
+                    catch (JSONException e)
+                    {
                         Log.w(TAG, "Failed to serialize command.", e);
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e)
+                    {
                         Log.w(TAG, "Failed to send command.", e);
                     }
-                    break;
+                }
+                break;
 
                 case "VECTORED":
+                {
                     // Construct objects to hold velocities
                     JSONObject thrust = new JSONObject();
                     JSONObject rudder = new JSONObject();
 
                     // Send velocities as a JSON command
-                    try {
+                    try
+                    {
                         double constrainedV = clip(_velocities.dx(), -1.0, 1.0);
 
                         // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
@@ -390,12 +425,87 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         if (mController.isConnected())
                             mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
-                    } catch (JSONException e) {
+                    }
+                    catch (JSONException e)
+                    {
                         Log.w(TAG, "Failed to serialize command.", e);
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e)
+                    {
                         Log.w(TAG, "Failed to send command.", e);
                     }
-                    break;
+                }
+                break;
+
+                case "PROP_GUARD":
+                {
+                    // Construct objects to hold velocities
+                    JSONObject velocity0 = new JSONObject();
+                    JSONObject velocity1 = new JSONObject();
+
+                    // Send velocities as a JSON command
+                    try
+                    {
+                        /*ASDF*/
+                        // to start out, I will *not* include the negative thrust bias
+                        // instead, i'll just have it just set thrust to zero while error is > 45 degrees
+
+                        // _velocities.dx() --> thrust effort fraction
+                        // _velocities.drz() --> heading effort fraction
+
+                        // try using the integral gain for thrust as the scale between positive and negative thrust
+                        double[] thrust_pids = getGains(0);
+                        if (thrust_pids[1] == 0)
+                        {
+                            thrust_pids[1] = 1.;
+                        }
+
+                        double[] rawV = {_velocities.dx() - _velocities.drz(),
+                                _velocities.dx() + _velocities.drz()};
+                        double[] constrainedV = scaleDown(rawV);
+                        double constrainedV0 = constrainedV[0];
+                        double constrainedV1 = constrainedV[1];
+
+                        // need to account for prop guard, reduce positive motor signals if turning in place
+                        if (Math.signum(constrainedV0) > 0 && Math.signum(constrainedV1) < 0)
+                        {
+                            constrainedV0 = constrainedV0/(thrust_pids[1]);
+                        }
+                        if (Math.signum(constrainedV0) > 0 && Math.signum(constrainedV1) < 0)
+                        {
+                            constrainedV0 = constrainedV0/(thrust_pids[1]);
+                        }
+
+                        // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
+                        constrainedV0 = map(constrainedV0,
+                                -1.0, 1.0, // Original range.
+                                -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                        constrainedV1 = map(constrainedV1,
+                                -1.0, 1.0, // Original range.
+                                -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+
+                        velocity0.put("v", (float) constrainedV0);
+                        velocity1.put("v", (float) constrainedV1);
+
+                        command.put("m0", velocity0);
+                        command.put("m1", velocity1);
+
+                        // Send and log the transmitted command.
+                        if (mController.isConnected())
+                            mController.send(command);
+                        mLogger.info(new JSONObject().put("cmd", command));
+                    }
+                    catch (JSONException e)
+                    {
+                        Log.w(TAG, "Failed to serialize command.", e);
+                    }
+                    catch (IOException e)
+                    {
+                        Log.w(TAG, "Failed to send command.", e);
+                    }
+                }
+                break;
+
                 default:
                     Log.w(TAG, "Unknown vehicle type: " + vehicleType);
             }
@@ -424,11 +534,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
-        r_PID[0] = mPrefs.getFloat("gain_rP", 1.0f);
+        r_PID[0] = mPrefs.getFloat("gain_rP", 0.7f);
         r_PID[1] = mPrefs.getFloat("gain_rI", 0.0f);
-        r_PID[2] = mPrefs.getFloat("gain_rD", 1.0f);
+        r_PID[2] = mPrefs.getFloat("gain_rD", 0.9f);
 
-        t_PID[0] = mPrefs.getFloat("gain_tP", 0.1f);
+        t_PID[0] = mPrefs.getFloat("gain_tP", 0.5f);
         t_PID[1] = mPrefs.getFloat("gain_tI", 0.0f);
         t_PID[2] = mPrefs.getFloat("gain_tD", 0.0f);
 
