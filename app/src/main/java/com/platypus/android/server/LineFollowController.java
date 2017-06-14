@@ -159,6 +159,7 @@ public class LineFollowController implements VehicleController {
             Log.d(logTag, String.format("Thrust PID = %.2f, %.2f, %.2f", thrust_pids[0], thrust_pids[1], thrust_pids[2]));
             base_thrust = thrust_pids[0];
             thrust_coefficient = 1.0;
+            /*
             angle_from_projected_to_boat = Math.atan2(y_projected - y_current,
                     x_projected - x_current);
             cross_product = Math.cos(th_full)*Math.sin(angle_from_projected_to_boat) -
@@ -176,11 +177,16 @@ public class LineFollowController implements VehicleController {
                     thrust_coefficient = 0.0;
                 }
             }
-            if (Math.abs(heading_error) > Math.PI/4.0)
+            */
+
+            /*
+            if (Math.abs(heading_error) > Math.PI/2.0)
             {
-                Log.d(logTag, "heading error > 45 degrees, do not thrust");
+                Log.d(logTag, "heading error > 90 degrees, do not thrust");
                 thrust_coefficient = 0.0;
             }
+            */
+
             thrust_signal = thrust_coefficient*base_thrust;
             Log.d(logTag, String.format("Thrust signal = %.2f", thrust_signal));
 

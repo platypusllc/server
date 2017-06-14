@@ -301,6 +301,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     double[] scaleDown(double[] raw_signals)
     {
+        /*ASDF*/
         double[] scaled_signals = raw_signals.clone();
         boolean needs_scaling = false;
         double max_signal = 0.0;
@@ -437,7 +438,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 }
                 break;
 
-                case "PROP_GUARD":
+                case "PROPGUARD":
                 {
                     // Construct objects to hold velocities
                     JSONObject velocity0 = new JSONObject();
@@ -457,11 +458,17 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         double[] thrust_pids = getGains(0);
                         if (thrust_pids[1] == 0)
                         {
-                            thrust_pids[1] = 1.;
+                            thrust_pids[1] = 5.;
                         }
+                        double T = _velocities.dx();
+                        double H = _velocities.drz();
+                        // bias thrust backwards according to heading
+                        // T -= 0.5*H;
 
-                        double[] rawV = {_velocities.dx() - _velocities.drz(),
-                                _velocities.dx() + _velocities.drz()};
+                        //double[] rawV = {_velocities.dx() - _velocities.drz(),
+                        //        _velocities.dx() + _velocities.drz()};
+                        double[] rawV = {T - H, T + H};
+
                         double[] constrainedV = scaleDown(rawV);
                         double constrainedV0 = constrainedV[0];
                         double constrainedV1 = constrainedV[1];
@@ -471,18 +478,20 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         {
                             constrainedV0 = constrainedV0/(thrust_pids[1]);
                         }
-                        if (Math.signum(constrainedV0) > 0 && Math.signum(constrainedV1) < 0)
+                        if (Math.signum(constrainedV0) < 0 && Math.signum(constrainedV1) > 0)
                         {
-                            constrainedV0 = constrainedV0/(thrust_pids[1]);
+                            constrainedV1 = constrainedV1/(thrust_pids[1]);
                         }
 
                         // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
+                        /*
                         constrainedV0 = map(constrainedV0,
                                 -1.0, 1.0, // Original range.
                                 -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
                         constrainedV1 = map(constrainedV1,
                                 -1.0, 1.0, // Original range.
                                 -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                        */
 
                         velocity0.put("v", (float) constrainedV0);
                         velocity1.put("v", (float) constrainedV1);
