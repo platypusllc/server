@@ -154,9 +154,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     String sensor_array_name = "pref_sensor_" + Integer.toString(i+1) + "_type";
                     String expected_type = mPrefs.getString(sensor_array_name, "NONE");
                     if (expected_type.equals("NONE")
-                            || expected_type.equals("RC_SBUS"))
+                        || expected_type.equals("RC_SBUS")
+		                    || expected_type.equals("HDS")
+				                || expected_type.equals("SAMPLER"))
                     {
-                        continue;
+                        continue; // these types aren't supposed to receive back JSON
                     }
                     String message = "s" + (i+1) + " expects " + expected_type + " not received yet";
                     Log.w(TAG, message);
@@ -379,15 +381,18 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * @see VehicleServer#setGains(int, double[])
      */
     @Override
-    public void setGains(int axis, double[] k) {
-        // TODO: Get rid of this, it is a hack.
-        // Special case to handle winch commands...
-        if (axis == 3) {
+    public void setGains(int axis, double[] k)
+    {
+        if (axis == 3)
+        {
+		        // TODO: Get rid of this, it is a hack.
+		        // Special case to handle winch commands...
             JSONObject command = new JSONObject();
             JSONObject winchSettings = new JSONObject();
 
             // Call command to adjust winch
-            try {
+            try
+            {
                 //Set desired winch movement distance
                 winchSettings.put("p", (float) Math.abs(k[0]));
 
@@ -397,13 +402,19 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                 mController.send(command);
                 mLogger.info(new JSONObject().put("winch", command));
-            } catch (JSONException e) {
+            }
+            catch (JSONException e)
+            {
                 Log.w(TAG, "Unable to construct JSON string from winch command: " + Arrays.toString(k));
-            } catch (IOException e) {
+            }
+            catch (IOException e)
+            {
                 Log.w(TAG, "Unable to send winch command.", e);
             }
             return;
-        } else if (axis == 5) {
+        }
+        else if (axis == 5)
+        {
             r_PID = k.clone();
 
             // Save the PID values to the SharedPreferences as well.
@@ -412,7 +423,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     .putFloat("gain_rI", (float) r_PID[1])
                     .putFloat("gain_rD", (float) r_PID[2])
                     .apply();
-        } else if (axis == 0) {
+        }
+        else if (axis == 0)
+        {
             t_PID = k.clone();
 
             // Save the PID values to the SharedPreferences as well.
@@ -421,6 +434,44 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     .putFloat("gain_tI", (float) t_PID[1])
                     .putFloat("gain_tD", (float) t_PID[2])
                     .apply();
+        }
+        else if (axis == 7) // AtlasSampler starting and reset
+        {
+		        //k[0]
+		        JSONObject command = new JSONObject();
+		        JSONObject samplerSettings = new JSONObject();
+		        try
+		        {
+				        if (k[0] != -1)
+				        {
+						        String sampler = Double.toString(k[0]);
+						        samplerSettings.put("e",sampler); //sends enable
+				        }
+				        else if (k[0] == -1)
+				        {
+						        samplerSettings.put("r",""); //sends reset
+				        }
+
+				        for (int i = 1; i < 4; i++)
+				        {
+						        String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
+						        String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+						        if (expected_type.equals("SAMPLER"))
+						        {
+								        command.put(String.format("s%d", i), samplerSettings);
+								        mController.send(command);
+								        mLogger.info(new JSONObject().put("cmd", command));
+						        }
+				        }
+		        }
+		        catch (JSONException e)
+		        {
+				        Log.w(TAG, "Unable to construct JSON string from sampler command: " + Arrays.toString(k));
+		        }
+		        catch (IOException e)
+		        {
+				        Log.w(TAG, "Unable to send sampler command.", e);
+		        }
         }
 
         // Log the new gain settings to the logfile.
