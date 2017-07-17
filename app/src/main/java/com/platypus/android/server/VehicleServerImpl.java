@@ -134,7 +134,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
     }
 
-
     protected TimerTask _captureTask = null;
     protected TimerTask _navigationTask = null;
     ScheduledFuture mVelocityFuture = null;
@@ -999,8 +998,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             {
                 current_waypoint_index = 0;
             }
-            _waypoints = new UtmPose[waypoints.length];
-            System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
+            _waypoints = waypoints.clone();
         }
 
         // Create a waypoint navigation task

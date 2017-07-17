@@ -11,14 +11,18 @@ import com.platypus.crw.data.Pose3D;
 
 class LineFollowController implements VehicleController {
 
-    private int last_wp_index = -2;
-    private Pose3D source_pose;
-    private Pose3D destination_pose;
-    private Pose3D current_pose;
-    private final double LOOKAHEAD_DISTANCE = 5.0;
-    private final double SUFFICIENT_PROXIMITY = 3.0;
-    private double heading_error_old = 0.0;
-    private double heading_error_accum = 0.0;
+    int last_wp_index = -2;
+    Pose3D source_pose;
+    Pose3D destination_pose;
+    Pose3D current_pose;
+    Pose3D original_pose;
+    boolean original_pose_set = false;
+
+    final double LOOKAHEAD_DISTANCE_BASE = 5.0;
+    double lookahead;
+    final double SUFFICIENT_PROXIMITY = 3.0;
+    double heading_error_old = 0.0;
+    double heading_error_accum = 0.0;
     double[] rudder_pids;
     double[] thrust_pids;
     double base_thrust, thrust_coefficient;
@@ -26,7 +30,7 @@ class LineFollowController implements VehicleController {
     private double x_dest, x_source, x_current, y_dest, y_source, y_current, th_full, th_current;
     private double x_projected, y_projected, x_lookahead, y_lookahead;
     private double dx_current, dx_full, dy_current, dy_full, L_current, L_full, dth;
-    private double projected_length, distance_from_ideal_line;
+    private double L_projected, distance_from_ideal_line;
     private double dx_lookahead, dy_lookahead;
     private double heading_desired, heading_current, heading_error;
     private double heading_error_deriv, heading_signal;
@@ -42,6 +46,11 @@ class LineFollowController implements VehicleController {
         // Get the position of the vehicle
         UtmPose state = server.getPose();
         current_pose = state.pose;
+        if (!original_pose_set)
+        {
+            original_pose = current_pose.clone();
+            original_pose_set = true;
+        }
 
         int current_wp_index = server_impl.getCurrentWaypointIndex();
         if (current_wp_index < 0)
@@ -72,10 +81,14 @@ class LineFollowController implements VehicleController {
                 source_pose = source_UtmPose.pose;
             }
 
-            x_dest = destination_pose.getX();
-            y_dest = destination_pose.getY();
-            x_source = source_pose.getX();
-            y_source = source_pose.getY();
+            x_dest = destination_pose.getX() - original_pose.getX();
+            y_dest = destination_pose.getY() - original_pose.getY();
+            x_source = source_pose.getX() - original_pose.getX();
+            y_source = source_pose.getY() - original_pose.getY();
+            dx_full = x_dest - x_source;
+            dy_full = y_dest - y_source;
+            th_full = Math.atan2(dy_full, dx_full);
+            L_full = Math.sqrt(Math.pow(dx_full, 2.) + Math.pow(dy_full, 2.));
         }
 
         double distanceSq = planarDistanceSq(current_pose, destination_pose);
@@ -85,26 +98,22 @@ class LineFollowController implements VehicleController {
         }
         else
         {
-            x_current = current_pose.getX();
-            y_current = current_pose.getY();
+            x_current = current_pose.getX() - original_pose.getX();
+            y_current = current_pose.getY() - original_pose.getY();
             heading_current = current_pose.getRotation().toYaw();
-
-            dx_full = x_dest - x_source;
-            dx_current = x_dest - x_current;
-            dy_full = y_dest - y_source;
-            dy_current = y_dest - y_current;
-            L_full = Math.sqrt(Math.pow(dx_full, 2.) + Math.pow(dy_full, 2.));
+            dx_current = x_current - x_source;
+            dy_current = y_current - y_source;
             L_current = Math.sqrt(Math.pow(dx_current, 2.) + Math.pow(dy_current, 2.));
-            th_full = Math.atan2(dy_full, dx_full);
             th_current = Math.atan2(dy_current, dx_current);
-            dth = Math.abs(AirboatController.minAngleBetween(th_full - th_current));
-            projected_length = L_current*Math.cos(dth);
+            dth = normalizeAngle(th_full - th_current);
+            L_projected = L_current*Math.cos(dth);
             distance_from_ideal_line = L_current*Math.sin(dth);
-            x_projected = x_source + L_current*Math.cos(th_full);
-            y_projected = y_source + L_current*Math.sin(th_full);
-            x_lookahead = x_projected + LOOKAHEAD_DISTANCE*Math.cos(th_full);
-            y_lookahead = y_projected + LOOKAHEAD_DISTANCE*Math.sin(th_full);
-            if (L_current + LOOKAHEAD_DISTANCE > L_full)
+            x_projected = x_source + L_projected*Math.cos(th_full);
+            y_projected = y_source + L_projected*Math.sin(th_full);
+            lookahead = LOOKAHEAD_DISTANCE_BASE*(1. - Math.tanh(0.2*Math.abs(distance_from_ideal_line)));
+            x_lookahead = x_projected + lookahead*Math.cos(th_full);
+            y_lookahead = y_projected + lookahead*Math.sin(th_full);
+            if (L_projected + lookahead > L_full)
             {
                 x_lookahead = x_dest;
                 y_lookahead = y_dest;
@@ -112,7 +121,7 @@ class LineFollowController implements VehicleController {
             dx_lookahead = x_lookahead - x_current;
             dy_lookahead = y_lookahead - y_current;
             heading_desired = Math.atan2(dy_lookahead, dx_lookahead);
-            heading_error = minAngleBetween(heading_current - heading_desired);
+            heading_error = normalizeAngle(heading_current - heading_desired);
 
             // PID
             rudder_pids = server_impl.getGains(5);
@@ -138,16 +147,23 @@ class LineFollowController implements VehicleController {
                     x_projected - x_current);
             cross_product = Math.cos(th_full)*Math.sin(angle_from_projected_to_boat) -
                     Math.cos(angle_from_projected_to_boat)*Math.sin(th_full);
+            thrust_coefficient = 1.0;
+            /*
             if (distance_from_ideal_line > SUFFICIENT_PROXIMITY)
             {
-                if (cross_product < 0. && minAngleBetween(th_full - heading_current) < 0.)
+                if (cross_product < 0. && normalizeAngle(th_full - heading_current) < 0.)
                 {
                     thrust_coefficient = 0.0;
                 }
-                if (cross_product > 0. && minAngleBetween(th_full - heading_current) < 0.)
+                if (cross_product > 0. && normalizeAngle(th_full - heading_current) < 0.)
                 {
                     thrust_coefficient = 0.0;
                 }
+            }
+            */
+            if (Math.abs(heading_error)*180./Math.PI > 45.0)
+            {
+                thrust_coefficient = 0.0;
             }
             thrust_signal = thrust_coefficient*base_thrust;
 
@@ -174,16 +190,11 @@ class LineFollowController implements VehicleController {
         return dx * dx + dy * dy;
     }
 
-    public static double minAngleBetween(double algebraic_difference)
-    {
-        if (Math.abs(algebraic_difference - 2*Math.PI) < Math.abs(algebraic_difference))
-        {
-            return algebraic_difference - 2*Math.PI;
-        }
-        if (Math.abs(algebraic_difference + 2*Math.PI) < Math.abs(algebraic_difference))
-        {
-            return algebraic_difference + 2*Math.PI;
-        }
-        return algebraic_difference;
+    public static double normalizeAngle(double angle) {
+        while (angle > Math.PI)
+            angle -= 2 * Math.PI;
+        while (angle < -Math.PI)
+            angle += 2 * Math.PI;
+        return angle;
     }
 }
