@@ -229,7 +229,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                 if (is_executing_failsafe.get())
                 {
-                    startGoHome();
+                    //startGoHome();
                 }
                 else
                 {
@@ -498,6 +498,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             return NAN_GAINS;
     }
 
+    /*
     @Override
     public void setHome(UtmPose utmPose)
     {
@@ -545,6 +546,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
         startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
     }
+    */
 
     /**
      * @see VehicleServer#setGains(int, double[])

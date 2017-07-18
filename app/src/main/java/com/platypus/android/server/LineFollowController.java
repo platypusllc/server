@@ -155,7 +155,7 @@ class LineFollowController implements VehicleController {
                 {
                     thrust_coefficient = 0.0;
                 }
-                if (cross_product > 0. && normalizeAngle(th_full - heading_current) < 0.)
+                if (cross_product > 0. && normalizeAngle(th_full - heading_current) > 0.)
                 {
                     thrust_coefficient = 0.0;
                 }
