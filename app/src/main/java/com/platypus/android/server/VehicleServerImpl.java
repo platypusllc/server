@@ -418,9 +418,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
-        r_PID[0] = mPrefs.getFloat("gain_rP", 1.0f);
+        r_PID[0] = mPrefs.getFloat("gain_rP", 0.7f);
         r_PID[1] = mPrefs.getFloat("gain_rI", 0.0f);
-        r_PID[2] = mPrefs.getFloat("gain_rD", 1.0f);
+        r_PID[2] = mPrefs.getFloat("gain_rD", 0.5f);
 
         t_PID[0] = mPrefs.getFloat("gain_tP", 0.1f);
         t_PID[1] = mPrefs.getFloat("gain_tI", 0.0f);

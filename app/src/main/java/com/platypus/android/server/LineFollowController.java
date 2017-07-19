@@ -121,7 +121,7 @@ class LineFollowController implements VehicleController {
             dx_lookahead = x_lookahead - x_current;
             dy_lookahead = y_lookahead - y_current;
             heading_desired = Math.atan2(dy_lookahead, dx_lookahead);
-            heading_error = normalizeAngle(heading_current - heading_desired);
+            heading_error = normalizeAngle(heading_desired - heading_current);
 
             // PID
             rudder_pids = server_impl.getGains(5);
@@ -148,19 +148,7 @@ class LineFollowController implements VehicleController {
             cross_product = Math.cos(th_full)*Math.sin(angle_from_projected_to_boat) -
                     Math.cos(angle_from_projected_to_boat)*Math.sin(th_full);
             thrust_coefficient = 1.0;
-            /*
-            if (distance_from_ideal_line > SUFFICIENT_PROXIMITY)
-            {
-                if (cross_product < 0. && normalizeAngle(th_full - heading_current) < 0.)
-                {
-                    thrust_coefficient = 0.0;
-                }
-                if (cross_product > 0. && normalizeAngle(th_full - heading_current) > 0.)
-                {
-                    thrust_coefficient = 0.0;
-                }
-            }
-            */
+
             if (Math.abs(heading_error)*180./Math.PI > 45.0)
             {
                 thrust_coefficient = 0.0;
