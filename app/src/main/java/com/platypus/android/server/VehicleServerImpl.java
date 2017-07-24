@@ -134,7 +134,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
     }
 
-
     protected TimerTask _captureTask = null;
     protected TimerTask _navigationTask = null;
     ScheduledFuture mVelocityFuture = null;
@@ -545,7 +544,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         // Use hard-coded defaults if not specified.
         r_PID[0] = mPrefs.getFloat("gain_rP", 0.7f);
         r_PID[1] = mPrefs.getFloat("gain_rI", 0.0f);
-        r_PID[2] = mPrefs.getFloat("gain_rD", 0.9f);
+        r_PID[2] = mPrefs.getFloat("gain_rD", 0.5f);
 
         t_PID[0] = mPrefs.getFloat("gain_tP", 0.5f);
         t_PID[1] = mPrefs.getFloat("gain_tI", 0.0f);
@@ -623,6 +622,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             return NAN_GAINS;
     }
 
+    /*
     @Override
     public void setHome(UtmPose utmPose)
     {
@@ -674,6 +674,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
         startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
     }
+    */
 
     /**
      * @see VehicleServer#setGains(int, double[])
@@ -1128,8 +1129,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             {
                 current_waypoint_index = 0;
             }
-            _waypoints = new UtmPose[waypoints.length];
-            System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
+            _waypoints = waypoints.clone();
         }
 
         // Create a waypoint navigation task
