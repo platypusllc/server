@@ -46,10 +46,12 @@
     <string name="pref_vehicle_type_default">DIFFERENTIAL</string>
     <string-array name="pref_vehicle_type_entries">
         <item>Differential (Dual Thrust)</item>
+        <item>Differential (With Prop Guard)</item>
         <item>Vectored (Rotating Thrust)</item>
     </string-array>
     <string-array name="pref_vehicle_type_values">
         <item>DIFFERENTIAL</item>
+        <item>PROPGUARD</item>
         <item>VECTORED</item>
     </string-array>
     <string-array name="pref_sensor_1_type_entries">

@@ -172,6 +172,7 @@ public class LauncherFragment extends Fragment
 
         switch (sharedPreferences.getString("pref_vehicle_type", "")) {
             case "DIFFERENTIAL":
+            case "PROPGUARD":
                 mVehicleImage.setImageResource(R.drawable.ic_vehicle_differential);
                 break;
             case "VECTORED":
@@ -305,6 +306,9 @@ public class LauncherFragment extends Fragment
                 switch (sharedPreferences.getString(vehicle_array_name, "DIFFERENTIAL")) {
                     case "DIFFERENTIAL":
                         sensors_JSON.put("t0", "Prop");
+                        break;
+                    case "PROPGUARD":
+                        sensors_JSON.put("t0", "PropGuard");
                         break;
                     case "VECTORED":
                         sensors_JSON.put("t0", "Air");

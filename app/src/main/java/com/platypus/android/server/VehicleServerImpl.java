@@ -64,7 +64,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
     public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
     public static final double SAFE_VECTORED_THRUST = 1.0;
-    public static final long VELOCITY_TIMEOUT_MS = 2000;
+    public static final long VELOCITY_TIMEOUT_MS = 10000;
     private static final String TAG = VehicleServerImpl.class.getName();
     protected final SharedPreferences mPrefs;
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
@@ -168,9 +168,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     //Define sound URI
     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
-    private UTM home_UTM = null;
+    private UTM home_UTM = UtmPose_to_UTM(_utmPose); // cannot be null or core lib will crash
     private Object home_lock = new Object();
-    boolean first_autonomy = true; // used to generate a home_UTM automatically once
+    AtomicBoolean first_autonomy = new AtomicBoolean(true); // used to generate a home_UTM automatically once
     public UTM UtmPose_to_UTM(UtmPose utmPose)
     {
         return UTM.valueOf (
@@ -187,6 +187,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     }
     public UtmPose UTM_to_UtmPose(UTM utm)
     {
+        if (utm == null) return null;
         Pose3D pose = new Pose3D(utm.eastingValue(SI.METER),
                 utm.northingValue(SI.METER),
                 0.0,
@@ -203,33 +204,37 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     }
     private final Object _failsafe_check_lock = new Object();
     double battery_voltage = 16.0;
-    final private long HEARTBEAT_MAX_WAIT_MS = 30000;
+    final private long HEARTBEAT_MAX_WAIT_MS = 60000;
     final private double FAILSAFE_TRIGGER_VOLTAGE = 14.0;
-    private AtomicLong last_heartbeat = new AtomicLong(0);
+    private AtomicLong last_heartbeat = new AtomicLong(System.currentTimeMillis());
     private AtomicBoolean is_executing_failsafe = new AtomicBoolean(false);
     private final Timer _failsafe_timer = new Timer();
     private TimerTask failsafe_check = new TimerTask() {
-        double local_battery_voltage;
+        double local_battery_voltage = 0;
         long ms_since_last_heartbeat;
         @Override
         public void run()
         {
+            if (first_autonomy.get()) return; // don't even bother with these checks until the boat is autonomous once
             ms_since_last_heartbeat = System.currentTimeMillis() - last_heartbeat.get();
             synchronized (_failsafe_check_lock) { local_battery_voltage = battery_voltage; }
             if (!is_executing_failsafe.get()) //
             {
                 if (local_battery_voltage < FAILSAFE_TRIGGER_VOLTAGE)
                 {
+                    Log.e(TAG, "triggering failsafe, battery is low");
                     is_executing_failsafe.set(true);
                 }
                 else if ((ms_since_last_heartbeat > HEARTBEAT_MAX_WAIT_MS) && !_isAutonomous.get())
                 {
+                    Log.e(TAG, "triggering failsafe, no operator heartbeat");
                     is_executing_failsafe.set(true);
                 }
 
                 if (is_executing_failsafe.get())
                 {
-                    //startGoHome();
+                    Log.e(TAG, "triggering failsafe...");
+                    startGoHome();
                 }
                 else
                 {
@@ -293,6 +298,33 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
     };
 
+    double[] scaleDown(double[] raw_signals)
+    {
+        /*ASDF*/
+        double[] scaled_signals = raw_signals.clone();
+        boolean needs_scaling = false;
+        double max_signal = 0.0;
+        for (double signal : raw_signals)
+        {
+            if (Math.abs(signal) > 1.0)
+            {
+                needs_scaling = true;
+            }
+            if (Math.abs(signal) > max_signal)
+            {
+                max_signal = Math.abs(signal);
+            }
+        }
+        if (needs_scaling)
+        {
+            for (int i = 0; i < raw_signals.length; i++)
+            {
+                scaled_signals[i] = raw_signals[i]/max_signal;
+            }
+        }
+        return scaled_signals;
+    }
+
     /**
      * Internal update function called at regular intervals to process command
      * and control events.
@@ -320,12 +352,14 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     _context.getResources().getString(R.string.pref_vehicle_type_default));
             switch (vehicleType) {
                 case "DIFFERENTIAL":
+                {
                     // Construct objects to hold velocities
                     JSONObject velocity0 = new JSONObject();
                     JSONObject velocity1 = new JSONObject();
 
                     // Send velocities as a JSON command
-                    try {
+                    try
+                    {
                         double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -1.0, 1.0);
                         double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -1.0, 1.0);
 
@@ -347,20 +381,27 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         if (mController.isConnected())
                             mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
-                    } catch (JSONException e) {
+                    }
+                    catch (JSONException e)
+                    {
                         Log.w(TAG, "Failed to serialize command.", e);
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e)
+                    {
                         Log.w(TAG, "Failed to send command.", e);
                     }
-                    break;
+                }
+                break;
 
                 case "VECTORED":
+                {
                     // Construct objects to hold velocities
                     JSONObject thrust = new JSONObject();
                     JSONObject rudder = new JSONObject();
 
                     // Send velocities as a JSON command
-                    try {
+                    try
+                    {
                         double constrainedV = clip(_velocities.dx(), -1.0, 1.0);
 
                         // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
@@ -384,12 +425,95 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         if (mController.isConnected())
                             mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
-                    } catch (JSONException e) {
+                    }
+                    catch (JSONException e)
+                    {
                         Log.w(TAG, "Failed to serialize command.", e);
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e)
+                    {
                         Log.w(TAG, "Failed to send command.", e);
                     }
-                    break;
+                }
+                break;
+
+                case "PROPGUARD":
+                {
+                    // Construct objects to hold velocities
+                    JSONObject velocity0 = new JSONObject();
+                    JSONObject velocity1 = new JSONObject();
+
+                    // Send velocities as a JSON command
+                    try
+                    {
+                        /*ASDF*/
+                        // to start out, I will *not* include the negative thrust bias
+                        // instead, i'll just have it just set thrust to zero while error is > 45 degrees
+
+                        // _velocities.dx() --> thrust effort fraction
+                        // _velocities.drz() --> heading effort fraction
+
+                        // try using the integral gain for thrust as the scale between positive and negative thrust
+                        double[] thrust_pids = getGains(0);
+                        if (thrust_pids[1] == 0)
+                        {
+                            thrust_pids[1] = 5.;
+                        }
+                        double T = _velocities.dx();
+                        double H = _velocities.drz();
+                        // bias thrust backwards according to heading
+                        // T -= 0.5*H;
+
+                        //double[] rawV = {_velocities.dx() - _velocities.drz(),
+                        //        _velocities.dx() + _velocities.drz()};
+                        double[] rawV = {T - H, T + H};
+
+                        double[] constrainedV = scaleDown(rawV);
+                        double constrainedV0 = constrainedV[0];
+                        double constrainedV1 = constrainedV[1];
+
+                        // need to account for prop guard, reduce positive motor signals if turning in place
+                        if (Math.signum(constrainedV0) > 0 && Math.signum(constrainedV1) < 0)
+                        {
+                            constrainedV0 = constrainedV0/(thrust_pids[1]);
+                        }
+                        if (Math.signum(constrainedV0) < 0 && Math.signum(constrainedV1) > 0)
+                        {
+                            constrainedV1 = constrainedV1/(thrust_pids[1]);
+                        }
+
+                        // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
+                        /*
+                        constrainedV0 = map(constrainedV0,
+                                -1.0, 1.0, // Original range.
+                                -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                        constrainedV1 = map(constrainedV1,
+                                -1.0, 1.0, // Original range.
+                                -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                        */
+
+                        velocity0.put("v", (float) constrainedV0);
+                        velocity1.put("v", (float) constrainedV1);
+
+                        command.put("m0", velocity0);
+                        command.put("m1", velocity1);
+
+                        // Send and log the transmitted command.
+                        if (mController.isConnected())
+                            mController.send(command);
+                        mLogger.info(new JSONObject().put("cmd", command));
+                    }
+                    catch (JSONException e)
+                    {
+                        Log.w(TAG, "Failed to serialize command.", e);
+                    }
+                    catch (IOException e)
+                    {
+                        Log.w(TAG, "Failed to send command.", e);
+                    }
+                }
+                break;
+
                 default:
                     Log.w(TAG, "Unknown vehicle type: " + vehicleType);
             }
@@ -422,7 +546,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         r_PID[1] = mPrefs.getFloat("gain_rI", 0.0f);
         r_PID[2] = mPrefs.getFloat("gain_rD", 0.5f);
 
-        t_PID[0] = mPrefs.getFloat("gain_tP", 0.1f);
+        t_PID[0] = mPrefs.getFloat("gain_tP", 0.5f);
         t_PID[1] = mPrefs.getFloat("gain_tI", 0.0f);
         t_PID[2] = mPrefs.getFloat("gain_tD", 0.0f);
 
@@ -520,6 +644,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public void startGoHome()
     {
+        if (home_UTM == null)
+        {
+            Log.e(TAG, "Cannot trigger failsafe, home is null");
+        }
         is_executing_failsafe.set(true);
         // need to execute a single start waypoints command
         // need current position and home position
@@ -991,6 +1119,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public void startWaypoints(final UtmPose[] waypoints, final String controller)
     {
+        last_heartbeat.set(System.currentTimeMillis());
         Log.i(TAG, "Starting waypoints with " + controller + ": "
                 + Arrays.toString(waypoints));
 
@@ -1071,6 +1200,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public void stopWaypoints() {
+        last_heartbeat.set(System.currentTimeMillis());
         // Stop the thread that is doing the "navigation" by terminating its
         // navigation process, clear all the waypoints, and stop the vehicle.
         synchronized (_navigationLock) {
@@ -1129,6 +1259,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * Sets a desired 6D velocity for the vehicle.
      */
     public void setVelocity(Twist vel) {
+        last_heartbeat.set(System.currentTimeMillis());
         _velocities = vel.clone();
 
         // Schedule a task to shutdown the velocity if no command is received within the timeout.
@@ -1156,10 +1287,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public void setAutonomous(boolean isAutonomous) {
+        last_heartbeat.set(System.currentTimeMillis());
         _isAutonomous.set(isAutonomous);
-        if (isAutonomous && first_autonomy)
+        if (isAutonomous && first_autonomy.get())
         {
-            first_autonomy = false;
+            first_autonomy.set(false);
             home_UTM = UtmPose_to_UTM(_utmPose);
         }
 

@@ -46,11 +46,13 @@ class LineFollowController implements VehicleController {
         // Get the position of the vehicle
         UtmPose state = server.getPose();
         current_pose = state.pose;
+
         if (!original_pose_set)
         {
             original_pose = current_pose.clone();
             original_pose_set = true;
         }
+
 
         int current_wp_index = server_impl.getCurrentWaypointIndex();
         if (current_wp_index < 0)
@@ -94,6 +96,7 @@ class LineFollowController implements VehicleController {
         double distanceSq = planarDistanceSq(current_pose, destination_pose);
         if (distanceSq < SUFFICIENT_PROXIMITY*SUFFICIENT_PROXIMITY)
         {
+            Log.d(logTag, String.format("distance^2 = %.0f, switch to next waypoint", distanceSq));
             server_impl.incrementWaypointIndex();
         }
         else
@@ -172,13 +175,15 @@ class LineFollowController implements VehicleController {
      *            the second pose
      * @return the XY-planar Euclidean distance
      */
-    public static double planarDistanceSq(Pose3D a, Pose3D b) {
+    public static double planarDistanceSq(Pose3D a, Pose3D b) 
+    {
         double dx = a.getX() - b.getX();
         double dy = a.getY() - b.getY();
         return dx * dx + dy * dy;
     }
-
-    public static double normalizeAngle(double angle) {
+  
+    public static double normalizeAngle(double angle) 
+    {
         while (angle > Math.PI)
             angle -= 2 * Math.PI;
         while (angle < -Math.PI)
