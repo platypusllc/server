@@ -96,7 +96,6 @@ class LineFollowController implements VehicleController {
         double distanceSq = planarDistanceSq(current_pose, destination_pose);
         if (distanceSq < SUFFICIENT_PROXIMITY*SUFFICIENT_PROXIMITY)
         {
-            Log.d(logTag, String.format("distance^2 = %.0f, switch to next waypoint", distanceSq));
             server_impl.incrementWaypointIndex();
         }
         else
