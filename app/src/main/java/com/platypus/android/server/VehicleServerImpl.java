@@ -56,6 +56,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final int UPDATE_INTERVAL_MS = 100;
     public static final int NUM_SENSORS = 5;
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    AutonomousPredicates autonomous_predicates;
+    boolean example_state = true;
+    boolean getExampleState() { return example_state; }
+    void exampleAction() { Log.i("AP", "PERFORMING ACTION"); }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * Defines the PID gains that will be returned if there is an error.
      */
@@ -539,6 +546,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
         _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
         _failsafe_timer.scheduleAtFixedRate(failsafe_check, 0, 10000);
+        autonomous_predicates = new AutonomousPredicates(this);
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.

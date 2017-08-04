@@ -7,7 +7,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -30,9 +34,41 @@ public class AutonomousPredicates
 {
 		VehicleServerImpl _serverImpl;
 		String logTag = "AP";
+		static long ap_count = 0;
+		Map<Long, ScheduledFuture> triggered_actions_map = new HashMap<>();
+		ScheduledThreadPoolExecutor poolExecutor = new ScheduledThreadPoolExecutor(4);
+		// TODO: do we want something that can increase and decrease the thread pool, rather than fixed?
+
 		JSONObject example_JSONObject = new JSONObject();
-		List<TriggeredAction> triggeredActions = new ArrayList<>();
-		ScheduledThreadPoolExecutor poolExecutor = new ScheduledThreadPoolExecutor(10);
+
+		class TriggeredAction implements Runnable
+		{
+				long _id;
+				boolean _isPermanent; // if true, this triggered action Runnable will be canceled after it runs once
+				BooleanSupplier _test; // meant to call methods in the VehicleServerImpl
+				Consumer<Void> _action; // meant to call methods in the VehicleServerImpl
+
+				public TriggeredAction(BooleanSupplier test, Consumer<Void> action, boolean isPermanent)
+				{
+						_id = ap_count++;
+						_isPermanent = isPermanent;
+						_test = test;
+						_action = action;
+				}
+
+				public long getID() { return _id; }
+
+				@Override
+				public void run()
+				{
+						if (_test.getAsBoolean()) _action.accept(null);
+						if (!_isPermanent)
+						{
+								triggered_actions_map.get(_id).cancel(true);
+								triggered_actions_map.remove(_id);
+						}
+				}
+		}
 
 		public AutonomousPredicates(VehicleServerImpl server)
 		{
@@ -57,40 +93,53 @@ public class AutonomousPredicates
 				{
 						Log.e("AP", e.getMessage());
 				}
+
+				parseActionDefinition(example_JSONObject);
 		}
 
-		static void readDefaultFile()
+		void readDefaultFile()
 		{
 				// read the default text file and generate a JSONObject with the file contents
 		}
 
-		static void parseActionDefinition(JSONObject definition)
+		void parseActionDefinition(JSONObject definition)
 		{
+				// parse the JSON to generated the necessary stuff
+				double hz = 2.;
+				Double ms_delay = 1./hz*1000.;
+
 				// add triggered actions to the list
+				TriggeredAction ta = new TriggeredAction
+								(
+												new BooleanSupplier()
+												{
+														@Override
+														public boolean getAsBoolean()
+														{
+																return _serverImpl.getExampleState();
+														}
+												},
+												new Consumer<Void>()
+												{
+														@Override
+														public void accept(Void aVoid)
+														{
+																_serverImpl.exampleAction();
+														}
+												},
+												false
+								);
+
+				// put the triggered action task into the queue and store its ScheduledFuture in the HashMap (so we can cancel it later)
+				triggered_actions_map.put(ta.getID(), poolExecutor.scheduleAtFixedRate(ta, 0, ms_delay.intValue(), TimeUnit.MILLISECONDS));
 		}
 
-		static void displayActions()
+		void displayActions()
 		{
 				// display some kind of summary of the current trigger definitions in the debug activity
 		}
 
-		class TriggeredAction implements Runnable
-		{
-				BooleanSupplier _test;
-				Consumer<VehicleServerImpl> _action;
 
-				public TriggeredAction(BooleanSupplier test, Consumer<VehicleServerImpl> action)
-				{
-						_test = test;
-						_action = action;
-				}
-
-				@Override
-				public void run()
-				{
-						if (_test.getAsBoolean()) _action.accept(_serverImpl);
-				}
-		}
 		/*
 		public static <X, R> void processElements
 						(Iterable<X> source_elements,
