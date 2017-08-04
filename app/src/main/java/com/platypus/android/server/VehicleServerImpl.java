@@ -1311,6 +1311,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public void shutdown() {
         stopWaypoints();
         stopCamera();
+        autonomous_predicates.cancelAll();
 
         _isAutonomous.set(false);
         _isConnected.set(false);

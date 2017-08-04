@@ -97,6 +97,15 @@ public class AutonomousPredicates
 				parseActionDefinition(example_JSONObject);
 		}
 
+		public void cancelAll()
+		{
+				for (Map.Entry<Long, ScheduledFuture> entry : triggered_actions_map.entrySet())
+				{
+						entry.getValue().cancel(true);
+				}
+				triggered_actions_map.clear();
+		}
+
 		void readDefaultFile()
 		{
 				// read the default text file and generate a JSONObject with the file contents
@@ -130,7 +139,7 @@ public class AutonomousPredicates
 												false
 								);
 
-				// put the triggered action task into the queue and store its ScheduledFuture in the HashMap (so we can cancel it later)
+				// put the triggered action task into the scheduler queue and store its ScheduledFuture in the HashMap (so we can cancel it later)
 				triggered_actions_map.put(ta.getID(), poolExecutor.scheduleAtFixedRate(ta, 0, ms_delay.intValue(), TimeUnit.MILLISECONDS));
 		}
 
