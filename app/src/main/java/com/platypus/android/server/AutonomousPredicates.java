@@ -1,21 +1,17 @@
 package com.platypus.android.server;
 
-import android.support.v4.widget.ViewDragHelper;
 import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -27,6 +23,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
  * https://docs.oracle.com/javase/8/docs/api/java/util/function/package-summary.html
  * https://developer.android.com/studio/preview/install-preview.html
  * http://www.java2s.com/Tutorials/Java_Lambda/java.util.function/BooleanSupplier/BooleanSupplier_example.htm
+ * "currying"
  *
  */
 
@@ -40,6 +37,20 @@ public class AutonomousPredicates
 		// TODO: do we want something that can increase and decrease the thread pool, rather than fixed?
 
 		JSONObject example_JSONObject = new JSONObject();
+
+		class DoubleComparison implements BiFunction<String, Double[], Boolean>
+		{
+				@Override
+				public Boolean apply(String s, Double[] doubles)
+				{
+						if (s.equals("eq")) return doubles[0] == doubles[1];
+						if (s.equals("gt")) return doubles[0] > doubles[1];
+						if (s.equals("lt")) return doubles[0] < doubles[1];
+						if (s.equals("le")) return doubles[0] <= doubles[1];
+						if (s.equals("ge")) return doubles[0] >= doubles[1];
+						return false;
+				}
+		}
 
 		class TriggeredAction implements Runnable
 		{
@@ -70,9 +81,104 @@ public class AutonomousPredicates
 				}
 		}
 
+		private BooleanSupplier createDoubleComparator(String comparator, final double a, final double b)
+		{
+				if (comparator.equals("eq"))
+				{
+						return new BooleanSupplier()
+						{
+								@Override
+								public boolean getAsBoolean()
+								{
+										return a == b;
+								}
+						};
+				}
+				if (comparator.equals("gt"))
+				{
+						return new BooleanSupplier()
+						{
+								@Override
+								public boolean getAsBoolean()
+								{
+										return a > b;
+								}
+						};
+				}
+				if (comparator.equals("lt"))
+				{
+						return new BooleanSupplier()
+						{
+								@Override
+								public boolean getAsBoolean()
+								{
+										return a < b;
+								}
+						};
+				}
+				// TODO: ge, le
+				return null;
+		}
+
+		class LogicalCompositionBuilder
+		{
+				int depth = 0;
+				double a;
+				BooleanSupplier composed = new BooleanSupplier()
+				{
+						@Override
+						public boolean getAsBoolean()
+						{
+								// start returning false and always start with an OR(first thing), which is as if the initial default false didn't exist
+								return false;
+						}
+				};
+
+				LogicalCompositionBuilder(final double left_side_variable) { a = left_side_variable; }
+
+				LogicalCompositionBuilder and(final String comparator, final double b)
+				{
+						depth++;
+						if (depth == 1)
+						{
+								// THEY MUST START WITH an "OR"!!!!
+								or(comparator, b);
+								return this;
+						}
+						composed = new BooleanSupplier()
+						{
+								@Override
+								public boolean getAsBoolean()
+								{
+										return composed.getAsBoolean() && createDoubleComparator(comparator, a, b).getAsBoolean();
+								}
+						};
+						return this;
+				}
+				LogicalCompositionBuilder or(final String comparator, final double b)
+				{
+						depth++;
+						composed = new BooleanSupplier()
+						{
+								@Override
+								public boolean getAsBoolean()
+								{
+										return composed.getAsBoolean() || createDoubleComparator(comparator, a, b).getAsBoolean();
+								}
+						};
+						return this;
+				}
+				BooleanSupplier build()
+				{
+						return composed;
+				}
+		}
+
 		public AutonomousPredicates(VehicleServerImpl server)
 		{
 				_serverImpl = server;
+
+				// example
 				try
 				{
 						example_JSONObject
@@ -93,8 +199,15 @@ public class AutonomousPredicates
 				{
 						Log.e("AP", e.getMessage());
 				}
-
 				parseActionDefinition(example_JSONObject);
+
+				// is 7 less than 8 AND greater than 6?
+				BooleanSupplier test = new LogicalCompositionBuilder(7.0).or("lt", 8.0).and("gt", 6.0).build();
+				assert test.getAsBoolean() == true;
+
+				BooleanSupplier test2 = new LogicalCompositionBuilder(1.).and("gt", 2.0).build();
+				assert test2.getAsBoolean() == true;
+
 		}
 
 		public void cancelAll()
