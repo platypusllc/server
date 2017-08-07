@@ -7,13 +7,15 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 
 /**
@@ -38,20 +40,6 @@ public class AutonomousPredicates
 
 		JSONObject example_JSONObject = new JSONObject();
 
-		class DoubleComparison implements BiFunction<String, Double[], Boolean>
-		{
-				@Override
-				public Boolean apply(String s, Double[] doubles)
-				{
-						if (s.equals("eq")) return doubles[0] == doubles[1];
-						if (s.equals("gt")) return doubles[0] > doubles[1];
-						if (s.equals("lt")) return doubles[0] < doubles[1];
-						if (s.equals("le")) return doubles[0] <= doubles[1];
-						if (s.equals("ge")) return doubles[0] >= doubles[1];
-						return false;
-				}
-		}
-
 		class TriggeredAction implements Runnable
 		{
 				long _id;
@@ -72,105 +60,103 @@ public class AutonomousPredicates
 				@Override
 				public void run()
 				{
-						if (_test.getAsBoolean()) _action.accept(null);
-						if (!_isPermanent)
+						Log.d("AP", String.format("Task # %d running...", _id));
+						if (_test.getAsBoolean())
 						{
-								triggered_actions_map.get(_id).cancel(true);
-								triggered_actions_map.remove(_id);
+								Log.i("AP", String.format("Task # %d test returned TRUE, executing task...", _id));
+								_action.accept(null);
+								if (!_isPermanent)
+								{
+										Log.i("AP", String.format("Task # %d completed, removing...", _id));
+										triggered_actions_map.get(_id).cancel(true);
+										triggered_actions_map.remove(_id);
+								}
+						}
+						else
+						{
+								Log.i("AP", String.format("Task # %d test returned FALSE", _id));
 						}
 				}
 		}
 
-		private BooleanSupplier createDoubleComparator(String comparator, final double a, final double b)
+		class DynamicPredicateComposition <R extends Number>
 		{
-				if (comparator.equals("eq"))
-				{
-						return new BooleanSupplier()
-						{
-								@Override
-								public boolean getAsBoolean()
-								{
-										return a == b;
-								}
-						};
-				}
-				if (comparator.equals("gt"))
-				{
-						return new BooleanSupplier()
-						{
-								@Override
-								public boolean getAsBoolean()
-								{
-										return a > b;
-								}
-						};
-				}
-				if (comparator.equals("lt"))
-				{
-						return new BooleanSupplier()
-						{
-								@Override
-								public boolean getAsBoolean()
-								{
-										return a < b;
-								}
-						};
-				}
-				// TODO: ge, le
-				return null;
-		}
-
-		class LogicalCompositionBuilder
-		{
-				int depth = 0;
-				double a;
-				BooleanSupplier composed = new BooleanSupplier()
+				Predicate<R> predicate = new Predicate<R>()
 				{
 						@Override
-						public boolean getAsBoolean()
+						public boolean test(R r)
 						{
-								// start returning false and always start with an OR(first thing), which is as if the initial default false didn't exist
-								return false;
+								Log.v("AP", "Executing the original default predicate");
+								return false; // must start as false and composition must start with an OR
 						}
 				};
-
-				LogicalCompositionBuilder(final double left_side_variable) { a = left_side_variable; }
-
-				LogicalCompositionBuilder and(final String comparator, final double b)
+				int depth = 0;
+				R stateGetOutput;
+				Supplier<R> stateGetFunction;
+				public DynamicPredicateComposition(Supplier<R> _stateGetFunction)
+				{
+						stateGetFunction = _stateGetFunction;
+				}
+				private void update()
+				{
+						stateGetOutput = stateGetFunction.get();
+						Double a = Double.class.cast(stateGetOutput);
+						Log.d("AP", String.format("update(): stateGetOutput = %.0f", a));
+				}
+				public BooleanSupplier build()
+				{
+						return new BooleanSupplier()
+						{
+								@Override
+								public boolean getAsBoolean()
+								{
+										Log.d("AP", "Executing BooleanSupplier...");
+										update();
+										// TODO: duplicate predicate so we can reuse DynamicPredicateComposition objects
+										return predicate.test(null); // don't need to use the input
+								}
+						};
+				}
+				private Predicate<R> generatePredicate(final String comparator, final R right_hand_side)
+				{
+						Log.d("AP", String.format("Generating new predicate: %s", comparator));
+						return new Predicate<R>()
+						{
+								@Override
+								public boolean test(R r) // the input to this is never used
+								{
+										Double a = Double.class.cast(stateGetOutput);
+										Double b = Double.class.cast(right_hand_side);
+										boolean result = false;
+										if (comparator.equals("eq")) result = a == b;
+										else if (comparator.equals("gt")) result = a > b;
+										else if (comparator.equals("lt")) result = a < b;
+										else if (comparator.equals("le")) result = a <= b;
+										else if (comparator.equals("ge")) result = a >= b;
+										Log.d("AP", String.format("Executed a predicate: %.0f %s %.0f %s",
+														a, comparator, b, Boolean.toString(result)));
+										return result;
+								}
+						};
+				}
+				public DynamicPredicateComposition and(final String comparator, final R right_hand_side)
 				{
 						depth++;
-						if (depth == 1)
+						if (depth == 1) // MUST START WITH AN OR
 						{
-								// THEY MUST START WITH an "OR"!!!!
-								or(comparator, b);
-								return this;
+								depth = 0;
+								return or(comparator, right_hand_side);
 						}
-						composed = new BooleanSupplier()
-						{
-								@Override
-								public boolean getAsBoolean()
-								{
-										return composed.getAsBoolean() && createDoubleComparator(comparator, a, b).getAsBoolean();
-								}
-						};
+						predicate = predicate.and(generatePredicate(comparator, right_hand_side));
+						Log.d("AP", String.format("Added an AND: %s %.0f", comparator, right_hand_side));
 						return this;
 				}
-				LogicalCompositionBuilder or(final String comparator, final double b)
+				public DynamicPredicateComposition or(final String comparator, final R right_hand_side)
 				{
 						depth++;
-						composed = new BooleanSupplier()
-						{
-								@Override
-								public boolean getAsBoolean()
-								{
-										return composed.getAsBoolean() || createDoubleComparator(comparator, a, b).getAsBoolean();
-								}
-						};
+						predicate = predicate.or(generatePredicate(comparator, right_hand_side));
+						Log.d("AP", String.format("Added an OR: %s %.0f", comparator, right_hand_side));
 						return this;
-				}
-				BooleanSupplier build()
-				{
-						return composed;
 				}
 		}
 
@@ -201,13 +187,6 @@ public class AutonomousPredicates
 				}
 				parseActionDefinition(example_JSONObject);
 
-				// is 7 less than 8 AND greater than 6?
-				BooleanSupplier test = new LogicalCompositionBuilder(7.0).or("lt", 8.0).and("gt", 6.0).build();
-				assert test.getAsBoolean() == true;
-
-				BooleanSupplier test2 = new LogicalCompositionBuilder(1.).and("gt", 2.0).build();
-				assert test2.getAsBoolean() == true;
-
 		}
 
 		public void cancelAll()
@@ -217,6 +196,7 @@ public class AutonomousPredicates
 						entry.getValue().cancel(true);
 				}
 				triggered_actions_map.clear();
+				ap_count = 0;
 		}
 
 		void readDefaultFile()
@@ -231,6 +211,7 @@ public class AutonomousPredicates
 				Double ms_delay = 1./hz*1000.;
 
 				// add triggered actions to the list
+				/*
 				TriggeredAction ta = new TriggeredAction
 								(
 												new BooleanSupplier()
@@ -254,38 +235,42 @@ public class AutonomousPredicates
 
 				// put the triggered action task into the scheduler queue and store its ScheduledFuture in the HashMap (so we can cancel it later)
 				triggered_actions_map.put(ta.getID(), poolExecutor.scheduleAtFixedRate(ta, 0, ms_delay.intValue(), TimeUnit.MILLISECONDS));
+				*/
+
+				Log.w("AP", "****** NEW EXAMPLE ******");
+				DynamicPredicateComposition <Double> example_predicate_composition =
+								new DynamicPredicateComposition<>(new Supplier<Double>()
+								{
+										@Override
+										public Double get()
+										{
+												double example_value = _serverImpl.getExampleValue();
+												Log.d("AP", String.format("Update function example value = %.0f", example_value));
+												return example_value;
+										}
+								});
+
+				example_predicate_composition.or("lt", 20.).and("gt", 5.);
+				TriggeredAction ta = new TriggeredAction
+								(
+												example_predicate_composition.build(),
+												new Consumer<Void>()
+												{
+														@Override
+														public void accept(Void aVoid)
+														{
+																_serverImpl.exampleAction();
+														}
+												},
+												false
+								);
+
+				// put the triggered action task into the scheduler queue and store its ScheduledFuture in the HashMap (so we can cancel it later)
+				triggered_actions_map.put(ta.getID(), poolExecutor.scheduleAtFixedRate(ta, 0, ms_delay.intValue(), TimeUnit.MILLISECONDS));
 		}
 
 		void displayActions()
 		{
 				// display some kind of summary of the current trigger definitions in the debug activity
 		}
-
-
-		/*
-		public static <X, R> void processElements
-						(Iterable<X> source_elements,
-						 Predicate<X> tester,
-						 Function<X, R> retriever,
-						 Consumer<R> performer)
-		{
-				for (X element : source_elements) { // iterate over input elements
-						if (tester.test(element)) { // apply the predicate test
-								R data = retriever.apply(element); // create data from input element
-								performer.accept(data); // consume the data in some way
-						}
-				}
-		}
-
-
-		processElements(
-		roster,  // collection of input elements
-    p -> p.getGender() == Person.Sex.MALE  // boolean evaluation
-        && p.getAge() >= 18
-        && p.getAge() <= 25,
-    p -> p.getEmailAddress(),  // create data from input element
-    email -> System.out.println(email)  // consume the data
-    );
-		 */
-
 }

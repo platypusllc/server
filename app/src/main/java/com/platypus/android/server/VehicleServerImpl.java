@@ -59,10 +59,16 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     AutonomousPredicates autonomous_predicates;
     boolean example_state = true;
-    double example_value = 10.0;
+    double example_value = 0.0;
     boolean getExampleState() { return example_state; }
-    double getExampleValue() { return example_value; }
+    double getExampleValue()
+    {
+        example_value += 1.;
+        Log.d("AP", String.format("Example value = %.0f", example_value));
+        return example_value;
+    }
     void exampleAction() { Log.i("AP", "PERFORMING ACTION"); }
+    void exampleAction2() { Log.i("AP", "PERFORMING ACTION 2"); }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
