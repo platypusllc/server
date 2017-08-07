@@ -129,6 +129,7 @@ public class AutonomousPredicates
 										Double b = Double.class.cast(right_hand_side);
 										boolean result = false;
 										if (comparator.equals("eq")) result = a == b;
+										else if (comparator.equals("ne")) result = a != b;
 										else if (comparator.equals("gt")) result = a > b;
 										else if (comparator.equals("lt")) result = a < b;
 										else if (comparator.equals("le")) result = a <= b;
