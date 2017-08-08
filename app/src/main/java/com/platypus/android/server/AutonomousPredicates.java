@@ -15,7 +15,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 
 /**
@@ -79,30 +78,59 @@ public class AutonomousPredicates
 				}
 		}
 
-		class DynamicPredicateComposition <R extends Number>
+		class DynamicPredicateComposition <T>
 		{
-				Predicate<R> predicate = new Predicate<R>()
+				/*
+				VERY IMPORTANT NOTE
+				Predicates chained with and() and or() short circuit (i.e. skip evaluating subsequent
+				predicates).
+				From the Java docs for and():
+					Returns a composed predicate that represents a short-circuiting logical AND of this
+					predicate and another. When evaluating the composed predicate, if this predicate is
+					false, then the other predicate is not evaluated.
+				From the Java docs for or():
+					Returns a composed predicate that represents a short-circuiting logical OR of this
+					predicate and another. When evaluating the composed predicate, if this predicate is
+					true, then the other predicate is not evaluated.
+				Because of this, the first predicate in the chain is ALWAYS evaluated.
+			  Note that something.or(other) short circuits if *something* is true, NOT if *other* is true.
+			  For example,
+				example_predicate_composition
+					.or("example_state")  --> always runs b/c false.or(other) will always evaluate *other*
+					.and("example_value", "gt", 5.) --> only runs if "example_state" was TRUE (b/c "and")
+					.and("example_value","lt", 20.); --> only runs if value > 5 is TRUE
+				The above is equivalent to
+				example_state && {doesn't matter if example_state is false}
+				true && value > 5 && {doesn't matter if value is not > 5}
+
+				Another example,
+				example_predicate_composition
+					.or("example_state")  --> always runs b/c false.or(other) will always evaluate *other*
+					.or("example_value", "gt", 5.) --> only runs if "example_state" was FALSE
+					.and("example_value","lt", 20.); --> only runs if value > 5 is TRUE
+				The above is equivalent to
+				example_state || {doesn't matter if example_state is true}
+				false || value > 5 && {doesn't matter if value is not > 5}
+
+				Another example,
+				example_predicate_composition
+					.and("example_value", "lt", 20.) --> always runs b/c we force it to be OR rather than AND
+				  .and("example_value", "gt", 5.) --> only runs if value < 20 is TRUE
+				  .or("example_state") --> only runs if value > 5 is FALSE
+				The above is equivalent to
+				value < 20 && {doesn't matter if value is not < 20}
+				true && value > 5 || {doesn't matter if value > 5}
+				*/
+				int depth = 0; // can serve as unique ID for the predicates
+				Predicate<T> predicate = new Predicate<T>()
 				{
 						@Override
-						public boolean test(R r)
+						public boolean test(T t)
 						{
 								Log.v("AP", "Executing the original default predicate");
 								return false; // must start as false and composition must start with an OR
 						}
 				};
-				int depth = 0;
-				R stateGetOutput;
-				Supplier<R> stateGetFunction;
-				public DynamicPredicateComposition(Supplier<R> _stateGetFunction)
-				{
-						stateGetFunction = _stateGetFunction;
-				}
-				private void update()
-				{
-						stateGetOutput = stateGetFunction.get();
-						Double a = Double.class.cast(stateGetOutput);
-						Log.d("AP", String.format("update(): stateGetOutput = %.0f", a));
-				}
 				public BooleanSupplier build()
 				{
 						return new BooleanSupplier()
@@ -110,22 +138,22 @@ public class AutonomousPredicates
 								@Override
 								public boolean getAsBoolean()
 								{
-										Log.d("AP", "Executing BooleanSupplier...");
-										update();
+										Log.d("AP", "Executing composite predicate...");
 										// TODO: duplicate predicate so we can reuse DynamicPredicateComposition objects
 										return predicate.test(null); // don't need to use the input
 								}
 						};
 				}
-				private Predicate<R> generatePredicate(final String comparator, final R right_hand_side)
+				private Predicate<T> generatePredicate(final String left_hand_side, final String comparator, final double right_hand_side)
 				{
-						Log.d("AP", String.format("Generating new predicate: %s", comparator));
-						return new Predicate<R>()
+						Log.v("AP", String.format("Generating new predicate: %s", comparator));
+						return new Predicate<T>()
 						{
+								String definition = String.format("%s %s %.0f", left_hand_side, comparator, right_hand_side);
 								@Override
-								public boolean test(R r) // the input to this is never used
+								public boolean test(T t) // the input to this is never used
 								{
-										Double a = Double.class.cast(stateGetOutput);
+										Double a = Double.class.cast(_serverImpl.getState(left_hand_side));
 										Double b = Double.class.cast(right_hand_side);
 										boolean result = false;
 										if (comparator.equals("eq")) result = a == b;
@@ -134,29 +162,61 @@ public class AutonomousPredicates
 										else if (comparator.equals("lt")) result = a < b;
 										else if (comparator.equals("le")) result = a <= b;
 										else if (comparator.equals("ge")) result = a >= b;
-										Log.d("AP", String.format("Executed a predicate: %.0f %s %.0f %s",
-														a, comparator, b, Boolean.toString(result)));
+										Log.d("AP", String.format("Executed a predicate: %s = %s", definition, Boolean.toString(result)));
 										return result;
 								}
 						};
 				}
-				public DynamicPredicateComposition and(final String comparator, final R right_hand_side)
+				private Predicate<T> generatePredicate(final String boolean_state)
+				{
+						Log.v("AP", String.format("Generating new boolean only predicate"));
+						return new Predicate<T>()
+						{
+								@Override
+								public boolean test(T t) // the input to this is never used
+								{
+										Boolean result = Boolean.class.cast(_serverImpl.getState(boolean_state));
+										Log.d("AP", String.format("Executed a predicate: %s = %s", boolean_state, Boolean.toString(result)));
+										return result;
+								}
+						};
+				}
+				public DynamicPredicateComposition and(final String left_hand_side, final String comparator, final double right_hand_side)
 				{
 						depth++;
 						if (depth == 1) // MUST START WITH AN OR
 						{
 								depth = 0;
-								return or(comparator, right_hand_side);
+								return or(left_hand_side, comparator, right_hand_side);
 						}
-						predicate = predicate.and(generatePredicate(comparator, right_hand_side));
-						Log.d("AP", String.format("Added an AND: %s %.0f", comparator, right_hand_side));
+						predicate = predicate.and(generatePredicate(left_hand_side, comparator, right_hand_side));
+						Log.d("AP", String.format("Added an AND: %s %s %.0f", left_hand_side, comparator, right_hand_side));
 						return this;
 				}
-				public DynamicPredicateComposition or(final String comparator, final R right_hand_side)
+				public DynamicPredicateComposition and(final String boolean_state)
 				{
 						depth++;
-						predicate = predicate.or(generatePredicate(comparator, right_hand_side));
-						Log.d("AP", String.format("Added an OR: %s %.0f", comparator, right_hand_side));
+						if (depth == 1) // MUST START WITH AN OR
+						{
+								depth = 0;
+								return or(boolean_state);
+						}
+						predicate = predicate.and(generatePredicate(boolean_state));
+						Log.d("AP", String.format("Added an AND: %s", boolean_state));
+						return this;
+				}
+				public DynamicPredicateComposition or(final String left_hand_side, final String comparator, final double right_hand_side)
+				{
+						depth++;
+						predicate = predicate.or(generatePredicate(left_hand_side, comparator, right_hand_side));
+						Log.d("AP", String.format("Added an OR: %s %s %.0f", left_hand_side, comparator, right_hand_side));
+						return this;
+				}
+				public DynamicPredicateComposition or(final String boolean_state)
+				{
+						depth++;
+						predicate = predicate.or(generatePredicate(boolean_state));
+						Log.d("AP", String.format("Added an OR: %s", boolean_state));
 						return this;
 				}
 		}
@@ -239,19 +299,12 @@ public class AutonomousPredicates
 				*/
 
 				Log.w("AP", "****** NEW EXAMPLE ******");
-				DynamicPredicateComposition <Double> example_predicate_composition =
-								new DynamicPredicateComposition<>(new Supplier<Double>()
-								{
-										@Override
-										public Double get()
-										{
-												double example_value = _serverImpl.getExampleValue();
-												Log.d("AP", String.format("Update function example value = %.0f", example_value));
-												return example_value;
-										}
-								});
+				DynamicPredicateComposition example_predicate_composition = new DynamicPredicateComposition();
 
-				example_predicate_composition.or("lt", 20.).and("gt", 5.);
+				example_predicate_composition
+								.or("example_state")
+								.or("example_value", "gt", 5.)
+								.and("example_value","lt", 20.);
 				TriggeredAction ta = new TriggeredAction
 								(
 												example_predicate_composition.build(),

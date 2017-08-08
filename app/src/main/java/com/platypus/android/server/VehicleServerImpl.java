@@ -28,6 +28,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
@@ -37,6 +38,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -56,20 +58,21 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final int UPDATE_INTERVAL_MS = 100;
     public static final int NUM_SENSORS = 5;
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // ASDF
     AutonomousPredicates autonomous_predicates;
-    boolean example_state = true;
+    Object example_lock = new Object();
+    AtomicBoolean example_state = new AtomicBoolean(true);
     double example_value = 0.0;
-    boolean getExampleState() { return example_state; }
-    double getExampleValue()
-    {
-        example_value += 1.;
-        Log.d("AP", String.format("Example value = %.0f", example_value));
-        return example_value;
-    }
+    HashMap<String, Supplier> agent_state_retriever = new HashMap<>();
     void exampleAction() { Log.i("AP", "PERFORMING ACTION"); }
     void exampleAction2() { Log.i("AP", "PERFORMING ACTION 2"); }
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public Object getState(String key)
+    {
+        Log.v("AP", String.format("VehicleServerImpl.getState(%s)...", key));
+        return agent_state_retriever.get(key).get();
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Defines the PID gains that will be returned if there is an error.
@@ -547,6 +550,33 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         _context = context;
         mLogger = logger;
         mController = controller;
+
+        //////////////////////////////////////////////////////////////////////////
+        // ASDF
+        agent_state_retriever.put("example_value", new Supplier()
+        {
+            @Override
+            public Double get()
+            {
+                synchronized (example_lock)
+                {
+                    example_value += 1.;
+                    Log.v("AP", String.format("Example value = %.0f", example_value));
+                    return example_value;
+                }
+            }
+        });
+        agent_state_retriever.put("example_state", new Supplier()
+        {
+            @Override
+            public Boolean get()
+            {
+                example_state.set(!example_state.get());
+                Log.v("AP", String.format("Example state = %s", Boolean.toString(example_state.get())));
+                return example_state.get();
+            }
+        });
+        //////////////////////////////////////////////////////////////////////////
 
         // Connect to the Shared Preferences for this process.
         mPrefs = PreferenceManager.getDefaultSharedPreferences(_context);
