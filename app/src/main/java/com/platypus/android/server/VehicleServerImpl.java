@@ -38,6 +38,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.measure.unit.NonSI;
@@ -64,13 +65,18 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     Object example_lock = new Object();
     AtomicBoolean example_state = new AtomicBoolean(true);
     double example_value = 0.0;
-    HashMap<String, Supplier> agent_state_retriever = new HashMap<>();
+    private HashMap<String, Supplier> agent_state_retriever = new HashMap<>();
+    private HashMap<String, Consumer> agent_performer = new HashMap<>();
     void exampleAction() { Log.i("AP", "PERFORMING ACTION"); }
     void exampleAction2() { Log.i("AP", "PERFORMING ACTION 2"); }
     public Object getState(String key)
     {
         Log.v("AP", String.format("VehicleServerImpl.getState(%s)...", key));
         return agent_state_retriever.get(key).get();
+    }
+    public void performAction(String key)
+    {
+        agent_performer.get(key).accept(null);
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -574,6 +580,15 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 example_state.set(!example_state.get());
                 Log.v("AP", String.format("Example state = %s", Boolean.toString(example_state.get())));
                 return example_state.get();
+            }
+        });
+
+        agent_performer.put("example_action", new Consumer()
+        {
+            @Override
+            public void accept(Object o)
+            {
+                exampleAction();
             }
         });
         //////////////////////////////////////////////////////////////////////////
