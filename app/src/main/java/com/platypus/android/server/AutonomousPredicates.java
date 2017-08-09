@@ -299,25 +299,26 @@ public class AutonomousPredicates
 						dpc = new DynamicPredicateComposition();
 				}
 
-				String nonboolean_regex = "[|&]+"; // split on boolean logic symbols
-				String boolean_regex = "[^|&]+";
+				// http://regexr.com/
+				String nonboolean_regex = "[|&]+(?![^\\(]*\\))"; // split on boolean logic symbols, but don't split up parentheses
+				String boolean_regex = "[^|&]+"; // TODO: get only the booleans used to split above
 				String nonpredicate_symbol_regex = "[[<>]=?:@]+"; // split on predicate symbols
 				String predicate_symbol_regex = "[^[<>]=?:@]+";
 
 				String[] predicate_strings = predicate_string.split(nonboolean_regex);
 				String[] booleans = predicate_string.split(boolean_regex);
-				if (booleans.length > 0) booleans = trimFirstString(booleans); // need to trim off leading blank. Not sure why it appears.
+				if (booleans.length > 0) booleans = trimFirstString(booleans); // trim leading empty char
 				Log.i(logTag, String.format("predicates: %s", Arrays.toString(predicate_strings)));
 				Log.i(logTag, String.format("booleans: %s", Arrays.toString(booleans)));
 				for (String predicate : predicate_strings)
 				{
 						String[] components = predicate.split(nonpredicate_symbol_regex);
 						String[] symbols = predicate.split(predicate_symbol_regex);
-						if (symbols.length > 0) symbols = trimFirstString(symbols);
+						if (symbols.length > 0) symbols = trimFirstString(symbols); // trim leading empty char
 						Log.i(logTag, String.format("%s --> components: %s", predicate, Arrays.toString(components)));
 						Log.i(logTag, String.format("%s --> symbols: %s", predicate, Arrays.toString(symbols)));
 				}
-				
+
 				return null;
 		}
 
