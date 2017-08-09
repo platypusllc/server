@@ -1,0 +1,24 @@
+{
+	a:
+	{
+		action: example,
+		trigger:
+		{
+			type: example_state,
+			bool: true			
+		},
+		Hz: 0.2,
+		ends: n
+	},
+	b:
+	{
+		action: sampler,
+		trigger:
+		{
+			type: EC,
+			gt: 0
+		},
+		Hz: 2,
+		ends: y
+	}
+}

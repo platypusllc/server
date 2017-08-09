@@ -26,7 +26,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -61,14 +60,58 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // ASDF
+
+    /*
+    list of state variables {* if it needs a lock}
+    - battery voltage (double) {*}
+    - time since operator detected (AtomicLong)
+    - location (double, double) or UtmPose or whatever {*}
+    - sensor data (EC, T, DO, ...) {*}
+    - is connected (AtomicBoolean)
+    - is autonomous (AtomicBoolean)
+    - is running (AtomicBoolean)
+    - first autonomy (to set home location) (AtomicBoolean)
+    - is executing failsafe (AtomicBoolean)
+    - is executing sampler (AtomicBoolean)
+    - home location UtmPose or whatever {*}
+    - sampler jar status (boolean[# of jars]), if a jar has been used {*}
+    */
+
+    /*
+    list of actions {* if immediately required}
+    - return home {*}
+    - winch column of data
+    - turn on sampler (and station keep) {*}
+    - turn off sampler
+    - reset sampler {*}
+    - station keep {*}
+    - speed up
+    - slow down
+    - personal genomics pump
+    - filter sensor data somehow
+    - avoid obstacles
+     */
+    enum AvailableActions
+    {
+        EXAMPLE("example"),
+        RETURN_HOME("home"),
+        START_SAMPLER("sampler_start"),
+        STOP_SAMPLER("sampler_stop"),
+        RESET_SAMPLER("sampler_reset");
+
+        final String string;
+
+        AvailableActions(String s) { string = s; }
+    }
+
     AutonomousPredicates autonomous_predicates;
-    Object example_lock = new Object();
     AtomicBoolean example_state = new AtomicBoolean(true);
     double example_value = 0.0;
+    Object example_lock = new Object();
     private HashMap<String, Supplier> agent_state_retriever = new HashMap<>();
     private HashMap<String, Consumer> agent_performer = new HashMap<>();
+    private HashMap<String, Object> locks = new HashMap<>();
     void exampleAction() { Log.i("AP", "PERFORMING ACTION"); }
-    void exampleAction2() { Log.i("AP", "PERFORMING ACTION 2"); }
     public Object getState(String key)
     {
         Log.v("AP", String.format("VehicleServerImpl.getState(%s)...", key));
