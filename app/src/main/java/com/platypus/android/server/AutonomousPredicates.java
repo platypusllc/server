@@ -3,11 +3,11 @@ package com.platypus.android.server;
 import android.os.Environment;
 import android.util.Log;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -279,36 +279,111 @@ public class AutonomousPredicates
 				}
 		}
 
+		private String[] trimFirstString(String[] array)
+		{
+				String[] trimmed = Arrays.copyOfRange(array, 1, array.length);
+				return trimmed.clone();
+		}
+
+		private Predicate<Void> parseTrigger(String predicate_string, DynamicPredicateComposition available_dpc)
+		{
+				// Split the trigger string, creating DynamicPredicateComposition objects as needed
+
+				DynamicPredicateComposition dpc = available_dpc;
+				if (available_dpc != null)
+				{
+						dpc = available_dpc;
+				}
+				else
+				{
+						dpc = new DynamicPredicateComposition();
+				}
+
+				String nonboolean_regex = "[|&]+"; // split on boolean logic symbols
+				String boolean_regex = "[^|&]+";
+				String nonpredicate_symbol_regex = "[[<>]=?:@]+"; // split on predicate symbols
+				String predicate_symbol_regex = "[^[<>]=?:@]+";
+
+				String[] predicate_strings = predicate_string.split(nonboolean_regex);
+				String[] booleans = predicate_string.split(boolean_regex);
+				if (booleans.length > 0) booleans = trimFirstString(booleans); // need to trim off leading blank. Not sure why it appears.
+				Log.i(logTag, String.format("predicates: %s", Arrays.toString(predicate_strings)));
+				Log.i(logTag, String.format("booleans: %s", Arrays.toString(booleans)));
+				for (String predicate : predicate_strings)
+				{
+						String[] components = predicate.split(nonpredicate_symbol_regex);
+						String[] symbols = predicate.split(predicate_symbol_regex);
+						if (symbols.length > 0) symbols = trimFirstString(symbols);
+						Log.i(logTag, String.format("%s --> components: %s", predicate, Arrays.toString(components)));
+						Log.i(logTag, String.format("%s --> symbols: %s", predicate, Arrays.toString(symbols)));
+				}
+				
+				return null;
+		}
+
 		private void createTask(JSONObject definition)
 		{
 				String key;
 				Iterator<String> task_keys = definition.keys();
+
+				String action = new String();
+				long ms_interval = 1000;
+				boolean ends = true;
+				Predicate<Void> predicate = null;
 				try
 				{
 						while (task_keys.hasNext())
 						{
 								key = task_keys.next();
-								Log.i(logTag, String.format("Next task key: %s", key));
+								Log.d(logTag, String.format("Next task key: %s", key));
 								switch(key)
 								{
 										case "action":
+												action = definition.getString(key);
+												// make sure the action is one of the available ones
+												if (!VehicleServerImpl.AvailableActions.contains(action))
+												{
+														throw new Exception("task definition contains unknown action");
+												}
+
 												break;
 										case "trigger":
+												predicate = parseTrigger(definition.getString(key), null);
 												break;
 										case "interval":
+												ms_interval = definition.getLong(key);
 												break;
 										case "ends":
+												String ends_string = (definition.getString(key)).toLowerCase();
+												switch(ends_string)
+												{
+														case "y":
+														case "yes":
+														case "true":
+																ends = true;
+																break;
+														case "n":
+														case "no":
+														case "false":
+																ends = false;
+																break;
+														default:
+																throw new Exception("task definition \"ends\" field must be y or n");
+												}
 												break;
 										default:
 												break;
 								}
 						}
 
+						if (predicate == null) return;
+
 						// create new triggered action
 						// Need Predicate, string for action,
-						//TriggeredAction ta = new TriggeredAction(null, task_map.get("action"), task_map.get("ends"));
+						//TriggeredAction ta = new TriggeredAction(predicate, action, ends);
 
 						// put the triggered action task into the scheduler queue and store its ScheduledFuture in the HashMap (so we can cancel it later)
+						//triggered_actions_map.put(ta.getID(), poolExecutor.scheduleAtFixedRate(ta, 0, ms_interval, TimeUnit.MILLISECONDS));
 				}
 				catch (Exception e)
 				{

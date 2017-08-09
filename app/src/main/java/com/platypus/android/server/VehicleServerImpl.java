@@ -65,6 +65,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     list of state variables {* if it needs a lock}
     - battery voltage (double) {*}
     - time since operator detected (AtomicLong)
+    - elapsed time in seconds i.e. how long the server has been running (AtomicLong)
     - location (double, double) or UtmPose or whatever {*}
     - sensor data (EC, T, DO, ...) {*}
     - is connected (AtomicBoolean)
@@ -100,8 +101,15 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         RESET_SAMPLER("sampler_reset");
 
         final String string;
-
         AvailableActions(String s) { string = s; }
+        public static boolean contains(String s)
+        {
+            for (AvailableActions action : values())
+            {
+                if (action.string.equals(s)) return true;
+            }
+            return false;
+        }
     }
 
     AutonomousPredicates autonomous_predicates;

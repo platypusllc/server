@@ -1,24 +1,59 @@
 {
-	a:
+	basic_example:
 	{
 		action: example,
 		trigger:
 		{
-			type: example_state,
-			bool: true			
+			example_value:
+			{
+				in: [9, 10]
+			}
 		},
-		Hz: 0.2,
+		interval: 1000,
 		ends: n
 	},
-	b:
+	fancy_example:
 	{
-		action: sampler,
+		action: example,
 		trigger:
 		{
-			type: EC,
-			gt: 0
+			or:
+			{
+				example_state:
+				{
+					bool: true
+				},
+				example_value:
+				{
+					and:
+					{
+						gt: 5,
+						lt: 20
+					}
+				}				
+			}
 		},
-		Hz: 2,
+		interval: 2000,
+		ends: y
+	},
+	sampler_example:
+	{
+		action: sampler_start,
+		trigger:
+		{			
+			and:
+			{
+				EC:
+				{
+					gt: 0
+				}
+				GPS:
+				{
+					near: [45.403863, 10.999423]
+				}
+			}
+		},
+		interval: 500,
 		ends: y
 	}
 }
