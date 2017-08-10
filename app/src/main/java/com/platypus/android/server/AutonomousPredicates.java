@@ -3,6 +3,11 @@ package com.platypus.android.server;
 import android.os.Environment;
 import android.util.Log;
 
+import com.platypus.crw.data.UtmPose;
+
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
@@ -20,6 +25,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
 
 
 /**
@@ -142,7 +150,13 @@ public class AutonomousPredicates
 								@Override
 								public boolean test(Void v) // the input to this is never used
 								{
-										Double a = Double.class.cast(_serverImpl.getState(left_hand_side));
+										Object retrieval = _serverImpl.getState(left_hand_side);
+										if (retrieval == null)
+										{
+												Log.w(logTag, String.format("Predicate %s received a null when it asked for %s", definition, left_hand_side));
+												return false;
+										}
+										Double a = Double.class.cast(retrieval);
 										Double b = Double.class.cast(right_hand_side);
 										boolean result = false;
 										switch(comparator)
@@ -253,12 +267,39 @@ public class AutonomousPredicates
 						return new_predicate;
 				}
 
+				public Predicate<Void> isNear(final double latitude, final double longitude, final double radius)
+				{
+						Predicate<Void> new_predicate = new Predicate<Void>()
+						{
+								final UTM location_utm = UTM.latLongToUtm(LatLong.valueOf(latitude, longitude, NonSI.DEGREE_ANGLE), ReferenceEllipsoid.WGS84);
+								@Override
+								public boolean test(Void aVoid)
+								{
+										// calculate distance in meters away from location_utm
+										double distance = -1;
+										boolean result = false;
+										try
+										{
+												UtmPose utmPose = (UtmPose) _serverImpl.getState("UTM");
+												distance = Math.sqrt(Math.pow(utmPose.pose.getX() - location_utm.eastingValue(SI.METER), 2.0)
+																+ Math.pow(utmPose.pose.getY() - location_utm.northingValue(SI.METER), 2.0));
+												result = distance < radius;
+										}
+										catch (Exception e)
+										{
+												Log.e(logTag, e.getMessage());
+										}
+										Log.d(logTag, String.format("Executed isNear predicate: Distance from target %f < %f is %s", distance, radius, Boolean.toString(result)));
+										return result;
+								}
+						};
+						return new_predicate;
+				}
+
 				// TODO: useful building utilities
 				/*
 				List of ideas:
-				1) inInterval(left_hand_side, low value, high value) --> low <= value <= high
-				2) near(lat, lng, rad) --> current location is within rad meters of (lat,lng) location
-				3) inConvexHull(vertices[]) --> current location is inside polygon defined by these
+				1) inConvexHull(vertices[]) --> current location is inside polygon defined by these
 				*/
 		}
 
@@ -419,7 +460,7 @@ public class AutonomousPredicates
 														String high_string = number_matcher.group();
 														double low = Double.valueOf(low_string);
 														double high = Double.valueOf(high_string);
-														Log.d(logTag, String.format("Using [low, high] = %f, %f", low, high));
+														Log.v(logTag, String.format("Using [low, high] = %f, %f", low, high));
 														switch(splitting_boolean)
 														{
 																case "&":
@@ -433,13 +474,22 @@ public class AutonomousPredicates
 														}
 														break;
 												case "@":
+														number_pattern = Pattern.compile("[+-]?([0-9]*[.])?[0-9]+"); // any integer and floating point numbers
+														number_matcher = number_pattern.matcher(components[1]);
+														number_matcher.find();
+														String lat_string = number_matcher.group();
+														number_matcher.find();
+														String lon_string = number_matcher.group();
+														double lat = Double.valueOf(lat_string);
+														double lon = Double.valueOf(lon_string);
+														Log.d(logTag, String.format("Using [lat, long] = %f, %f", lat, lon));
 														switch(splitting_boolean)
 														{
 																case "&":
-																		//TODO dpc.and();
+																		dpc.and(dpc.isNear(lat, lon, 3.0));
 																		break;
 																case "|":
-																		//TODO dpc.or();
+																		dpc.or(dpc.isNear(lat, lon, 3.0));
 																		break;
 																default:
 																		break;
@@ -486,7 +536,6 @@ public class AutonomousPredicates
 						}
 						predicate_count++;
 				}
-
 				return dpc.build();
 		}
 
@@ -562,33 +611,6 @@ public class AutonomousPredicates
 				_serverImpl = server;
 				Log.w(logTag, "**** AutonomousPredicates constructor ****");
 				loadFromFile("default_behaviors.txt");
-
-				// example
-				/*
-				JSONObject example_JSONObject = new JSONObject();
-				try
-				{
-						example_JSONObject
-										.put("action", "sample")
-										.put("trigger", new JSONObject()
-														.put("type", "EC")
-														.put("value", new JSONObject()
-																		.put("and", new JSONObject()
-																						.put("lt", 2000)
-																						.put("ge", 1500)
-																		)
-														)
-										)
-										.put("ends", true)
-										.put("Hz", 1);
-				}
-				catch (JSONException e)
-				{
-						Log.e("AP", e.getMessage());
-				}
-				parseActionDefinition(example_JSONObject);
-				*/
-
 		}
 
 		public void cancelAll()
@@ -599,52 +621,6 @@ public class AutonomousPredicates
 				}
 				triggered_actions_map.clear();
 				ap_count = 0;
-		}
-
-		void readDefaultFile()
-		{
-				// read the default text file and generate a JSONObject with the file contents
-		}
-
-		void parseActionDefinition(JSONObject definition)
-		{
-				try
-				{
-						Log.i("AP", definition.toString(2));
-				}
-				catch (Exception e)
-				{
-						Log.e("AP", e.getMessage());
-				}
-
-				// parse the JSON to generated the necessary stuff
-
-
-				double hz = 2.;
-				Double ms_delay = 1./hz*1000.;
-
-				// add triggered actions to the list
-
-				Log.w("AP", "****** NEW EXAMPLE ******");
-				DynamicPredicateComposition example_predicate_composition_1 = new DynamicPredicateComposition();
-				DynamicPredicateComposition example_predicate_composition_2 = new DynamicPredicateComposition();
-
-				// example_state OR (example_value < 20 AND example_value > 5)
-				example_predicate_composition_1.or("example_state");
-				example_predicate_composition_2
-								.or("example_value", "lt", 20.)
-								.and("example_value","gt", 5.);
-				TriggeredAction ta = new TriggeredAction
-								(
-												"manual_example",
-												example_predicate_composition_1.build()
-																.or(example_predicate_composition_2.build()),
-												"example_action",
-												false
-								);
-
-				// put the triggered action task into the scheduler queue and store its ScheduledFuture in the HashMap (so we can cancel it later)
-				triggered_actions_map.put(ta.getID(), poolExecutor.scheduleAtFixedRate(ta, 0, ms_delay.intValue(), TimeUnit.MILLISECONDS));
 		}
 
 		void displayActions()

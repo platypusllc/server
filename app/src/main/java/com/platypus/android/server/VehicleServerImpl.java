@@ -122,8 +122,22 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     void exampleAction() { Log.i("AP", "PERFORMING ACTION"); }
     public Object getState(String key)
     {
-        Log.v("AP", String.format("VehicleServerImpl.getState(%s)...", key));
-        return agent_state_retriever.get(key).get();
+        Log.d("AP", String.format("VehicleServerImpl.getState(%s)...", key));
+        try
+        {
+            Supplier supplier = agent_state_retriever.get(key);
+            if (supplier == null)
+            {
+                Log.e("AP", String.format("State \"%s\" does not exist. All related predicates will fail.", key));
+                return null;
+            }
+            return supplier.get();
+        }
+        catch (Exception e)
+        {
+            Log.e("AP", e.getMessage());
+            return null;
+        }
     }
     public void performAction(String key)
     {
@@ -639,6 +653,22 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 example_state.set(!example_state.get());
                 Log.d("AP", String.format("Example state = %s", Boolean.toString(example_state.get())));
                 return example_state.get();
+            }
+        });
+        agent_state_retriever.put("UTM", new Supplier()
+        {
+            @Override
+            public Object get()
+            {
+                return _utmPose.clone();
+            }
+        });
+        agent_state_retriever.put("EC", new Supplier()
+        {
+            @Override
+            public Object get()
+            {
+                return null;
             }
         });
 
