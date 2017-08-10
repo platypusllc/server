@@ -48,13 +48,15 @@ public class AutonomousPredicates
 				boolean _isPermanent; // if true, this triggered action Runnable will be canceled after it runs once
 				Predicate<Void> _test; // meant to call methods in the VehicleServerImpl
 				String _action; // meant to call methods in the VehicleServerImpl
+				String _name;
 
-				public TriggeredAction(Predicate<Void> test, String action, boolean isPermanent)
+				public TriggeredAction(String name, Predicate<Void> test, String action, boolean isPermanent)
 				{
 						_id = ap_count++;
 						_isPermanent = isPermanent;
 						_test = test;
 						_action = action;
+						_name = name;
 				}
 
 				public long getID() { return _id; }
@@ -62,21 +64,21 @@ public class AutonomousPredicates
 				@Override
 				public void run()
 				{
-						Log.d(logTag, String.format("Task # %d running...", _id));
+						Log.d(logTag, String.format("Task %s running...", _name));
 						if (_test.test(null))
 						{
-								Log.i(logTag, String.format("Task # %d test returned TRUE, executing task...", _id));
+								Log.i(logTag, String.format("Task %s test returned TRUE, executing task...", _name));
 								_serverImpl.performAction(_action);
 								if (!_isPermanent)
 								{
-										Log.i(logTag, String.format("Task # %d completed, removing...", _id));
+										Log.i(logTag, String.format("Task %s completed, removing...", _name));
 										triggered_actions_map.get(_id).cancel(true);
 										triggered_actions_map.remove(_id);
 								}
 						}
 						else
 						{
-								Log.i(logTag, String.format("Task # %d test returned FALSE", _id));
+								Log.i(logTag, String.format("Task %s test returned FALSE", _name));
 						}
 				}
 		}
@@ -133,17 +135,16 @@ public class AutonomousPredicates
 				}
 				private Predicate<Void> generatePredicate(final String left_hand_side, final String comparator, final double right_hand_side)
 				{
-						Log.v(logTag, String.format("Generating new predicate: %s", comparator));
+						final String definition = String.format("%s %s %f", left_hand_side, comparator, right_hand_side);
+						Log.v(logTag, String.format("Generating new predicate: %s", definition));
 						return new Predicate<Void>()
 						{
-								String definition = String.format("%s %s %.0f", left_hand_side, comparator, right_hand_side);
 								@Override
 								public boolean test(Void v) // the input to this is never used
 								{
 										Double a = Double.class.cast(_serverImpl.getState(left_hand_side));
 										Double b = Double.class.cast(right_hand_side);
 										boolean result = false;
-
 										switch(comparator)
 										{
 												case "=":
@@ -168,7 +169,7 @@ public class AutonomousPredicates
 												default:
 														break;
 										}
-										Log.d(logTag, String.format("Executed a predicate: %s = %s", definition, Boolean.toString(result)));
+										Log.d(logTag, String.format("Executed a predicate: %s is %s", definition, Boolean.toString(result)));
 										return result;
 								}
 						};
@@ -189,6 +190,12 @@ public class AutonomousPredicates
 				}
 				public DynamicPredicateComposition and(final Predicate<Void> _predicate)
 				{
+						depth++;
+						if (depth == 1)
+						{
+								depth = 0;
+								return or(_predicate);
+						}
 						predicate = predicate.and(_predicate);
 						Log.d(logTag, "Added a compound AND");
 						return this;
@@ -219,6 +226,7 @@ public class AutonomousPredicates
 				}
 				public DynamicPredicateComposition or(final Predicate<Void> _predicate)
 				{
+						depth++;
 						predicate = predicate.or(_predicate);
 						Log.d(logTag, "Added a compound OR");
 						return this;
@@ -236,6 +244,13 @@ public class AutonomousPredicates
 						predicate = predicate.or(generatePredicate(boolean_state));
 						Log.d(logTag, String.format("Added an OR: %s", boolean_state));
 						return this;
+				}
+
+				public Predicate<Void> inInterval(final String left_hand_side, final double low, final double high)
+				{
+						Predicate<Void> new_predicate = generatePredicate(left_hand_side, ">=", low);
+						new_predicate = new_predicate.and(generatePredicate(left_hand_side, "<=", high));
+						return new_predicate;
 				}
 
 				// TODO: useful building utilities
@@ -283,7 +298,7 @@ public class AutonomousPredicates
 				try
 				{
 						file_json = (JSONObject)tokener.nextValue();
-						Log.v(logTag, file_json.toString(2));
+						// Log.v(logTag, file_json.toString(2));
 				}
 				catch (Exception e)
 				{
@@ -297,12 +312,12 @@ public class AutonomousPredicates
 				while (file_keys.hasNext())
 				{
 						key = file_keys.next();
-						Log.i(logTag, String.format("Next key: %s", key));
+						Log.i(logTag, String.format("Next task: %s", key));
 						try
 						{
 								JSONObject task_json = (JSONObject)file_json.get(key);
-								Log.v(logTag, task_json.toString(2));
-								createTask(task_json);
+								// Log.v(logTag, task_json.toString(2));
+								createTask(task_json, key);
 						}
 						catch (Exception e)
 						{
@@ -395,13 +410,23 @@ public class AutonomousPredicates
 										switch(symbol)
 										{
 												case ":":
+														// retrieve the numbers inside the interval
+														Pattern number_pattern = Pattern.compile("[+-]?([0-9]*[.])?[0-9]+"); // any integer and floating point numbers
+														Matcher number_matcher = number_pattern.matcher(components[1]);
+														number_matcher.find();
+														String low_string = number_matcher.group();
+														number_matcher.find();
+														String high_string = number_matcher.group();
+														double low = Double.valueOf(low_string);
+														double high = Double.valueOf(high_string);
+														Log.d(logTag, String.format("Using [low, high] = %f, %f", low, high));
 														switch(splitting_boolean)
 														{
 																case "&":
-																		//TODO dpc.and();
+																		dpc.and(dpc.inInterval(components[0], low, high));
 																		break;
 																case "|":
-																		//TODO dpc.or();
+																		dpc.or(dpc.inInterval(components[0], low, high));
 																		break;
 																default:
 																		break;
@@ -465,7 +490,7 @@ public class AutonomousPredicates
 				return dpc.build();
 		}
 
-		private void createTask(JSONObject definition)
+		private void createTask(JSONObject definition, String name)
 		{
 				String key;
 				Iterator<String> task_keys = definition.keys();
@@ -479,7 +504,7 @@ public class AutonomousPredicates
 						while (task_keys.hasNext())
 						{
 								key = task_keys.next();
-								Log.v(logTag, String.format("Next task key: %s", key));
+								// Log.v(logTag, String.format("Next task key: %s", key));
 								switch(key)
 								{
 										case "action":
@@ -520,7 +545,7 @@ public class AutonomousPredicates
 
 						// create new triggered action
 						// Need Predicate, string for action,
-						TriggeredAction ta = new TriggeredAction(predicate, action, ends);
+						TriggeredAction ta = new TriggeredAction(name, predicate, action, !ends);
 
 						// put the triggered action task into the scheduler queue and store its ScheduledFuture in the HashMap (so we can cancel it later)
 						triggered_actions_map.put(ta.getID(), poolExecutor.scheduleAtFixedRate(ta, 0, ms_interval, TimeUnit.MILLISECONDS));
@@ -610,6 +635,7 @@ public class AutonomousPredicates
 								.and("example_value","gt", 5.);
 				TriggeredAction ta = new TriggeredAction
 								(
+												"manual_example",
 												example_predicate_composition_1.build()
 																.or(example_predicate_composition_2.build()),
 												"example_action",
