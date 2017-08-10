@@ -140,7 +140,6 @@ public class AutonomousPredicates
 								@Override
 								public boolean test(Void v) // the input to this is never used
 								{
-										Log.d(logTag, String.format("Executing a predicate: %s...", definition));
 										Double a = Double.class.cast(_serverImpl.getState(left_hand_side));
 										Double b = Double.class.cast(right_hand_side);
 										boolean result = false;
@@ -190,7 +189,7 @@ public class AutonomousPredicates
 				}
 				public DynamicPredicateComposition and(final Predicate<Void> _predicate)
 				{
-						predicate.and(_predicate);
+						predicate = predicate.and(_predicate);
 						Log.d(logTag, "Added a compound AND");
 						return this;
 				}
@@ -220,7 +219,7 @@ public class AutonomousPredicates
 				}
 				public DynamicPredicateComposition or(final Predicate<Void> _predicate)
 				{
-						predicate.or(_predicate);
+						predicate = predicate.or(_predicate);
 						Log.d(logTag, "Added a compound OR");
 						return this;
 				}
@@ -366,6 +365,7 @@ public class AutonomousPredicates
 														dpc.or(inner_predicate);
 														break;
 												default:
+														Log.e(logTag, "Unknown boolean, skipping");
 														break;
 										}
 								}

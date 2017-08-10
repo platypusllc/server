@@ -618,7 +618,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 synchronized (example_lock)
                 {
                     example_value += 1.;
-                    Log.v("AP", String.format("Example value = %.0f", example_value));
+                    Log.d("AP", String.format("Example value = %.0f", example_value));
                     return example_value;
                 }
             }
@@ -629,7 +629,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             public Boolean get()
             {
                 example_state.set(!example_state.get());
-                Log.v("AP", String.format("Example state = %s", Boolean.toString(example_state.get())));
+                Log.d("AP", String.format("Example state = %s", Boolean.toString(example_state.get())));
                 return example_state.get();
             }
         });

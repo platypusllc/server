@@ -9,7 +9,7 @@
 	fancy_example:
 	{
 		action: example,
-		trigger: "example_state | (example_value >= 5 & example_value < 20)",
+		trigger: "example_state | (example_value >= 5 & example_value < 12)",
 		interval: 2000,
 		ends: y
 	},
