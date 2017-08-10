@@ -92,7 +92,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     - filter sensor data somehow
     - avoid obstacles
      */
-    enum AvailableActions
+    enum Actions
     {
         EXAMPLE("example"),
         RETURN_HOME("home"),
@@ -101,10 +101,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         RESET_SAMPLER("sampler_reset");
 
         final String string;
-        AvailableActions(String s) { string = s; }
+        Actions(String s) { string = s; }
         public static boolean contains(String s)
         {
-            for (AvailableActions action : values())
+            for (Actions action : values())
             {
                 if (action.string.equals(s)) return true;
             }
