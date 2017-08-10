@@ -2,57 +2,21 @@
 	basic_example:
 	{
 		action: example,
-		trigger:
-		{
-			example_value:
-			{
-				in: [9, 10]
-			}
-		},
+		trigger:"example_value : [8,10]",
 		interval: 1000,
 		ends: n
 	},
 	fancy_example:
 	{
 		action: example,
-		trigger:
-		{
-			or:
-			{
-				example_state:
-				{
-					bool: true
-				},
-				example_value:
-				{
-					and:
-					{
-						gt: 5,
-						lt: 20
-					}
-				}				
-			}
-		},
+		trigger: "example_state | (example_value >= 5 & example_value < 20)",
 		interval: 2000,
 		ends: y
 	},
 	sampler_example:
 	{
 		action: sampler_start,
-		trigger:
-		{			
-			and:
-			{
-				EC:
-				{
-					gt: 0
-				}
-				GPS:
-				{
-					near: [45.403863, 10.999423]
-				}
-			}
-		},
+		trigger: "EC > 0 & GPS @ [45.403863, 10.999423]",
 		interval: 500,
 		ends: y
 	}

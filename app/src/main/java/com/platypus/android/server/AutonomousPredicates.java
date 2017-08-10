@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -300,23 +302,42 @@ public class AutonomousPredicates
 				}
 
 				// http://regexr.com/
+				// http://www.regexplanet.com/advanced/java/index.html
 				String nonboolean_regex = "[|&]+(?![^\\(]*\\))"; // split on boolean logic symbols, but don't split up parentheses
-				String boolean_regex = "[^|&]+"; // TODO: get only the booleans used to split above
+				Pattern pattern = Pattern.compile(nonboolean_regex);
+				Matcher matcher = pattern.matcher(predicate_string);
+				String splitting_boolean = "";
+				if (matcher.find()) splitting_boolean += predicate_string.charAt(matcher.start());
+				String[] predicate_strings = predicate_string.split(nonboolean_regex);
+				Log.i(logTag, String.format("predicates: %s", Arrays.toString(predicate_strings)));
+				Log.i(logTag, String.format("splitting boolean: %s", splitting_boolean));
+
+				// TODO: for each predicate, recursively call parseTrigger, setting available_dpc to null IF THE PREDICATE USES PARENTHESES i.e. is compound
+				pattern = Pattern.compile("[()]+");
 				String nonpredicate_symbol_regex = "[[<>]=?:@]+"; // split on predicate symbols
 				String predicate_symbol_regex = "[^[<>]=?:@]+";
-
-				String[] predicate_strings = predicate_string.split(nonboolean_regex);
-				String[] booleans = predicate_string.split(boolean_regex);
-				if (booleans.length > 0) booleans = trimFirstString(booleans); // trim leading empty char
-				Log.i(logTag, String.format("predicates: %s", Arrays.toString(predicate_strings)));
-				Log.i(logTag, String.format("booleans: %s", Arrays.toString(booleans)));
 				for (String predicate : predicate_strings)
 				{
-						String[] components = predicate.split(nonpredicate_symbol_regex);
-						String[] symbols = predicate.split(predicate_symbol_regex);
-						if (symbols.length > 0) symbols = trimFirstString(symbols); // trim leading empty char
-						Log.i(logTag, String.format("%s --> components: %s", predicate, Arrays.toString(components)));
-						Log.i(logTag, String.format("%s --> symbols: %s", predicate, Arrays.toString(symbols)));
+						matcher = pattern.matcher(predicate);
+						if (matcher.find())
+						{
+								// contains parentheses. Compound predicate. Trim off outer parentheses and recurse.
+								Log.i(logTag, String.format("predicate %s is compound. Need to recurse", predicate));
+								Pattern inner_pattern = Pattern.compile("(?:\\([^()]+\\)|[^()])+(?=\\))"); // only stuff inside the outermost parentheses
+								Matcher inner_matcher = inner_pattern.matcher(predicate);
+								if (inner_matcher.find())
+								{
+										Predicate<Void> inner_predicate = parseTrigger(inner_matcher.group(), null);
+								}
+						}
+						else
+						{
+								String[] components = predicate.split(nonpredicate_symbol_regex);
+								String[] symbols = predicate.split(predicate_symbol_regex);
+								if (symbols.length > 0) symbols = trimFirstString(symbols); // trim leading empty char
+								Log.i(logTag, String.format("%s --> components: %s", predicate, Arrays.toString(components)));
+								Log.i(logTag, String.format("%s --> symbols: %s", predicate, Arrays.toString(symbols)));
+						}
 				}
 
 				return null;
