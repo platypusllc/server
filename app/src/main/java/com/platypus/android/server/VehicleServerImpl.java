@@ -127,7 +127,15 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     }
     public void performAction(String key)
     {
-        agent_performer.get(key).accept(null);
+        Log.d("AP", String.format("VehicleServerImpl.performAction(%s)", key));
+        try
+        {
+            agent_performer.get(key).accept(null);
+        }
+        catch (Exception e)
+        {
+            Log.e("AP", e.getMessage());
+        }
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -634,7 +642,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             }
         });
 
-        agent_performer.put("example_action", new Consumer()
+        agent_performer.put(Actions.EXAMPLE.string, new Consumer()
         {
             @Override
             public void accept(Object o)

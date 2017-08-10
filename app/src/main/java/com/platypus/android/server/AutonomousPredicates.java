@@ -509,6 +509,7 @@ public class AutonomousPredicates
 								{
 										case "action":
 												action = definition.getString(key);
+												action = action.trim();
 												// make sure the action is one of the available ones
 												if (!VehicleServerImpl.Actions.contains(action)) throw new Exception("task definition contains unknown action");
 												break;
