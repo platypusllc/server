@@ -59,83 +59,21 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // ASDF
 
-    /*
-    list of state variables {* if it needs a lock}
-    - battery voltage (double) {*}
-    - time since operator detected (AtomicLong)
-    - elapsed time in seconds i.e. how long the server has been running (AtomicLong)
-    - location (double, double) or UtmPose or whatever {*}
-    - sensor data (EC, T, DO, ...) {*}
-    - is connected (AtomicBoolean)
-    - is autonomous (AtomicBoolean)
-    - is running (AtomicBoolean)
-    - first autonomy (to set home location) (AtomicBoolean)
-    - is executing failsafe (AtomicBoolean)
-    - is executing sampler (AtomicBoolean)
-    - home location UtmPose or whatever {*}
-    - sampler jar status (boolean[# of jars]), if a jar has been used {*}
-    */
-    enum States
+    Object getState(VehicleState.States state)
     {
-        EXAMPLE_BOOLEAN("example_state", "boolean"),
-        EXAMPLE_VALUE("example_value", "numeric"),
-        EC("ec", "numeric"),
-        DO("do", "numeric"),
-        T("temp", "numeric"),
-        UTM_POSE("utm_pose", "location"), // location using UTM
-        HOME_POSE("home_pose", "location"), // home location using UTM
-        ELAPSED_TIME("elapsed_time", "numeric"),
-        TIME_SINCE_OPERATOR("time_since_operator", "numeric"), // time elapsed past last time operator detected
-        BATTERY_VOLTAGE("battery_voltage", "numeric"),
-        IS_CONNECTED("is_connected", "boolean"),
-        IS_AUTONOMOUS("is_autonomous", "boolean"),
-        HAS_FIRST_AUTONOMY("has_first_autonomy", "boolean"),
-        IS_RUNNING("is_running", "boolean"),
-        IS_EXECUTING_FAILSAFE("is_exec_failsafe", "boolean"),
-        IS_TAKING_SAMPLE("is_taking_sample", "boolean"),
-        ALWAYS_TRUE("always_true", "boolean"),
-        ALWAYS_FALSE("always_false", "boolean");
-
-        final String name;
-        final String type;
-        States(final String _name, final String _type)
-        {
-            name = _name;
-            type = _type;
-        }
-        public static States fromString(final String s)
-        {
-            for (States state: values())
-            {
-                if (state.name.equals(s)) return state;
-            }
-            Log.w("AP", String.format("State \"%s\" not available. Will always return false instead.", s));
-            return ALWAYS_FALSE;
-        }
-        public static boolean isNumeric(final String s)
-        {
-            for (States state: values())
-            {
-                if (state.name.equals(s)) return state.type.equals("numeric");
-            }
-            return false;
-        }
-        public static boolean isBoolean(final String s)
-        {
-            for (States state: values())
-            {
-                if (state.name.equals(s)) return state.type.equals("boolean");
-            }
-            return false;
-        }
-        public static boolean isLocation(final String s)
-        {
-            for (States state: values())
-            {
-                if (state.name.equals(s)) return state.type.equals("location");
-            }
-            return false;
-        }
+        return vehicle_state.get(state);
+    }
+    Object getState(String state_string)
+    {
+        return vehicle_state.get(state_string);
+    }
+    void setState(VehicleState.States state, Object in)
+    {
+        vehicle_state.set(state, in);
+    }
+    void setState(String state_string, Object in)
+    {
+        vehicle_state.set(state_string, in);
     }
 
     /*
@@ -182,51 +120,15 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
     }
 
+    // TODO: add lock for EC value, getter for EC value
+    // TODO: add boolean[] for jar status and a lock
+    // TODO: add action for starting sampler with available jar
 
     AutonomousPredicates autonomous_predicates;
-    AtomicBoolean example_state = new AtomicBoolean(true);
-    double example_value = 0.0;
-    Object example_lock = new Object();
+    VehicleState vehicle_state;
     private HashMap<String, Object> lock_map = new HashMap<>();
     void exampleAction() { Log.i("AP", "PERFORMING ACTION"); }
-    double getExampleValue()
-    {
-        synchronized (example_lock)
-        {
-            example_value += 1.;
-            Log.d("AP", String.format("Example value = %.0f", example_value));
-            return example_value;
-        }
-    }
 
-    public Object getState(String state_string)
-    {
-        States state = States.fromString(state_string);
-        Object result;
-        switch(state)
-        {
-            case EXAMPLE_BOOLEAN:
-                example_state.set(!example_state.get());
-                result = example_state.get();
-                break;
-            case EXAMPLE_VALUE:
-                result = getExampleValue();
-                break;
-            case UTM_POSE:
-                result = _utmPose.clone();
-                break;
-            case ALWAYS_FALSE:
-                result = false;
-                break;
-            case ALWAYS_TRUE:
-                result = true;
-                break;
-            default:
-                result = null;
-                break;
-        }
-        return result;
-    }
     public void performAction(String action_string)
     {
         Actions action = Actions.fromString(action_string);
@@ -237,6 +139,22 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 break;
             case DO_NOTHING:
                 break;
+            case START_SAMPLER:
+                // TODO: don't hardcode a single jar
+                Log.e("AP", "STARTING A SAMPLER! WOOOO");
+                JSONObject command = new JSONObject();
+                JSONObject samplerSettings = new JSONObject();
+                try
+                {
+                    samplerSettings.put("e", "3");
+                    command.put("s1", samplerSettings);
+                    mController.send(command);
+                }
+                catch (Exception e)
+                {
+                    Log.e("AP", e.getMessage());
+                }
+
             default:
                 break;
         }
@@ -522,6 +440,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         public void run() {
             // Do an intelligent state prediction update here
             _utmPose = filter.pose(System.currentTimeMillis()); // TODO: what the hell is this?
+            setState(VehicleState.States.UTM_POSE, _utmPose.clone());
             try {
                 mLogger.info(new JSONObject()
                         .put("pose", new JSONObject()
@@ -726,7 +645,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
         _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
         _failsafe_timer.scheduleAtFixedRate(failsafe_check, 0, 10000);
+        vehicle_state = new VehicleState(this);
         autonomous_predicates = new AutonomousPredicates(this);
+        autonomous_predicates.loadDefaults();
+
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
@@ -1008,6 +930,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 reading.channel = sensor;
                                 reading.type = SensorType.ES2;
                                 reading.data = new double[]{ecData, tempData};
+
+                                setState(VehicleState.States.EC, ecData);
+
                             } catch (NumberFormatException e) {
                                 Log.w(TAG, "Received malformed ES2 Sensor Data: " + value);
                                 continue;

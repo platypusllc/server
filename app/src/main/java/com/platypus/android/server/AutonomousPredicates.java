@@ -41,7 +41,7 @@ import javax.measure.unit.SI;
  * http://www.java2s.com/Tutorials/Java_Lambda/java.util.function/BooleanSupplier/BooleanSupplier_example.htm
  * "currying"
  * https://developer.android.com/reference/org/json/JSONTokener.html
- */
+				 */
 
 public class AutonomousPredicates
 {
@@ -148,7 +148,7 @@ public class AutonomousPredicates
 						Log.v(logTag, String.format("Generating new predicate: %s", definition));
 
 						// if the left_hand_side doesn't exist, or doesn't something that can be cast into a double, this needs to fail immediately
-						if (!VehicleServerImpl.States.isNumeric(left_hand_side))
+						if (!VehicleState.States.isNumeric(left_hand_side))
 						{
 								throw new Exception(String.format("State \"%s\" not available or is not numeric. Throwing an exception.", left_hand_side));
 						}
@@ -158,7 +158,15 @@ public class AutonomousPredicates
 								@Override
 								public boolean test(Void v) // the input to this is never used
 								{
-										Object retrieval = _serverImpl.getState(left_hand_side);
+										Object retrieval = null;
+										try
+										{
+												retrieval = _serverImpl.getState(left_hand_side);
+										}
+										catch (Exception e)
+										{
+												Log.e(logTag, e.getMessage());
+										}
 										if (retrieval == null)
 										{
 												Log.w(logTag, String.format("Predicate %s received a null when it asked for %s", definition, left_hand_side));
@@ -201,7 +209,7 @@ public class AutonomousPredicates
 						Log.v(logTag, String.format("Generating new boolean only predicate"));
 
 						// Make sure the requested state is available and is a boolean
-						if (!VehicleServerImpl.States.isBoolean(boolean_state))
+						if (!VehicleState.States.isBoolean(boolean_state))
 						{
 								throw new Exception(String.format("State \"%s\" not available or is not numeric. Throwing an exception.", boolean_state));
 						}
@@ -303,7 +311,7 @@ public class AutonomousPredicates
 										boolean result = false;
 										try
 										{
-												UtmPose utmPose = (UtmPose) _serverImpl.getState(VehicleServerImpl.States.UTM_POSE.name);
+												UtmPose utmPose = (UtmPose) _serverImpl.getState(VehicleState.States.UTM_POSE);
 												distance = Math.sqrt(Math.pow(utmPose.pose.getX() - location_utm.eastingValue(SI.METER), 2.0)
 																+ Math.pow(utmPose.pose.getY() - location_utm.northingValue(SI.METER), 2.0));
 												result = distance < radius;
@@ -326,6 +334,10 @@ public class AutonomousPredicates
 				*/
 		}
 
+		public void loadDefaults()
+		{
+				loadFromFile("default_behaviors.txt");
+		}
 		private void loadFromFile(String filename)
 		{
 				final File file = new File(Environment.getExternalStorageDirectory() + "/platypus/" + filename);
@@ -514,10 +526,10 @@ public class AutonomousPredicates
 																switch (splitting_boolean)
 																{
 																		case "&":
-																				dpc.and(dpc.isNear(lat, lon, 3.0));
+																				dpc.and(dpc.isNear(lat, lon, 100.0));
 																				break;
 																		case "|":
-																				dpc.or(dpc.isNear(lat, lon, 3.0));
+																				dpc.or(dpc.isNear(lat, lon, 100.0));
 																				break;
 																		default:
 																				break;
@@ -648,7 +660,6 @@ public class AutonomousPredicates
 		{
 				_serverImpl = server;
 				Log.w(logTag, "**** AutonomousPredicates constructor ****");
-				loadFromFile("default_behaviors.txt");
 		}
 
 		public void cancelAll()
