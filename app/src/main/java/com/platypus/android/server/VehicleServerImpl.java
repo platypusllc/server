@@ -386,7 +386,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     String sensor_array_name = "pref_sensor_" + Integer.toString(i+1) + "_type";
                     String expected_type = mPrefs.getString(sensor_array_name, "NONE");
                     if (expected_type.equals("NONE")
-                            || expected_type.equals("RC_SBUS"))
+                            || expected_type.equals("RC_SBUS")
+                            || expected_type.equals("HDS")
+                            || expected_type.equals("SAMPLER"))
                     {
                         continue;
                     }
