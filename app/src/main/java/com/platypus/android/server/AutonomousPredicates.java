@@ -12,9 +12,11 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import java.util.Scanner;
@@ -111,7 +113,7 @@ public class AutonomousPredicates
 				true/false && {only matters if other thing is true}
 				true/false || {only matters if other thing is false}
 
-				TODO: Need to completely reproduce conjunctive normal form: (A or B or C) AND (C or D or E)
+				Supports complex predicates, such as conjunctive normal form: (A or B or C) AND (C or D or E)
 
 			  ANOTHER VERY IMPORTANT NOTE
 			  The "builder pattern" is used here, and that has some consequences.
@@ -138,13 +140,19 @@ public class AutonomousPredicates
 				public Predicate<Void> build()
 				{
 						Log.i(logTag, "Building composite predicate...");
-						// TODO: duplicate predicate so we can reuse DynamicPredicateComposition objects
 						return predicate;
 				}
-				private Predicate<Void> generatePredicate(final String left_hand_side, final String comparator, final double right_hand_side)
+				private Predicate<Void> generatePredicate(final String left_hand_side, final String comparator, final double right_hand_side) throws Exception
 				{
 						final String definition = String.format("%s %s %f", left_hand_side, comparator, right_hand_side);
 						Log.v(logTag, String.format("Generating new predicate: %s", definition));
+
+						// if the left_hand_side doesn't exist, or doesn't something that can be cast into a double, this needs to fail immediately
+						if (!VehicleServerImpl.States.isNumeric(left_hand_side))
+						{
+								throw new Exception(String.format("State \"%s\" not available or is not numeric. Throwing an exception.", left_hand_side));
+						}
+
 						return new Predicate<Void>()
 						{
 								@Override
@@ -188,23 +196,37 @@ public class AutonomousPredicates
 								}
 						};
 				}
-				private Predicate<Void> generatePredicate(final String boolean_state)
+				private Predicate<Void> generatePredicate(final String boolean_state) throws Exception
 				{
 						Log.v(logTag, String.format("Generating new boolean only predicate"));
+
+						// Make sure the requested state is available and is a boolean
+						if (!VehicleServerImpl.States.isBoolean(boolean_state))
+						{
+								throw new Exception(String.format("State \"%s\" not available or is not numeric. Throwing an exception.", boolean_state));
+						}
+
 						return new Predicate<Void>()
 						{
 								@Override
 								public boolean test(Void v) // the input to this is never used
 								{
-										Boolean result = Boolean.class.cast(_serverImpl.getState(boolean_state));
+										Object retrieval = _serverImpl.getState(boolean_state);
+										if (retrieval == null)
+										{
+												Log.w(logTag, String.format("Boolean only predicate received a null when it asked for %s", boolean_state));
+												return false;
+										}
+										Boolean result = Boolean.class.cast(retrieval);
 										Log.d(logTag, String.format("Executed a predicate: %s = %s", boolean_state, Boolean.toString(result)));
 										return result;
 								}
 						};
 				}
-				public DynamicPredicateComposition and(final Predicate<Void> _predicate)
+				public DynamicPredicateComposition and(final Predicate<Void> _predicate) throws Exception
 				{
 						depth++;
+						if (_predicate == null) throw new Exception("Input predicate is null");
 						if (depth == 1)
 						{
 								depth = 0;
@@ -214,7 +236,7 @@ public class AutonomousPredicates
 						Log.d(logTag, "Added a compound AND");
 						return this;
 				}
-				public DynamicPredicateComposition and(final String left_hand_side, final String comparator, final double right_hand_side)
+				public DynamicPredicateComposition and(final String left_hand_side, final String comparator, final double right_hand_side) throws Exception
 				{
 						depth++;
 						if (depth == 1) // MUST START WITH AN OR
@@ -226,7 +248,7 @@ public class AutonomousPredicates
 						Log.d(logTag, String.format("Added an AND: %s %s %.0f", left_hand_side, comparator, right_hand_side));
 						return this;
 				}
-				public DynamicPredicateComposition and(final String boolean_state)
+				public DynamicPredicateComposition and(final String boolean_state) throws Exception
 				{
 						depth++;
 						if (depth == 1) // MUST START WITH AN OR
@@ -238,21 +260,22 @@ public class AutonomousPredicates
 						Log.d(logTag, String.format("Added an AND: %s", boolean_state));
 						return this;
 				}
-				public DynamicPredicateComposition or(final Predicate<Void> _predicate)
+				public DynamicPredicateComposition or(final Predicate<Void> _predicate) throws Exception
 				{
 						depth++;
+						if (_predicate == null) throw new Exception("Input predicate is null");
 						predicate = predicate.or(_predicate);
 						Log.d(logTag, "Added a compound OR");
 						return this;
 				}
-				public DynamicPredicateComposition or(final String left_hand_side, final String comparator, final double right_hand_side)
+				public DynamicPredicateComposition or(final String left_hand_side, final String comparator, final double right_hand_side) throws Exception
 				{
 						depth++;
 						predicate = predicate.or(generatePredicate(left_hand_side, comparator, right_hand_side));
 						Log.d(logTag, String.format("Added an OR: %s %s %.0f", left_hand_side, comparator, right_hand_side));
 						return this;
 				}
-				public DynamicPredicateComposition or(final String boolean_state)
+				public DynamicPredicateComposition or(final String boolean_state) throws Exception
 				{
 						depth++;
 						predicate = predicate.or(generatePredicate(boolean_state));
@@ -260,7 +283,7 @@ public class AutonomousPredicates
 						return this;
 				}
 
-				public Predicate<Void> inInterval(final String left_hand_side, final double low, final double high)
+				public Predicate<Void> inInterval(final String left_hand_side, final double low, final double high) throws Exception
 				{
 						Predicate<Void> new_predicate = generatePredicate(left_hand_side, ">=", low);
 						new_predicate = new_predicate.and(generatePredicate(left_hand_side, "<=", high));
@@ -280,7 +303,7 @@ public class AutonomousPredicates
 										boolean result = false;
 										try
 										{
-												UtmPose utmPose = (UtmPose) _serverImpl.getState("UTM");
+												UtmPose utmPose = (UtmPose) _serverImpl.getState(VehicleServerImpl.States.UTM_POSE.name);
 												distance = Math.sqrt(Math.pow(utmPose.pose.getX() - location_utm.eastingValue(SI.METER), 2.0)
 																+ Math.pow(utmPose.pose.getY() - location_utm.northingValue(SI.METER), 2.0));
 												result = distance < radius;
@@ -377,166 +400,177 @@ public class AutonomousPredicates
 
 				// http://regexr.com/
 				// http://www.regexplanet.com/advanced/java/index.html
-				String nonboolean_regex = "[|&]+(?![^\\(]*\\))"; // split on boolean logic symbols, but don't split up parentheses
-				String[] predicate_strings = predicate_string.split(nonboolean_regex);
+				String boolean_regex = "[|&]+(?![^\\(]*\\))"; // split on boolean logic symbols, but don't split up parentheses
+				String[] predicate_strings = predicate_string.split(boolean_regex);
 				Log.d(logTag, String.format("predicates: %s", Arrays.toString(predicate_strings)));
 
-				String boolean_regex = "[^|&]+";
-				String[] booleans = predicate_string.split(boolean_regex);
-				if (booleans.length > 0)
-				{
-						booleans[0] = "|"; // change leading index to an OR symbol "|"
-				}
-				else
-				{
-						booleans = new String[] {"|"}; // make sure there is a leading OR symbol
-				}
-				Log.v(logTag, String.format("booleans: %s", Arrays.toString(booleans)));
+				/*
+				Each call of parseTrigger should have its own boolean list.
+				Only the booleans outside of compound predicates should be included.
+				Because the compound predicates will get their own parseTrigger call.
+				*/
+
+				//String boolean_regex = "[^|&]+";
+				//String[] booleans = predicate_string.split(boolean_regex);
+				Pattern boolean_pattern = Pattern.compile(boolean_regex);
+				Matcher boolean_matcher = boolean_pattern.matcher(predicate_string);
+				List<String> booleans_list = new ArrayList<>();
+				while (boolean_matcher.find()) booleans_list.add(boolean_matcher.group());
+				Log.v(logTag, String.format("booleans: %s", Arrays.toString(booleans_list.toArray())));
+				booleans_list.add(0, "|"); // include an extra leading OR symbol "|"
 
 				Pattern pattern = Pattern.compile("[()]+"); // used to find any parentheses easily
 				String predicate_symbol_regex = "[[<>!=]=?:@]+"; // split on predicate symbols. Account for possibility of >=, <=, ==, and != as individual symbols.
 				int predicate_count = 0;
-				for (String predicate : predicate_strings)
+				try
 				{
-						String splitting_boolean = booleans[predicate_count];
-						Log.v(logTag, String.format("Using splitting boolean %s", splitting_boolean));
-						Matcher matcher = pattern.matcher(predicate);
-						if (matcher.find())
+						for (String predicate : predicate_strings)
 						{
-								// contains parentheses. Compound predicate. Trim off outer parentheses and recurse.
-								Log.v(logTag, String.format("predicate %s is compound. Need to recurse", predicate));
-								Pattern inner_pattern = Pattern.compile("(?:\\([^()]+\\)|[^()])+(?=\\))"); // only stuff inside the outermost parentheses
-								Matcher inner_matcher = inner_pattern.matcher(predicate);
-								if (inner_matcher.find())
+								String splitting_boolean = booleans_list.get(predicate_count);
+								Log.v(logTag, String.format("Using splitting boolean %s", splitting_boolean));
+								Matcher matcher = pattern.matcher(predicate);
+								if (matcher.find())
 								{
-										Predicate<Void> inner_predicate = parseTrigger(inner_matcher.group());
-										Log.d(logTag, String.format("Using splitting boolean %s on compound predicate", splitting_boolean));
-										// based on splitting boolean, call DynamicPredicateComposition methods using the above dpc object
-										switch(splitting_boolean)
+										// contains parentheses. Compound predicate. Trim off outer parentheses and recurse.
+										Log.v(logTag, String.format("predicate %s is compound. Need to recurse", predicate));
+										Pattern inner_pattern = Pattern.compile("(?:\\([^()]+\\)|[^()])+(?=\\))"); // only stuff inside the outermost parentheses
+										Matcher inner_matcher = inner_pattern.matcher(predicate);
+										if (inner_matcher.find())
 										{
-												case "&":
-														dpc.and(inner_predicate);
-														break;
-												case "|":
-														dpc.or(inner_predicate);
-														break;
-												default:
-														Log.e(logTag, "Unknown boolean, skipping");
-														break;
-										}
-								}
-						}
-						else
-						{
-								String[] components = predicate.split(predicate_symbol_regex);
-								// trim extra spaces from all the components
-								for (int i = 0; i < components.length; i++)
-								{
-										components[i] = components[i].trim();
-								}
-
-								Log.v(logTag, String.format("%s --> components: %s", predicate, Arrays.toString(components)));
-
-								// based on symbol and splitting boolean, call DynamicPredicateComposition methods using the above dpc object
-								// If there is no symbol, it is a pure boolean predicate
-								// If it is ":", the first component must be within the interval (inclusive) of the two values given in second component
-								// If it is "@", the first component must be within a euclidean distance of the second component
-								// If it is ">, <, >=, =, !=, the first component is compared against the second component
-								Pattern symbol_pattern = Pattern.compile(predicate_symbol_regex);
-								Matcher symbol_matcher = symbol_pattern.matcher(predicate);
-								if (symbol_matcher.find())
-								{
-										String symbol = symbol_matcher.group();
-										Log.v(logTag, String.format("Using predicate symbol \"%s\"", symbol));
-										switch(symbol)
-										{
-												case ":":
-														// retrieve the numbers inside the interval
-														Pattern number_pattern = Pattern.compile("[+-]?([0-9]*[.])?[0-9]+"); // any integer and floating point numbers
-														Matcher number_matcher = number_pattern.matcher(components[1]);
-														number_matcher.find();
-														String low_string = number_matcher.group();
-														number_matcher.find();
-														String high_string = number_matcher.group();
-														double low = Double.valueOf(low_string);
-														double high = Double.valueOf(high_string);
-														Log.v(logTag, String.format("Using [low, high] = %f, %f", low, high));
-														switch(splitting_boolean)
-														{
-																case "&":
-																		dpc.and(dpc.inInterval(components[0], low, high));
-																		break;
-																case "|":
-																		dpc.or(dpc.inInterval(components[0], low, high));
-																		break;
-																default:
-																		break;
-														}
-														break;
-												case "@":
-														number_pattern = Pattern.compile("[+-]?([0-9]*[.])?[0-9]+"); // any integer and floating point numbers
-														number_matcher = number_pattern.matcher(components[1]);
-														number_matcher.find();
-														String lat_string = number_matcher.group();
-														number_matcher.find();
-														String lon_string = number_matcher.group();
-														double lat = Double.valueOf(lat_string);
-														double lon = Double.valueOf(lon_string);
-														Log.d(logTag, String.format("Using [lat, long] = %f, %f", lat, lon));
-														switch(splitting_boolean)
-														{
-																case "&":
-																		dpc.and(dpc.isNear(lat, lon, 3.0));
-																		break;
-																case "|":
-																		dpc.or(dpc.isNear(lat, lon, 3.0));
-																		break;
-																default:
-																		break;
-														}
-														break;
-												case "<":
-												case "<=":
-												case "=":
-												case "==":
-												case "!=":
-												case ">=":
-												case ">":
-														switch(splitting_boolean)
-														{
-																case "&":
-																		dpc.and(components[0], symbol, Double.valueOf(components[1]));
-																		break;
-																case "|":
-																		dpc.or(components[0], symbol, Double.valueOf(components[1]));
-																		break;
-																default:
-																		break;
-														}
-														break;
-												default:
-														break;
+												Predicate<Void> inner_predicate = parseTrigger(inner_matcher.group());
+												Log.d(logTag, String.format("Using splitting boolean %s on compound predicate", splitting_boolean));
+												// based on splitting boolean, call DynamicPredicateComposition methods using the above dpc object
+												switch (splitting_boolean)
+												{
+														case "&":
+																dpc.and(inner_predicate);
+																break;
+														case "|":
+																dpc.or(inner_predicate);
+																break;
+														default:
+																Log.e(logTag, "Unknown boolean, skipping");
+																break;
+												}
 										}
 								}
 								else
 								{
-										// pure boolean predicate
-										switch(splitting_boolean)
+										String[] components = predicate.split(predicate_symbol_regex);
+										// trim extra spaces from all the components
+										for (int i = 0; i < components.length; i++)
 										{
-												case "&":
-														dpc.and(components[0]);
-														break;
-												case "|":
-														dpc.or(components[0]);
-														break;
-												default:
-														break;
+												components[i] = components[i].trim();
+										}
+
+										Log.v(logTag, String.format("%s --> components: %s", predicate, Arrays.toString(components)));
+
+										// based on symbol and splitting boolean, call DynamicPredicateComposition methods using the above dpc object
+										// If there is no symbol, it is a pure boolean predicate
+										// If it is ":", the first component must be within the interval (inclusive) of the two values given in second component
+										// If it is "@", the first component must be within a euclidean distance of the second component
+										// If it is ">, <, >=, =, !=, the first component is compared against the second component
+										Pattern symbol_pattern = Pattern.compile(predicate_symbol_regex);
+										Matcher symbol_matcher = symbol_pattern.matcher(predicate);
+										if (symbol_matcher.find())
+										{
+												String symbol = symbol_matcher.group();
+												Log.v(logTag, String.format("Using predicate symbol \"%s\"", symbol));
+												switch (symbol)
+												{
+														case ":":
+																// retrieve the numbers inside the interval
+																Pattern number_pattern = Pattern.compile("[+-]?([0-9]*[.])?[0-9]+"); // any integer and floating point numbers
+																Matcher number_matcher = number_pattern.matcher(components[1]);
+																number_matcher.find();
+																String low_string = number_matcher.group();
+																number_matcher.find();
+																String high_string = number_matcher.group();
+																double low = Double.valueOf(low_string);
+																double high = Double.valueOf(high_string);
+																Log.v(logTag, String.format("Using [low, high] = %f, %f", low, high));
+																switch (splitting_boolean)
+																{
+																		case "&":
+																				dpc.and(dpc.inInterval(components[0], low, high));
+																				break;
+																		case "|":
+																				dpc.or(dpc.inInterval(components[0], low, high));
+																				break;
+																		default:
+																				break;
+																}
+																break;
+														case "@":
+																number_pattern = Pattern.compile("[+-]?([0-9]*[.])?[0-9]+"); // any integer and floating point numbers
+																number_matcher = number_pattern.matcher(components[1]);
+																number_matcher.find();
+																String lat_string = number_matcher.group();
+																number_matcher.find();
+																String lon_string = number_matcher.group();
+																double lat = Double.valueOf(lat_string);
+																double lon = Double.valueOf(lon_string);
+																Log.d(logTag, String.format("Using [lat, long] = %f, %f", lat, lon));
+																switch (splitting_boolean)
+																{
+																		case "&":
+																				dpc.and(dpc.isNear(lat, lon, 3.0));
+																				break;
+																		case "|":
+																				dpc.or(dpc.isNear(lat, lon, 3.0));
+																				break;
+																		default:
+																				break;
+																}
+																break;
+														case "<":
+														case "<=":
+														case "=":
+														case "==":
+														case "!=":
+														case ">=":
+														case ">":
+																switch (splitting_boolean)
+																{
+																		case "&":
+																				dpc.and(components[0], symbol, Double.valueOf(components[1]));
+																				break;
+																		case "|":
+																				dpc.or(components[0], symbol, Double.valueOf(components[1]));
+																				break;
+																		default:
+																				break;
+																}
+																break;
+														default:
+																break;
+												}
+										}
+										else
+										{
+												// pure boolean predicate
+												switch (splitting_boolean)
+												{
+														case "&":
+																dpc.and(components[0]);
+																break;
+														case "|":
+																dpc.or(components[0]);
+																break;
+														default:
+																break;
+												}
 										}
 								}
+								predicate_count++;
 						}
-						predicate_count++;
+						return dpc.build();
 				}
-				return dpc.build();
+				catch (Exception e)
+				{
+						Log.e(logTag, String.format("Could not parse trigger. Error = %s", e.getMessage()));
+						return null;
+				}
 		}
 
 		private void createTask(JSONObject definition, String name)
@@ -591,7 +625,11 @@ public class AutonomousPredicates
 								}
 						}
 
-						if (predicate == null) return;
+						if (predicate == null)
+						{
+								Log.e(logTag, "Predicate was null. Not scheduling a task.");
+								return;
+						}
 
 						// create new triggered action
 						// Need Predicate, string for action,

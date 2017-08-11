@@ -2,7 +2,7 @@
 	basic_example:
 	{
 		action: example,
-		trigger:"example_value : [8,10]",
+		trigger:"example_value : [8, 10]",
 		interval: 1000,
 		ends: n
 	},
@@ -17,6 +17,13 @@
 	{
 		action: sampler_start,
 		trigger: "EC > 0 & GPS @ [45.403863, 10.999423]",
+		interval: 1000,
+		ends: y
+	},
+	conjunctive_normal_form:
+	{
+		action: example,
+		trigger: "(always_false | always_false | always_true) & (always_false | always_false | example_state)",
 		interval: 1000,
 		ends: y
 	}

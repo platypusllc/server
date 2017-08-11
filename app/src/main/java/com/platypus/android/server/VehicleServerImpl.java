@@ -37,8 +37,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -77,6 +75,68 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     - home location UtmPose or whatever {*}
     - sampler jar status (boolean[# of jars]), if a jar has been used {*}
     */
+    enum States
+    {
+        EXAMPLE_BOOLEAN("example_state", "boolean"),
+        EXAMPLE_VALUE("example_value", "numeric"),
+        EC("ec", "numeric"),
+        DO("do", "numeric"),
+        T("temp", "numeric"),
+        UTM_POSE("utm_pose", "location"), // location using UTM
+        HOME_POSE("home_pose", "location"), // home location using UTM
+        ELAPSED_TIME("elapsed_time", "numeric"),
+        TIME_SINCE_OPERATOR("time_since_operator", "numeric"), // time elapsed past last time operator detected
+        BATTERY_VOLTAGE("battery_voltage", "numeric"),
+        IS_CONNECTED("is_connected", "boolean"),
+        IS_AUTONOMOUS("is_autonomous", "boolean"),
+        HAS_FIRST_AUTONOMY("has_first_autonomy", "boolean"),
+        IS_RUNNING("is_running", "boolean"),
+        IS_EXECUTING_FAILSAFE("is_exec_failsafe", "boolean"),
+        IS_TAKING_SAMPLE("is_taking_sample", "boolean"),
+        ALWAYS_TRUE("always_true", "boolean"),
+        ALWAYS_FALSE("always_false", "boolean");
+
+        final String name;
+        final String type;
+        States(final String _name, final String _type)
+        {
+            name = _name;
+            type = _type;
+        }
+        public static States fromString(final String s)
+        {
+            for (States state: values())
+            {
+                if (state.name.equals(s)) return state;
+            }
+            Log.w("AP", String.format("State \"%s\" not available. Will always return false instead.", s));
+            return ALWAYS_FALSE;
+        }
+        public static boolean isNumeric(final String s)
+        {
+            for (States state: values())
+            {
+                if (state.name.equals(s)) return state.type.equals("numeric");
+            }
+            return false;
+        }
+        public static boolean isBoolean(final String s)
+        {
+            for (States state: values())
+            {
+                if (state.name.equals(s)) return state.type.equals("boolean");
+            }
+            return false;
+        }
+        public static boolean isLocation(final String s)
+        {
+            for (States state: values())
+            {
+                if (state.name.equals(s)) return state.type.equals("location");
+            }
+            return false;
+        }
+    }
 
     /*
     list of actions {* if immediately required}
@@ -98,7 +158,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         RETURN_HOME("home"),
         START_SAMPLER("sampler_start"),
         STOP_SAMPLER("sampler_stop"),
-        RESET_SAMPLER("sampler_reset");
+        RESET_SAMPLER("sampler_reset"),
+        DO_NOTHING("do_nothing");
 
         final String string;
         Actions(String s) { string = s; }
@@ -110,45 +171,74 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             }
             return false;
         }
+        public static Actions fromString(final String s)
+        {
+            for (Actions action : values())
+            {
+                if (action.string.equals(s)) return action;
+            }
+            Log.w("AP", String.format("Action \"%s\" not available. No action will be performed", s));
+            return DO_NOTHING;
+        }
     }
+
 
     AutonomousPredicates autonomous_predicates;
     AtomicBoolean example_state = new AtomicBoolean(true);
     double example_value = 0.0;
     Object example_lock = new Object();
-    private HashMap<String, Supplier> agent_state_retriever = new HashMap<>();
-    private HashMap<String, Consumer> agent_performer = new HashMap<>();
-    private HashMap<String, Object> locks = new HashMap<>();
+    private HashMap<String, Object> lock_map = new HashMap<>();
     void exampleAction() { Log.i("AP", "PERFORMING ACTION"); }
-    public Object getState(String key)
+    double getExampleValue()
     {
-        Log.d("AP", String.format("VehicleServerImpl.getState(%s)...", key));
-        try
+        synchronized (example_lock)
         {
-            Supplier supplier = agent_state_retriever.get(key);
-            if (supplier == null)
-            {
-                Log.e("AP", String.format("State \"%s\" does not exist. All related predicates will fail.", key));
-                return null;
-            }
-            return supplier.get();
-        }
-        catch (Exception e)
-        {
-            Log.e("AP", e.getMessage());
-            return null;
+            example_value += 1.;
+            Log.d("AP", String.format("Example value = %.0f", example_value));
+            return example_value;
         }
     }
-    public void performAction(String key)
+
+    public Object getState(String state_string)
     {
-        Log.d("AP", String.format("VehicleServerImpl.performAction(%s)", key));
-        try
+        States state = States.fromString(state_string);
+        Object result;
+        switch(state)
         {
-            agent_performer.get(key).accept(null);
+            case EXAMPLE_BOOLEAN:
+                example_state.set(!example_state.get());
+                result = example_state.get();
+                break;
+            case EXAMPLE_VALUE:
+                result = getExampleValue();
+                break;
+            case UTM_POSE:
+                result = _utmPose.clone();
+                break;
+            case ALWAYS_FALSE:
+                result = false;
+                break;
+            case ALWAYS_TRUE:
+                result = true;
+                break;
+            default:
+                result = null;
+                break;
         }
-        catch (Exception e)
+        return result;
+    }
+    public void performAction(String action_string)
+    {
+        Actions action = Actions.fromString(action_string);
+        switch(action)
         {
-            Log.e("AP", e.getMessage());
+            case EXAMPLE:
+                exampleAction();
+                break;
+            case DO_NOTHING:
+                break;
+            default:
+                break;
         }
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -629,58 +719,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         _context = context;
         mLogger = logger;
         mController = controller;
-
-        //////////////////////////////////////////////////////////////////////////
-        // ASDF
-        agent_state_retriever.put("example_value", new Supplier()
-        {
-            @Override
-            public Double get()
-            {
-                synchronized (example_lock)
-                {
-                    example_value += 1.;
-                    Log.d("AP", String.format("Example value = %.0f", example_value));
-                    return example_value;
-                }
-            }
-        });
-        agent_state_retriever.put("example_state", new Supplier()
-        {
-            @Override
-            public Boolean get()
-            {
-                example_state.set(!example_state.get());
-                Log.d("AP", String.format("Example state = %s", Boolean.toString(example_state.get())));
-                return example_state.get();
-            }
-        });
-        agent_state_retriever.put("UTM", new Supplier()
-        {
-            @Override
-            public Object get()
-            {
-                return _utmPose.clone();
-            }
-        });
-        agent_state_retriever.put("EC", new Supplier()
-        {
-            @Override
-            public Object get()
-            {
-                return null;
-            }
-        });
-
-        agent_performer.put(Actions.EXAMPLE.string, new Consumer()
-        {
-            @Override
-            public void accept(Object o)
-            {
-                exampleAction();
-            }
-        });
-        //////////////////////////////////////////////////////////////////////////
 
         // Connect to the Shared Preferences for this process.
         mPrefs = PreferenceManager.getDefaultSharedPreferences(_context);
