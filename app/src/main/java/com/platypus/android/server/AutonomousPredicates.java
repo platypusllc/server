@@ -422,8 +422,6 @@ public class AutonomousPredicates
 				Because the compound predicates will get their own parseTrigger call.
 				*/
 
-				//String boolean_regex = "[^|&]+";
-				//String[] booleans = predicate_string.split(boolean_regex);
 				Pattern boolean_pattern = Pattern.compile(boolean_regex);
 				Matcher boolean_matcher = boolean_pattern.matcher(predicate_string);
 				List<String> booleans_list = new ArrayList<>();

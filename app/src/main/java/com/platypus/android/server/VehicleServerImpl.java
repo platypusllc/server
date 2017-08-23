@@ -130,13 +130,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 		}
 
-		// TODO: add lock for EC value, getter for EC value
-		// TODO: add boolean[] for jar status and a lock
-		// TODO: add action for starting sampler with available jar
-
 		AutonomousPredicates autonomous_predicates;
 		VehicleState vehicle_state;
-		private HashMap<String, Object> lock_map = new HashMap<>();
 
 		void exampleAction()
 		{
@@ -154,15 +149,30 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						case DO_NOTHING:
 								break;
 						case START_SAMPLER:
-								// TODO: don't hardcode a single jar
-								Log.e("AP", "STARTING A SAMPLER! WOOOO");
+								// First, find next available sample jar
+								Long next_available_jar = (Long)vehicle_state.get("next_available_jar");
+								if (next_available_jar < 0)
+								{
+										Log.w("AP", "No sampler jars are available. Ignoring START_SAMPLER command");
+										return;
+								}
+								Log.e("AP", String.format("Starting sampler jar # %d", next_available_jar));
 								JSONObject command = new JSONObject();
 								JSONObject samplerSettings = new JSONObject();
 								try
 								{
-										samplerSettings.put("e", "3");
-										command.put("s1", samplerSettings);
-										mController.send(command);
+										samplerSettings.put("e", next_available_jar.toString());
+										for (int i = 1; i < 4; i++)
+										{
+												String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
+												String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+												if (expected_type.equals("SAMPLER"))
+												{
+														command.put(String.format("s%d", i), samplerSettings);
+														mController.send(command);
+														return;
+												}
+										}
 								}
 								catch (Exception e)
 								{
