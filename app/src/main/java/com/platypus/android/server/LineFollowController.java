@@ -17,6 +17,8 @@ class LineFollowController implements VehicleController {
     Pose3D current_pose;
     Pose3D original_pose;
     boolean original_pose_set = false;
+    long elapsed_time_ms = 0;
+    long start_time = 0;
 
     final double LOOKAHEAD_DISTANCE_BASE = 5.0;
     double lookahead;

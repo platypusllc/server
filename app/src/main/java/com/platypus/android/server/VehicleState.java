@@ -32,7 +32,6 @@ public class VehicleState
 		AtomicLong elapsed_time = new AtomicLong(0);
 		AtomicLong time_since_operator = new AtomicLong(0);
 		AtomicLong battery_voltage = new AtomicLong(0); // mV
-		AtomicLong next_available_jar = new AtomicLong(0);
 
 		double example_value = 0.0;
 		double EC = 0.0;
@@ -238,6 +237,56 @@ public class VehicleState
 								{
 										Log.v(logTag, String.format("EC set to %f", o));
 										EC = o;
+								}
+						}
+				});
+
+				getters.put(States.T, new Supplier<Double>()
+				{
+						@Override
+						public Double get()
+						{
+								synchronized (States.T.lock)
+								{
+										Log.v(logTag, String.format("T queried = %f", T));
+										return T;
+								}
+						}
+				});
+				setters.put(States.T, new Consumer<Double>()
+				{
+						@Override
+						public void accept(Double o)
+						{
+								synchronized (States.T.lock)
+								{
+										Log.v(logTag, String.format("T set to %f", o));
+										T = o;
+								}
+						}
+				});
+
+				getters.put(States.DO, new Supplier<Double>()
+				{
+						@Override
+						public Double get()
+						{
+								synchronized (States.DO.lock)
+								{
+										Log.v(logTag, String.format("DO queried = %f", DO));
+										return DO;
+								}
+						}
+				});
+				setters.put(States.DO, new Consumer<Double>()
+				{
+						@Override
+						public void accept(Double o)
+						{
+								synchronized (States.DO.lock)
+								{
+										Log.v(logTag, String.format("DO set to %f", o));
+										DO = o;
 								}
 						}
 				});

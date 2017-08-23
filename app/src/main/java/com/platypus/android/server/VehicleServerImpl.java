@@ -36,6 +36,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.measure.unit.NonSI;
@@ -144,24 +145,60 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				switch (action)
 				{
 						case EXAMPLE:
+						{
 								exampleAction();
 								break;
+						}
 						case DO_NOTHING:
+						{
 								break;
+						}
 						case START_SAMPLER:
+						{
 								// First, find next available sample jar
-								Long next_available_jar = (Long)vehicle_state.get("next_available_jar");
+								Long next_available_jar = (Long) vehicle_state.get("next_available_jar");
 								if (next_available_jar < 0)
 								{
 										Log.w("AP", "No sampler jars are available. Ignoring START_SAMPLER command");
 										return;
 								}
-								Log.e("AP", String.format("Starting sampler jar # %d", next_available_jar));
+								Log.i("AP", String.format("Starting sampler jar # %d", next_available_jar));
 								JSONObject command = new JSONObject();
 								JSONObject samplerSettings = new JSONObject();
 								try
 								{
 										samplerSettings.put("e", next_available_jar.toString());
+										for (int i = 1; i < 4; i++)
+										{
+												String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
+												String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+												if (expected_type.equals("SAMPLER"))
+												{
+														command.put(String.format("s%d", i), samplerSettings);
+														mController.send(command);
+
+														// insert a new waypoint at the current boat location
+
+														return;
+												}
+										}
+								}
+								catch (Exception e)
+								{
+										Log.e("AP", e.getMessage());
+								}
+								break;
+						}
+
+						case RESET_SAMPLER:
+						{
+								vehicle_state.resetSampleJars();
+								Log.i("AP", "Resetting the sampler");
+								JSONObject command = new JSONObject();
+								JSONObject samplerSettings = new JSONObject();
+								try
+								{
+										samplerSettings.put("r", "");
 										for (int i = 1; i < 4; i++)
 										{
 												String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
@@ -178,6 +215,10 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								{
 										Log.e("AP", e.getMessage());
 								}
+								break;
+						}
+
+						// TODO: finish up the remaining actions
 
 						default:
 								break;
@@ -217,33 +258,29 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		private final Timer _updateTimer = new Timer();
 		private final Timer _navigationTimer = new Timer();
 		private final Timer _captureTimer = new Timer();
-		protected UtmPose[] _waypoints = new UtmPose[0];
-		int current_waypoint_index = -1;
+		UtmPose[] _waypoints = new UtmPose[0];
+		AtomicLong[] _waypointsKeepTimes = new AtomicLong[0];
+
+		AtomicInteger current_waypoint_index = new AtomicInteger(-1);
 
 		public int getCurrentWaypointIndex()
 		{
-				synchronized (_waypointLock)
-				{
-						return current_waypoint_index;
-				}
+				return current_waypoint_index.get();
 		}
 
 		public void incrementWaypointIndex()
 		{
-				synchronized (_waypointLock)
-				{
-						current_waypoint_index++;
-						Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index));
-				}
+				current_waypoint_index.incrementAndGet();
+				Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index.get()));
 		}
 
 		public UtmPose getCurrentWaypoint()
 		{
 				synchronized (_waypointLock)
 				{
-						if (current_waypoint_index >= 0)
+						if (current_waypoint_index.get() >= 0)
 						{
-								return _waypoints[current_waypoint_index];
+								return _waypoints[current_waypoint_index.get()];
 						}
 						else
 						{
@@ -266,6 +303,20 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						}
 				}
 		}
+
+		public Long getCurrentWaypointKeepTime()
+		{
+				// TODO
+				return null;
+		}
+
+		public Long getSpecificWaypointKeepTime(int i)
+		{
+				// TODO
+				return null;
+		}
+
+
 
 		protected TimerTask _captureTask = null;
 		protected TimerTask _navigationTask = null;
@@ -1416,7 +1467,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				{
 						if (waypoints.length > 0)
 						{
-								current_waypoint_index = 0;
+								current_waypoint_index.set(0);
 						}
 						_waypoints = waypoints.clone();
 				}
@@ -1432,11 +1483,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						@Override
 						public void run()
 						{
-								int wp_index;
-								synchronized (_waypointLock)
-								{
-										wp_index = current_waypoint_index;
-								}
+								int wp_index = current_waypoint_index.get();
 								if (!_isAutonomous.get())
 								{
 										// If we are not autonomous, do nothing
@@ -1446,10 +1493,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								else if (wp_index == _waypoints.length)
 								{
 										// finished
-										synchronized (_waypointLock)
-										{
-												current_waypoint_index = -1;
-										}
+										current_waypoint_index.set(-1);
 										Log.i(TAG, "Done");
 										sendWaypointUpdate(WaypointState.DONE);
 										synchronized (_navigationLock)
@@ -1512,7 +1556,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				synchronized (_waypointLock)
 				{
 						_waypoints = new UtmPose[0];
-						current_waypoint_index = -1;
+						current_waypoint_index.set(-1);
 				}
 				sendWaypointUpdate(WaypointState.CANCELLED);
 		}
@@ -1551,7 +1595,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		{
 				last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
 				Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
-				return current_waypoint_index;
+				return current_waypoint_index.get();
 		}
 
 		/**
