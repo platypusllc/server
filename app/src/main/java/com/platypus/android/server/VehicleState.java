@@ -94,8 +94,8 @@ public class VehicleState
 				EC("EC", "numeric", new Object()),
 				DO("DO", "numeric", new Object()),
 				T("T", "numeric", new Object()),
-				UTM_POSE("utm_pose", "location", new Object()), // location using UTM
-				HOME_POSE("home_pose", "location", new Object()), // home location using UTM
+				UTM_POSE("utm_pose", "utmPose", new Object()), // location using UTM
+				HOME_POSE("home_pose", "utmPose", new Object()), // home location using UTM
 				ELAPSED_TIME("elapsed_time", "numeric", null),
 				TIME_SINCE_OPERATOR("time_since_operator", "numeric", null), // time elapsed past last time operator detected
 				BATTERY_VOLTAGE("battery_voltage", "numeric", null),
@@ -148,7 +148,7 @@ public class VehicleState
 				{
 						for (States state: values())
 						{
-								if (state.name.equals(s)) return state.type.equals("location");
+								if (state.name.equals(s)) return state.type.equals("utmPose");
 						}
 						return false;
 				}
