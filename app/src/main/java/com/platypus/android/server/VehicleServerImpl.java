@@ -1594,7 +1594,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public int getWaypointsIndex()
 		{
 				last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
-				Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
+				Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index.get()));
 				return current_waypoint_index.get();
 		}
 

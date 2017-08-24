@@ -78,7 +78,7 @@ public class VehicleState
 						Log.e(logTag, e.getMessage());
 				}
 		}
-		public void set(States state, Object in)
+		public void set(States state, Object in) // TODO: use templating instead of Object and casting
 		{
 				try
 				{
@@ -179,7 +179,7 @@ public class VehicleState
 
 				for (int i = 0; i < jar_available.length; i++)
 				{
-						jar_available[i].set(true); // all jars initially available
+						jar_available[i] = new AtomicBoolean(true); // all jars initially available
 				}
 
 				getters.put(States.EXAMPLE_STATE, new Supplier<Boolean>()
@@ -500,7 +500,7 @@ public class VehicleState
 										if (jar_available[i].get())
 										{
 												jar_available[i].set(false); // jar is now unavailable
-												return Long.class.cast(i);
+												return new Long(i);
 										}
 								}
 								return -1L;
