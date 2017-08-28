@@ -26,5 +26,12 @@
 		trigger: "(always_false | always_false | always_true) & (always_false | always_false | example_state)",
 		interval: 1000,
 		ends: y
+	},
+	forced_return_home:
+	{
+		action: return_home,
+		trigger: "^is_autonomous & battery_voltage : [0.1, 14.5]",
+		interval: 1000,
+		ends: y
 	}
 }

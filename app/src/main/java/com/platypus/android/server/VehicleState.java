@@ -7,173 +7,139 @@ import com.platypus.crw.data.UtmPose;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * Created by jason on 8/11/17.
  */
 
-public class VehicleState
+public class VehicleState <S, K, F>
 {
-		VehicleServerImpl _serverImpl;
-		static String logTag = "AP";
+		enum States
+		{
+				EXAMPLE_STATE("example_state"),
+				EXAMPLE_VALUE("example_value"),
+				EC("EC"),
+				DO("DO"),
+				T("T"),
+				CURRENT_POSE("current_pose"), // location using UTM
+				HOME_POSE("home_pose"), // home location using UTM
+				ELAPSED_TIME("elapsed_time"),
+				TIME_SINCE_OPERATOR("time_since_operator"), // time elapsed past last time operator detected
+				BATTERY_VOLTAGE("battery_voltage"),
+				IS_CONNECTED("is_connected"),
+				IS_AUTONOMOUS("is_autonomous"),
+				HAS_FIRST_AUTONOMY("has_first_autonomy"),
+				IS_RUNNING("is_running"),
+				IS_EXECUTING_FAILSAFE("is_exec_failsafe"),
+				IS_TAKING_SAMPLE("is_taking_sample"),
+				NEXT_AVAILABLE_JAR("next_available_jar"),
+				ALWAYS_TRUE("always_true"),
+				ALWAYS_FALSE("always_false");
 
-		AtomicBoolean example_state = new AtomicBoolean(true);
-		AtomicBoolean is_connected = new AtomicBoolean(false);
-		AtomicBoolean is_autonomous = new AtomicBoolean(false);
-		AtomicBoolean has_first_autonomy = new AtomicBoolean(false);
-		AtomicBoolean is_running = new AtomicBoolean(false);
-		AtomicBoolean is_executing_failsafe = new AtomicBoolean(false);
-		AtomicBoolean is_taking_sample = new AtomicBoolean(false);
+				final String name;
+				States(final String _name) { name = _name; }
+		}
+		abstract class State
+		{
+				/* Generic for storing and retrieving the state */
+				public abstract S get();
+				public abstract F get(K key); // getting value in a map or array
+				public abstract void set(S in);
+				public abstract void set(K key, F in); // changing value in a map or array
+		}
+
+		class BooleanState extends State
+		{
+				AtomicBoolean value = new AtomicBoolean(false);
+				@Override
+				public S get()
+				{
+						return (S)Boolean.valueOf(value.get());
+				}
+				@Override
+				public F get(K key) { return null; }
+				@Override
+				public void set(S in) { value.set((Boolean)in); }
+				@Override
+				public void set(K key, F in) { }
+		}
+
+		class DoubleState extends State
+		{
+				Double value = 0.0;
+				final Object lock = new Object();
+				@Override
+				public S get()
+				{
+						synchronized (lock)
+						{
+								return (S)value;
+						}
+				}
+				@Override
+				public F get(K key) { return null; }
+				@Override
+				public void set(S in)
+				{
+						synchronized (lock)
+						{
+								value = (Double)in;
+						}
+				}
+				@Override
+				public void set(K key, F in) { }
+		}
+
+		class UtmPoseState extends State
+		{
+				UtmPose value;
+				final Object lock = new Object();
+				@Override
+				public S get()
+				{
+						synchronized (lock)
+						{
+								return (S) value.clone();
+						}
+				}
+				@Override
+				public F get(K key) { return null; }
+				@Override
+				public void set(S in)
+				{
+						synchronized (lock)
+						{
+								value = ((UtmPose)in).clone();
+						}
+				}
+				@Override
+				public void set(K key, F in) { }
+		}
+
+		HashMap<String, State> state_map = new HashMap<>();
+		public S get(String state_name)
+		{
+				return state_map.get(state_name).get();
+		}
+		public F get(String state_name, K key)
+		{
+				return state_map.get(state_name).get(key);
+		}
+		public void set(String state_name, S in)
+		{
+				state_map.get(state_name).set(in);
+		}
+		public void set(String state_name, K key, F in)
+		{
+				state_map.get(state_name).set(key, in);
+		}
+
+		private VehicleServerImpl _serverImpl;
+		static String logTag = "AP";
 
 		AtomicBoolean[] jar_available = new AtomicBoolean[4];
 
-		AtomicLong elapsed_time = new AtomicLong(0);
-		AtomicLong time_since_operator = new AtomicLong(0);
-		AtomicLong battery_voltage = new AtomicLong(0); // mV
-
-		double example_value = 0.0;
-		double EC = 0.0;
-		double T = 0.0;
-		double DO = 0.0;
-
-		UtmPose currentUtmPose;
-		UtmPose homeUtmPose;
-
-		public Object get(String state_string)
-		{
-				try
-				{
-						States state = States.fromString(state_string);
-						return get(state);
-				}
-				catch (Exception e)
-				{
-						Log.e(logTag, e.getMessage());
-						return null;
-				}
-		}
-		public Object get(States state)
-		{
-				try
-				{
-						return getters.get(state).get();
-				}
-				catch (Exception e)
-				{
-						Log.e(logTag, e.getMessage());
-						return null;
-				}
-		}
-		public void set(String state_string, Object in)
-		{
-				try
-				{
-						States state = States.fromString(state_string);
-						set(state, in);
-				}
-				catch (Exception e)
-				{
-						Log.e(logTag, e.getMessage());
-				}
-		}
-		public void set(States state, Object in) // TODO: use templating instead of Object and casting
-		{
-				try
-				{
-						setters.get(state).accept(in);
-				}
-				catch (Exception e)
-				{
-						Log.e(logTag, e.getMessage());
-				}
-		}
-
-		private HashMap<States, Supplier> getters = new HashMap<>();
-		private HashMap<States, Consumer> setters = new HashMap<>();
-
-		enum States
-		{
-				EXAMPLE_STATE("example_state", "boolean", null),
-				EXAMPLE_VALUE("example_value", "double", new Object()),
-				EC("EC", "double", new Object()),
-				DO("DO", "double", new Object()),
-				T("T", "double", new Object()),
-				UTM_POSE("utm_pose", "utmPose", new Object()), // location using UTM
-				HOME_POSE("home_pose", "utmPose", new Object()), // home location using UTM
-				ELAPSED_TIME("elapsed_time", "long", null),
-				TIME_SINCE_OPERATOR("time_since_operator", "long", null), // time elapsed past last time operator detected
-				BATTERY_VOLTAGE("battery_voltage", "long", null),
-				IS_CONNECTED("is_connected", "boolean", null),
-				IS_AUTONOMOUS("is_autonomous", "boolean", null),
-				HAS_FIRST_AUTONOMY("has_first_autonomy", "boolean", null),
-				IS_RUNNING("is_running", "boolean", null),
-				IS_EXECUTING_FAILSAFE("is_exec_failsafe", "boolean", null),
-				IS_TAKING_SAMPLE("is_taking_sample", "boolean", null),
-				NEXT_AVAILABLE_JAR("next_available_jar", "long", null),
-				ALWAYS_TRUE("always_true", "boolean", null),
-				ALWAYS_FALSE("always_false", "boolean", null);
-
-				final String name;
-				final String type;
-				Object lock;
-
-				States(final String _name, final String _type, Object _lock)
-				{
-						name = _name;
-						type = _type;
-						lock = _lock;
-				}
-
-				public static States fromString(final String s)
-				{
-						for (States state: values())
-						{
-								if (state.name.equals(s)) return state;
-						}
-						Log.w("AP", String.format("State \"%s\" not available. Will always return false instead.", s));
-						return ALWAYS_FALSE;
-				}
-				public static boolean isLong(final String s)
-				{
-						for (States state: values())
-						{
-								if (state.name.equals(s)) return state.type.equals("long");
-						}
-						return false;
-				}
-				public static boolean isDouble(final String s)
-				{
-						for (States state: values())
-						{
-								if (state.name.equals(s)) return state.type.equals("double");
-						}
-						return false;
-				}
-				public static boolean isNumeric(final String s)
-				{
-						return (isLong(s) || isDouble(s));
-				}
-				public static boolean isBoolean(final String s)
-				{
-						for (States state: values())
-						{
-								if (state.name.equals(s)) return state.type.equals("boolean");
-						}
-						return false;
-				}
-				public static boolean isLocation(final String s)
-				{
-						for (States state: values())
-						{
-								if (state.name.equals(s)) return state.type.equals("utmPose");
-						}
-						return false;
-				}
-		}
-
-		public VehicleState(VehicleServerImpl server)
+		VehicleState(VehicleServerImpl server)
 		{
 				_serverImpl = server;
 
@@ -182,346 +148,146 @@ public class VehicleState
 						jar_available[i] = new AtomicBoolean(true); // all jars initially available
 				}
 
-				getters.put(States.EXAMPLE_STATE, new Supplier<Boolean>()
+				state_map.put(States.EXAMPLE_STATE.name, new State()
 				{
+						AtomicBoolean value = new AtomicBoolean(false);
+
 						@Override
-						public Boolean get()
+						public S get()
 						{
-								example_state.set(!example_state.get());
-								return example_state.get();
+								value.set(!value.get()); // flip true/false
+								return (S)Boolean.valueOf(value.get());
 						}
-				});
-				getters.put(States.EXAMPLE_VALUE, new Supplier<Double>()
-				{
+
 						@Override
-						public Double get()
+						public F get(K key) { return null; }
+
+						@Override
+						public void set(S in) { value.set((Boolean)in); }
+
+						@Override
+						public void set(K key, F in) { }
+				});
+
+				state_map.put(States.EXAMPLE_VALUE.name, new State()
+				{
+						Double value = 0.0;
+						Object lock = new Object();
+
+						@Override
+						public S get()
 						{
-								synchronized (States.EXAMPLE_VALUE.lock)
+								synchronized (lock)
 								{
-										example_value += 1.0;
-										Log.d("AP", String.format("Example value = %.0f", example_value));
-										return example_value;
+										value += 1.; // increment when queried
+										return (S)Double.valueOf(value);
 								}
 						}
-				});
-				setters.put(States.EXAMPLE_VALUE, new Consumer<Double>()
-				{
 						@Override
-						public void accept(Double o)
+						public F get(K key) { return null; }
+						@Override
+						public void set(S in)
 						{
-								synchronized (States.EXAMPLE_VALUE.lock)
+								synchronized (lock)
 								{
-										example_value = o;
+										value = (Double)in;
 								}
 						}
+						@Override
+						public void set(K key, F in) { }
 				});
 
-				getters.put(States.EC, new Supplier<Double>()
+				state_map.put(States.ALWAYS_FALSE.name, new State()
 				{
 						@Override
-						public Double get()
-						{
-								synchronized (States.EC.lock)
-								{
-										Log.v(logTag, String.format("EC queried = %f", EC));
-										return EC;
-								}
-						}
+						public S get() { return (S)Boolean.valueOf(false);}
+						@Override
+						public F get(K key) { return null; }
+						@Override
+						public void set(S in) { }
+						@Override
+						public void set(K key, F in) { }
 				});
-				setters.put(States.EC, new Consumer<Double>()
+				state_map.put(States.ALWAYS_TRUE.name, new State()
 				{
 						@Override
-						public void accept(Double o)
-						{
-								synchronized (States.EC.lock)
-								{
-										Log.v(logTag, String.format("EC set to %f", o));
-										EC = o;
-								}
-						}
+						public S get() { return (S)Boolean.valueOf(true);}
+						@Override
+						public F get(K key) { return null; }
+						@Override
+						public void set(S in) { }
+						@Override
+						public void set(K key, F in) { }
 				});
 
-				getters.put(States.T, new Supplier<Double>()
+				state_map.put(States.IS_CONNECTED.name, new BooleanState());
+				state_map.put(States.IS_AUTONOMOUS.name, new BooleanState());
+				state_map.put(States.IS_RUNNING.name, new BooleanState());
+				state_map.put(States.HAS_FIRST_AUTONOMY.name, new BooleanState());
+				state_map.put(States.IS_EXECUTING_FAILSAFE.name, new BooleanState());
+				state_map.put(States.IS_TAKING_SAMPLE.name, new BooleanState());
+				state_map.put(States.EC.name, new DoubleState());
+				state_map.put(States.T.name, new DoubleState());
+				state_map.put(States.DO.name, new DoubleState());
+				state_map.put(States.BATTERY_VOLTAGE.name, new DoubleState());
+				state_map.put(States.ELAPSED_TIME.name, new State()
 				{
+						AtomicLong value = new AtomicLong(0);
+						long first = System.currentTimeMillis();
 						@Override
-						public Double get()
+						public S get()
 						{
-								synchronized (States.T.lock)
-								{
-										Log.v(logTag, String.format("T queried = %f", T));
-										return T;
-								}
+								value.set(System.currentTimeMillis() - first);
+								return (S)Long.valueOf(value.get());
 						}
-				});
-				setters.put(States.T, new Consumer<Double>()
-				{
 						@Override
-						public void accept(Double o)
+						public F get(K key) { return null; }
+						@Override
+						public void set(S in) { }
+						@Override
+						public void set(K key, F in) { }
+				});
+				state_map.put(States.TIME_SINCE_OPERATOR.name, new State()
+				{
+						AtomicLong value = new AtomicLong(0);
+						@Override
+						public S get()
 						{
-								synchronized (States.T.lock)
-								{
-										Log.v(logTag, String.format("T set to %f", o));
-										T = o;
-								}
+								return (S)Long.valueOf(value.get());
 						}
-				});
-
-				getters.put(States.DO, new Supplier<Double>()
-				{
 						@Override
-						public Double get()
+						public F get(K key) { return null;}
+						@Override
+						public void set(S in)
 						{
-								synchronized (States.DO.lock)
-								{
-										Log.v(logTag, String.format("DO queried = %f", DO));
-										return DO;
-								}
+								value.set((Long)in);
 						}
+						@Override
+						public void set(K key, F in) { }
 				});
-				setters.put(States.DO, new Consumer<Double>()
+				state_map.put(States.CURRENT_POSE.name, new UtmPoseState());
+				state_map.put(States.HOME_POSE.name, new UtmPoseState());
+				state_map.put(States.NEXT_AVAILABLE_JAR.name, new State()
 				{
 						@Override
-						public void accept(Double o)
-						{
-								synchronized (States.DO.lock)
-								{
-										Log.v(logTag, String.format("DO set to %f", o));
-										DO = o;
-								}
-						}
-				});
-
-				getters.put(States.UTM_POSE, new Supplier<UtmPose>()
-				{
-						@Override
-						public UtmPose get()
-						{
-								synchronized (States.UTM_POSE.lock)
-								{
-										return currentUtmPose.clone();
-								}
-						}
-				});
-				setters.put(States.UTM_POSE, new Consumer<UtmPose>()
-				{
-						@Override
-						public void accept(UtmPose o)
-						{
-								synchronized (States.UTM_POSE.lock)
-								{
-										currentUtmPose = o.clone();
-								}
-						}
-				});
-
-				getters.put(States.HOME_POSE, new Supplier<UtmPose>()
-				{
-						@Override
-						public UtmPose get()
-						{
-								synchronized (States.HOME_POSE.lock)
-								{
-										return homeUtmPose.clone();
-								}
-						}
-				});
-				setters.put(States.HOME_POSE, new Consumer<UtmPose>()
-				{
-						@Override
-						public void accept(UtmPose o)
-						{
-								synchronized (States.HOME_POSE.lock)
-								{
-										homeUtmPose = o.clone();
-								}
-						}
-				});
-
-				getters.put(States.ELAPSED_TIME, new Supplier<Long>()
-				{
-						@Override
-						public Long get()
-						{
-								return elapsed_time.get();
-						}
-				});
-				setters.put(States.ELAPSED_TIME, new Consumer<Long>()
-				{
-						@Override
-						public void accept(Long o)
-						{
-								elapsed_time.set(o);
-						}
-				});
-
-				getters.put(States.TIME_SINCE_OPERATOR, new Supplier<Long>()
-				{
-						@Override
-						public Long get()
-						{
-								return time_since_operator.get();
-						}
-				});
-				setters.put(States.TIME_SINCE_OPERATOR, new Consumer<Long>()
-				{
-						@Override
-						public void accept(Long o)
-						{
-								time_since_operator.set(o);
-						}
-				});
-
-				getters.put(States.BATTERY_VOLTAGE, new Supplier<Long>()
-				{
-						@Override
-						public Long get()
-						{
-								return battery_voltage.get();
-						}
-				});
-				setters.put(States.BATTERY_VOLTAGE, new Consumer<Long>()
-				{
-						@Override
-						public void accept(Long o)
-						{
-								battery_voltage.set(o);
-						}
-				});
-
-				getters.put(States.IS_CONNECTED, new Supplier<Boolean>()
-				{
-						@Override
-						public Boolean get()
-						{
-								return is_connected.get();
-						}
-				});
-				setters.put(States.IS_CONNECTED, new Consumer<Boolean>()
-				{
-						@Override
-						public void accept(Boolean o)
-						{
-								is_connected.set(o);
-						}
-				});
-
-				getters.put(States.IS_AUTONOMOUS, new Supplier<Boolean>()
-				{
-						@Override
-						public Boolean get()
-						{
-								return is_autonomous.get();
-						}
-				});
-				setters.put(States.IS_AUTONOMOUS, new Consumer<Boolean>()
-				{
-						@Override
-						public void accept(Boolean o)
-						{
-								is_autonomous.set(o);
-						}
-				});
-
-				getters.put(States.HAS_FIRST_AUTONOMY, new Supplier<Boolean>()
-				{
-						@Override
-						public Boolean get()
-						{
-								return has_first_autonomy.get();
-						}
-				});
-				setters.put(States.HAS_FIRST_AUTONOMY, new Consumer<Boolean>()
-				{
-						@Override
-						public void accept(Boolean o)
-						{
-								has_first_autonomy.set(o);
-						}
-				});
-
-				getters.put(States.IS_RUNNING, new Supplier<Boolean>()
-				{
-						@Override
-						public Boolean get()
-						{
-								return is_running.get();
-						}
-				});
-				setters.put(States.IS_RUNNING, new Consumer<Boolean>()
-				{
-						@Override
-						public void accept(Boolean o)
-						{
-								is_running.set(o);
-						}
-				});
-
-				getters.put(States.IS_EXECUTING_FAILSAFE, new Supplier<Boolean>()
-				{
-						@Override
-						public Boolean get()
-						{
-								return is_executing_failsafe.get();
-						}
-				});
-				setters.put(States.IS_EXECUTING_FAILSAFE, new Consumer<Boolean>()
-				{
-						@Override
-						public void accept(Boolean o)
-						{
-								is_executing_failsafe.set(o);
-						}
-				});
-
-				getters.put(States.IS_TAKING_SAMPLE, new Supplier<Boolean>()
-				{
-						@Override
-						public Boolean get()
-						{
-								return is_taking_sample.get();
-						}
-				});
-				setters.put(States.IS_TAKING_SAMPLE, new Consumer<Boolean>()
-				{
-						@Override
-						public void accept(Boolean o)
-						{
-								is_taking_sample.set(o);
-						}
-				});
-
-				getters.put(States.NEXT_AVAILABLE_JAR, new Supplier<Long>()
-				{
-						@Override
-						public Long get()
+						public S get()
 						{
 								for (int i = 0; i < jar_available.length; i++)
 								{
 										if (jar_available[i].get())
 										{
 												jar_available[i].set(false); // jar is now unavailable
-												return new Long(i);
+												return (S)Long.valueOf(i);
 										}
 								}
-								return -1L;
+								return (S)Long.valueOf(-1);
 						}
-				});
-
-				getters.put(States.ALWAYS_TRUE, new Supplier<Boolean>()
-				{
 						@Override
-						public Boolean get()
-						{
-								return true;
-						}
-				});
-				getters.put(States.ALWAYS_FALSE, new Supplier<Boolean>()
-				{
+						public F get(K key) { return null; }
 						@Override
-						public Boolean get()
-						{
-								return false;
-						}
+						public void set(S in) { }
+						@Override
+						public void set(K key, F in) { }
 				});
 		}
 
@@ -536,5 +302,4 @@ public class VehicleState
 		{
 				jar_available[i].set(true);
 		}
-
 }

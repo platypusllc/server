@@ -41,7 +41,9 @@ import javax.measure.unit.SI;
  * http://www.java2s.com/Tutorials/Java_Lambda/java.util.function/BooleanSupplier/BooleanSupplier_example.htm
  * "currying"
  * https://developer.android.com/reference/org/json/JSONTokener.html
-				 */
+ * http://regexr.com/
+ * http://www.regexplanet.com/advanced/java/index.html
+ */
 
 public class AutonomousPredicates
 {
@@ -145,13 +147,16 @@ public class AutonomousPredicates
 				private Predicate<Void> generatePredicate(final String left_hand_side, final String comparator, final double right_hand_side) throws Exception
 				{
 						final String definition = String.format("%s %s %f", left_hand_side, comparator, right_hand_side);
-						Log.v(logTag, String.format("Generating new predicate: %s", definition));
+
+						Log.d(logTag, String.format("Generating new predicate: %s", definition));
 
 						// if the left_hand_side doesn't exist, or doesn't something that can be cast into a double, this needs to fail immediately
+						/*
 						if (!VehicleState.States.isNumeric(left_hand_side))
 						{
 								throw new Exception(String.format("State \"%s\" not available or is not numeric. Throwing an exception.", left_hand_side));
 						}
+						*/
 
 						return new Predicate<Void>()
 						{
@@ -206,28 +211,62 @@ public class AutonomousPredicates
 				}
 				private Predicate<Void> generatePredicate(final String boolean_state) throws Exception
 				{
-						Log.v(logTag, String.format("Generating new boolean only predicate"));
+						String my_boolean_state = boolean_state;
+						Log.d(logTag, String.format("Generating new boolean only predicate"));
+
+						// TODO: look for leading "^" i.e. a NOT. If present, trim it and negate the generated predicate
+						Pattern not_pattern = Pattern.compile("[\\^]");
+						Matcher not_matcher = not_pattern.matcher(boolean_state);
+						final boolean negated = not_matcher.find();
+						if (negated)
+						{
+								Pattern the_rest = Pattern.compile("[^\\^]+");
+								Matcher the_rest_matcher = the_rest.matcher(boolean_state);
+								the_rest_matcher.find();
+								my_boolean_state = the_rest_matcher.group().trim();
+								Log.d(logTag, String.format("Negating boolean only predicate %s", my_boolean_state));
+						}
+
+						final String boolean_state_final = my_boolean_state;
 
 						// Make sure the requested state is available and is a boolean
+						/*
 						if (!VehicleState.States.isBoolean(boolean_state))
 						{
 								throw new Exception(String.format("State \"%s\" not available or is not numeric. Throwing an exception.", boolean_state));
 						}
+						*/
 
 						return new Predicate<Void>()
 						{
 								@Override
 								public boolean test(Void v) // the input to this is never used
 								{
-										Object retrieval = _serverImpl.getState(boolean_state);
-										if (retrieval == null)
+										try
 										{
-												Log.w(logTag, String.format("Boolean only predicate received a null when it asked for %s", boolean_state));
+												Object retrieval = _serverImpl.getState(boolean_state_final);
+												if (retrieval == null)
+												{
+														Log.w(logTag, String.format("Boolean only predicate received a null when it asked for %s", boolean_state_final));
+														return false;
+												}
+												Boolean result = Boolean.class.cast(retrieval);
+												if (negated)
+												{
+														Log.d(logTag, String.format("Executed a predicate: ^%s = %s", boolean_state_final, Boolean.toString(!result)));
+														return !result;
+												}
+												else
+												{
+														Log.d(logTag, String.format("Executed a predicate: %s = %s", boolean_state_final, Boolean.toString(result)));
+														return result;
+												}
+										}
+										catch (Exception e)
+										{
+												Log.e(logTag, String.format("Boolean only predicate error: %s", e.getMessage()));
 												return false;
 										}
-										Boolean result = Boolean.class.cast(retrieval);
-										Log.d(logTag, String.format("Executed a predicate: %s = %s", boolean_state, Boolean.toString(result)));
-										return result;
 								}
 						};
 				}
@@ -311,7 +350,7 @@ public class AutonomousPredicates
 										boolean result = false;
 										try
 										{
-												UtmPose utmPose = (UtmPose) _serverImpl.getState(VehicleState.States.UTM_POSE);
+												UtmPose utmPose = _serverImpl.getState(VehicleState.States.CURRENT_POSE.name);
 												distance = Math.sqrt(Math.pow(utmPose.pose.getX() - location_utm.eastingValue(SI.METER), 2.0)
 																+ Math.pow(utmPose.pose.getY() - location_utm.northingValue(SI.METER), 2.0));
 												result = distance < radius;
@@ -340,7 +379,7 @@ public class AutonomousPredicates
 		}
 		private void loadFromFile(String filename)
 		{
-				final File file = new File(Environment.getExternalStorageDirectory() + "/platypus/" + filename);
+				final File file = new File(Environment.getExternalStorageDirectory() + "/platypus_behaviors/" + filename);
 				/*
 				1) read all lines in the human readable file, put them into a single string
 				2) JSONTokener parses human readable string into a JSONObject with all default behaviors
@@ -403,15 +442,12 @@ public class AutonomousPredicates
 				}
 		}
 
-
 		private Predicate<Void> parseTrigger(String predicate_string)
 		{
 				// Split the trigger string and create compound predicate from it
 
 				DynamicPredicateComposition dpc = new DynamicPredicateComposition();
 
-				// http://regexr.com/
-				// http://www.regexplanet.com/advanced/java/index.html
 				String boolean_regex = "[|&]+(?![^\\(]*\\))"; // split on boolean logic symbols, but don't split up parentheses
 				String[] predicate_strings = predicate_string.split(boolean_regex);
 				Log.d(logTag, String.format("predicates: %s", Arrays.toString(predicate_strings)));
@@ -480,6 +516,7 @@ public class AutonomousPredicates
 										// If it is ":", the first component must be within the interval (inclusive) of the two values given in second component
 										// If it is "@", the first component must be within a euclidean distance of the second component
 										// If it is ">, <, >=, =, !=, the first component is compared against the second component
+										// If there is a leading "^", this is a NOT. Only applicable to pure boolean predicates.
 										Pattern symbol_pattern = Pattern.compile(predicate_symbol_regex);
 										Matcher symbol_matcher = symbol_pattern.matcher(predicate);
 										if (symbol_matcher.find())

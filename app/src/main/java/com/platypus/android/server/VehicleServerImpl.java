@@ -27,7 +27,6 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
@@ -61,25 +60,11 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		// ASDF
 
-		Object getState(VehicleState.States state)
+		<S> S getState(String state_name)
 		{
-				return vehicle_state.get(state);
+				return (S)vehicle_state.get(state_name);
 		}
-
-		Object getState(String state_string)
-		{
-				return vehicle_state.get(state_string);
-		}
-
-		void setState(VehicleState.States state, Object in)
-		{
-				vehicle_state.set(state, in);
-		}
-
-		void setState(String state_string, Object in)
-		{
-				vehicle_state.set(state_string, in);
-		}
+		<S> void setState(String state_name, S value) { vehicle_state.set(state_name, value); }
 
 		/*
 		list of actions {* if immediately required}
@@ -98,24 +83,24 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		enum Actions
 		{
 				EXAMPLE("example"),
-				RETURN_HOME("home"),
+				RETURN_HOME("return_home"),
 				START_SAMPLER("sampler_start"),
 				STOP_SAMPLER("sampler_stop"),
 				RESET_SAMPLER("sampler_reset"),
 				DO_NOTHING("do_nothing");
 
-				final String string;
+				final String name;
 
 				Actions(String s)
 				{
-						string = s;
+						name = s;
 				}
 
 				public static boolean contains(String s)
 				{
 						for (Actions action : values())
 						{
-								if (action.string.equals(s)) return true;
+								if (action.name.equals(s)) return true;
 						}
 						return false;
 				}
@@ -124,22 +109,22 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				{
 						for (Actions action : values())
 						{
-								if (action.string.equals(s)) return action;
+								if (action.name.equals(s)) return action;
 						}
 						Log.w("AP", String.format("Action \"%s\" not available. No action will be performed", s));
 						return DO_NOTHING;
 				}
 		}
 
-		AutonomousPredicates autonomous_predicates;
-		VehicleState vehicle_state;
+		private AutonomousPredicates autonomous_predicates;
+		private VehicleState vehicle_state;
 
 		void exampleAction()
 		{
-				Log.i("AP", "PERFORMING ACTION");
+				Log.i("AP", "PERFORMING EXAMPLE ACTION");
 		}
 
-		public void performAction(String action_string)
+		void performAction(String action_string)
 		{
 				Actions action = Actions.fromString(action_string);
 				switch (action)
@@ -177,7 +162,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														command.put(String.format("s%d", i), samplerSettings);
 														mController.send(command);
 
-														// insert a new waypoint at the current boat location
+														// TODO: insert a new waypoint at the current boat location
 
 														return;
 												}
@@ -219,6 +204,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						}
 
 						// TODO: finish up the remaining actions
+						case RETURN_HOME:
+								Log.w("AP", "RETURNING HOME");
+								break;
 
 						default:
 								break;
@@ -325,7 +313,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		 * Inertial state vector, currently containing a 6D pose estimate:
 		 * [x,y,z,roll,pitch,yaw]
 		 */
-		UtmPose _utmPose = new UtmPose(new Pose3D(476608.34, 4671214.40, 172.35, 0, 0, 0), new Utm(17, true));
+		// UtmPose _utmPose = new UtmPose(new Pose3D(476608.34, 4671214.40, 172.35, 0, 0, 0), new Utm(17, true));
+
 
 		/**
 		 * Filter used internally to update the current pose estimate
@@ -351,10 +340,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		NotificationManager notificationManager;
 		//Define sound URI
 		Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-
-		private UTM home_UTM = UtmPose_to_UTM(_utmPose); // cannot be null or core lib will crash
-		private Object home_lock = new Object();
-		AtomicBoolean first_autonomy = new AtomicBoolean(true); // used to generate a home_UTM automatically once
 
 		public UTM UtmPose_to_UTM(UtmPose utmPose)
 		{
@@ -391,13 +376,10 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				return UTM_to_UtmPose(utm);
 		}
 
-		private final Object _failsafe_check_lock = new Object();
-		double battery_voltage = 16.0;
 		final private long HEARTBEAT_MAX_WAIT_MS = 60000;
 		final private double FAILSAFE_TRIGGER_VOLTAGE = 14.0;
-		private AtomicLong last_heartbeat = new AtomicLong(System.currentTimeMillis());
-		private AtomicBoolean is_executing_failsafe = new AtomicBoolean(false);
 		private final Timer _failsafe_timer = new Timer();
+		/*
 		private TimerTask failsafe_check = new TimerTask()
 		{
 				double local_battery_voltage = 0;
@@ -440,16 +422,17 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						{
 								// already executing the failsafe
 								// if operator heartbeat reappears and battery voltage is enough, stop returning home
-	              /*
+
                 if (ms_since_last_heartbeat < HEARTBEAT_MAX_WAIT_MS &&
                         local_battery_voltage > FAILSAFE_TRIGGER_VOLTAGE)
                 {
                     stopWaypoints();
                 }
-                */
+
 						}
 				}
 		};
+		*/
 
 		boolean[] received_expected_sensor_type = {false, false, false};
 
@@ -539,21 +522,22 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				public void run()
 				{
 						// Do an intelligent state prediction update here
-						_utmPose = filter.pose(System.currentTimeMillis()); // TODO: what the hell is this?
-						setState(VehicleState.States.UTM_POSE, _utmPose.clone());
+						//_utmPose = filter.pose(System.currentTimeMillis()); // TODO: what the hell is this?
+						UtmPose pose = filter.pose(System.currentTimeMillis());
+						vehicle_state.set(VehicleState.States.CURRENT_POSE.name, pose.clone());
 						try
 						{
 								mLogger.info(new JSONObject()
 												.put("pose", new JSONObject()
-																.put("p", new JSONArray(_utmPose.pose.getPosition()))
-																.put("q", new JSONArray(_utmPose.pose.getRotation().getArray()))
-																.put("zone", _utmPose.origin.toString())));
+																.put("p", new JSONArray(pose.pose.getPosition()))
+																.put("q", new JSONArray(pose.pose.getRotation().getArray()))
+																.put("zone", pose.origin.toString())));
 						}
 						catch (JSONException e)
 						{
 								Log.w(TAG, "Unable to serialize pose.");
 						}
-						sendState(_utmPose.clone());
+						sendState(pose.clone());
 
 						// Send vehicle command by converting raw command to appropriate vehicle model.
 						JSONObject command = new JSONObject();
@@ -749,7 +733,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 				notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
 				_sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
-				_failsafe_timer.scheduleAtFixedRate(failsafe_check, 0, 10000);
+				//_failsafe_timer.scheduleAtFixedRate(failsafe_check, 0, 10000);
 				vehicle_state = new VehicleState(this);
 				autonomous_predicates = new AutonomousPredicates(this);
 				autonomous_predicates.loadDefaults();
@@ -853,24 +837,31 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void setHome(UtmPose utmPose)
 		{
+				setState(VehicleState.States.HOME_POSE.name, utmPose);
+				/*
 				synchronized (home_lock)
 				{
 						home_UTM = UtmPose_to_UTM(utmPose);
 				}
+				*/
 		}
 
 		@Override
 		public UtmPose getHome()
 		{
+				return getState(VehicleState.States.HOME_POSE.name);
+				/*
 				synchronized (home_lock)
 				{
 						return UTM_to_UtmPose(home_UTM);
 				}
+				*/
 		}
 
 		@Override
 		public void startGoHome()
 		{
+				/*
 				if (home_UTM == null)
 				{
 						Log.e(TAG, "Cannot trigger failsafe, home is null");
@@ -900,6 +891,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						wp_index++;
 				}
 				startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
+				*/
 		}
 
 		/**
@@ -1079,8 +1071,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																reading.type = SensorType.ES2;
 																reading.data = new double[]{ecData, tempData};
 
-																setState(VehicleState.States.EC, ecData);
-
+																vehicle_state.set(VehicleState.States.EC.name, ecData);
 														}
 														catch (NumberFormatException e)
 														{
@@ -1155,10 +1146,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																// Parse out voltage and motor velocity values
 																String[] data = value.getString("data").trim().split(" ");
 																double voltage = Double.parseDouble(data[0]);
-																synchronized (_failsafe_check_lock)
-																{
-																		battery_voltage = voltage;
-																}
+																setState(VehicleState.States.BATTERY_VOLTAGE.name, voltage);
 																double motor0Velocity = Double.parseDouble(data[1]);
 																double motor1Velocity = Double.parseDouble(data[2]);
 
@@ -1420,7 +1408,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public UtmPose getPose()
 		{
-				return _utmPose;
+				//return _utmPose;
+				return (UtmPose) vehicle_state.get(VehicleState.States.CURRENT_POSE.name);
 		}
 
 		/**
@@ -1438,28 +1427,29 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				filter.reset(pose, System.currentTimeMillis());
 
 				// Copy this pose over the existing value
-				_utmPose = pose.clone();
+				//_utmPose = pose.clone();
+				setState(VehicleState.States.CURRENT_POSE.name, pose.clone());
 
 				// Report the new pose in the log file and to listeners.
 				try
 				{
 						mLogger.info(new JSONObject()
 										.put("pose", new JSONObject()
-														.put("p", new JSONArray(_utmPose.pose.getPosition()))
-														.put("q", new JSONArray(_utmPose.pose.getRotation().getArray()))
-														.put("zone", _utmPose.origin.toString())));
+														.put("p", new JSONArray(pose.pose.getPosition()))
+														.put("q", new JSONArray(pose.pose.getRotation().getArray()))
+														.put("zone", pose.origin.toString())));
 				}
 				catch (JSONException e)
 				{
 						Log.w(TAG, "Unable to serialize pose.");
 				}
-				sendState(_utmPose);
+				sendState(pose.clone());
 		}
 
 		@Override
 		public void startWaypoints(final UtmPose[] waypoints, final String controller)
 		{
-				last_heartbeat.set(System.currentTimeMillis());
+				// last_heartbeat.set(System.currentTimeMillis());
 				Log.i(TAG, "Starting waypoints with " + controller + ": "
 								+ Arrays.toString(waypoints));
 
@@ -1540,7 +1530,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void stopWaypoints()
 		{
-				last_heartbeat.set(System.currentTimeMillis());
+				// last_heartbeat.set(System.currentTimeMillis());
 				// Stop the thread that is doing the "navigation" by terminating its
 				// navigation process, clear all the waypoints, and stop the vehicle.
 				synchronized (_navigationLock)
@@ -1593,7 +1583,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public int getWaypointsIndex()
 		{
-				last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
+				//last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
 				Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index.get()));
 				return current_waypoint_index.get();
 		}
@@ -1611,7 +1601,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		 */
 		public void setVelocity(Twist vel)
 		{
-				last_heartbeat.set(System.currentTimeMillis());
+				//last_heartbeat.set(System.currentTimeMillis());
 				_velocities = vel.clone();
 
 				// Schedule a task to shutdown the velocity if no command is received within the timeout.
@@ -1644,12 +1634,16 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void setAutonomous(boolean isAutonomous)
 		{
-				last_heartbeat.set(System.currentTimeMillis());
-				_isAutonomous.set(isAutonomous);
-				if (isAutonomous && first_autonomy.get())
+				//last_heartbeat.set(System.currentTimeMillis());
+				//_isAutonomous.set(isAutonomous);
+				setState(VehicleState.States.IS_AUTONOMOUS.name, isAutonomous);
+				//if (isAutonomous && first_autonomy.get())
+				if (isAutonomous && !(Boolean)getState(VehicleState.States.HAS_FIRST_AUTONOMY.name))
 				{
-						first_autonomy.set(false);
-						home_UTM = UtmPose_to_UTM(_utmPose);
+						//first_autonomy.set(false);
+						setState(VehicleState.States.HAS_FIRST_AUTONOMY.name, true);
+						//home_UTM = UtmPose_to_UTM(_utmPose);
+						setState(VehicleState.States.HOME_POSE.name, getState(VehicleState.States.CURRENT_POSE.name));
 				}
 
 				// Set velocities to zero to allow for safer transitions
