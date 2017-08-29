@@ -60,11 +60,16 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		// ASDF
 
-		<S> S getState(String state_name)
+		<F> F getState(String state_name)
 		{
-				return (S)vehicle_state.get(state_name);
+				return (F)(vehicle_state.get(state_name));
 		}
-		<S> void setState(String state_name, S value) { vehicle_state.set(state_name, value); }
+		<F> F getState(String state_name, int index)
+		{
+				return (F)(vehicle_state.get(state_name, index));
+		}
+		<F> void setState(String state_name, F value) { vehicle_state.set(state_name, value); }
+		<F> void setState(String state_name, F value, int index) { vehicle_state.set(state_name, index, value); }
 
 		/*
 		list of actions {* if immediately required}
