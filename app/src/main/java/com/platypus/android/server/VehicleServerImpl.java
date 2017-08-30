@@ -246,10 +246,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		protected final Object _captureLock = new Object();
 		protected final Object _navigationLock = new Object();
 		protected final Object _waypointLock = new Object();
-		// Status information
-		final AtomicBoolean _isConnected = new AtomicBoolean(false);
-		final AtomicBoolean _isAutonomous = new AtomicBoolean(false);
-		final AtomicBoolean _isRunning = new AtomicBoolean(true);
 		// Internal references.
 		final Context _context;
 		final VehicleLogger mLogger;
@@ -776,7 +772,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						public void run()
 						{
 								// Start a loop to receive data from accessory.
-								while (_isRunning.get())
+								//while (_isRunning.get())
+								while (getState(VehicleState.States.IS_RUNNING.name))
 								{
 										try
 										{
@@ -1087,8 +1084,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																reading.channel = sensor;
 																reading.type = SensorType.ES2;
 																reading.data = new double[]{ecData, tempData};
-
-																vehicle_state.set(VehicleState.States.EC.name, ecData);
+																setState(VehicleState.States.EC.name, ecData);
+																setState(VehicleState.States.T.name, tempData);
 														}
 														catch (NumberFormatException e)
 														{
@@ -1102,6 +1099,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														reading.channel = sensor;
 														reading.type = SensorType.ATLAS_DO;
 														reading.data = new double[]{value.getDouble("data")};
+														setState(VehicleState.States.DO.name, reading.data[0]);
 												}
 												else if (type.equalsIgnoreCase("atlas_ph"))
 												{
@@ -1109,6 +1107,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														reading.channel = sensor;
 														reading.type = SensorType.ATLAS_PH;
 														reading.data = new double[]{value.getDouble("data")};
+														setState(VehicleState.States.PH.name, reading.data[0]);
 												}
 												else if (type.equalsIgnoreCase("hds"))
 												{
@@ -1123,6 +1122,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		reading.type = SensorType.HDS_DEPTH;
 																		reading.channel = sensor;
 																		reading.data = new double[]{depth};
+																		setState(VehicleState.States.WATER_DEPTH.name, reading.data[0]);
 																}
 																catch (Exception e)
 																{
@@ -1163,7 +1163,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																// Parse out voltage and motor velocity values
 																String[] data = value.getString("data").trim().split(" ");
 																double voltage = Double.parseDouble(data[0]);
-																setState(VehicleState.States.BATTERY_VOLTAGE.name, voltage);
 																double motor0Velocity = Double.parseDouble(data[1]);
 																double motor1Velocity = Double.parseDouble(data[2]);
 
@@ -1171,6 +1170,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																reading.channel = sensor;
 																reading.type = SensorType.BATTERY;
 																reading.data = new double[]{voltage, motor0Velocity, motor1Velocity};
+
+																setState(VehicleState.States.BATTERY_VOLTAGE.name, voltage);
 														}
 														catch (NumberFormatException e)
 														{
@@ -1426,7 +1427,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public UtmPose getPose()
 		{
 				//return _utmPose;
-				return (UtmPose) vehicle_state.get(VehicleState.States.CURRENT_POSE.name);
+				return getState(VehicleState.States.CURRENT_POSE.name);
 		}
 
 		/**
@@ -1467,6 +1468,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public void startWaypoints(final UtmPose[] waypoints, final String controller)
 		{
 				// last_heartbeat.set(System.currentTimeMillis());
+				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				Log.i(TAG, "Starting waypoints with " + controller + ": "
 								+ Arrays.toString(waypoints));
 
@@ -1491,7 +1493,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						public void run()
 						{
 								int wp_index = current_waypoint_index.get();
-								if (!_isAutonomous.get())
+								//if (!_isAutonomous.get())
+								if (!(Boolean)getState(VehicleState.States.IS_AUTONOMOUS.name))
 								{
 										// If we are not autonomous, do nothing
 										Log.i(TAG, "Paused");
@@ -1548,6 +1551,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public void stopWaypoints()
 		{
 				// last_heartbeat.set(System.currentTimeMillis());
+				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				// Stop the thread that is doing the "navigation" by terminating its
 				// navigation process, clear all the waypoints, and stop the vehicle.
 				synchronized (_navigationLock)
@@ -1587,7 +1591,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				{
 						if (_waypoints.length > 0)
 						{
-								return _isAutonomous.get() ? WaypointState.PAUSED
+								//return _isAutonomous.get() ? WaypointState.PAUSED
+								return getState(VehicleState.States.IS_AUTONOMOUS.name) ? WaypointState.PAUSED
 												: WaypointState.GOING;
 						}
 						else
@@ -1601,6 +1606,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public int getWaypointsIndex()
 		{
 				//last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
+				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index.get()));
 				return current_waypoint_index.get();
 		}
@@ -1619,6 +1625,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public void setVelocity(Twist vel)
 		{
 				//last_heartbeat.set(System.currentTimeMillis());
+				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				_velocities = vel.clone();
 
 				// Schedule a task to shutdown the velocity if no command is received within the timeout.
@@ -1645,13 +1652,14 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public boolean isAutonomous()
 		{
-				return _isAutonomous.get();
+				return getState(VehicleState.States.IS_AUTONOMOUS.name);
 		}
 
 		@Override
 		public void setAutonomous(boolean isAutonomous)
 		{
 				//last_heartbeat.set(System.currentTimeMillis());
+				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				//_isAutonomous.set(isAutonomous);
 				setState(VehicleState.States.IS_AUTONOMOUS.name, isAutonomous);
 				//if (isAutonomous && first_autonomy.get())
@@ -1676,9 +1684,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				stopCamera();
 				autonomous_predicates.cancelAll();
 
-				_isAutonomous.set(false);
-				_isConnected.set(false);
-				_isRunning.set(false);
+				setState(VehicleState.States.IS_AUTONOMOUS.name, false);
+				setState(VehicleState.States.IS_CONNECTED.name, false);
+				setState(VehicleState.States.IS_RUNNING.name, false);
 
 				_updateTimer.cancel();
 				_updateTimer.purge();

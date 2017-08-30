@@ -472,14 +472,14 @@ public class AutonomousPredicates
 								if (parenthesis_matcher.find())
 								{
 										// contains parentheses. Compound predicate. Trim off outer parentheses and recurse.
-										// TODO: look for a leading "^" that negates the parentheses
+										// look for a leading "^" that negates the parentheses
 										Log.v(logTag, String.format("predicate %s is compound. Need to recurse", predicate));
 										Matcher inner_matcher = inner_pattern.matcher(predicate);
 										if (inner_matcher.find())
 										{
 												String inner_predicate_string = inner_matcher.group();
 												Predicate<Void> inner_predicate = parseTrigger(inner_predicate_string);
-												// TODO: use inner_predicate.negate() if there was a leading "^"
+												// use inner_predicate.negate() if there was a leading "^"
 												Matcher negation_matcher = leading_negation_pattern.matcher(predicate);
 												if (negation_matcher.find())
 												{
@@ -579,6 +579,7 @@ public class AutonomousPredicates
 														case "!=":
 														case ">=":
 														case ">":
+																// TODO: add possibility of right side also being a named state rather than a primitive numeric
 																switch (splitting_boolean)
 																{
 																		case "&":

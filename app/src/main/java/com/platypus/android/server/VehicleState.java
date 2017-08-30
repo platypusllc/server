@@ -30,6 +30,8 @@ public class VehicleState
 				EC("EC"),
 				DO("DO"),
 				T("T"),
+				PH("PH"),
+				WATER_DEPTH("water_depth"),
 				CURRENT_POSE("current_pose"), // location using UTM
 				HOME_POSE("home_pose"), // home location using UTM
 				ELAPSED_TIME("elapsed_time"),
@@ -345,6 +347,8 @@ public class VehicleState
 				state_map.put(States.EC.name, new DoubleState());
 				state_map.put(States.T.name, new DoubleState());
 				state_map.put(States.DO.name, new DoubleState());
+				state_map.put(States.PH.name, new DoubleState());
+				state_map.put(States.WATER_DEPTH.name, new DoubleState());
 				state_map.put(States.BATTERY_VOLTAGE.name, new DoubleState());
 				state_map.put(States.ELAPSED_TIME.name, new State<AtomicLong, Long>(AtomicLong.class, Long.class, Long.valueOf(0))
 				{
@@ -359,7 +363,20 @@ public class VehicleState
 						@Override
 						void customSet(int index, Long in) { }
 				});
-				state_map.put(States.TIME_SINCE_OPERATOR.name, new LongState());
+				state_map.put(States.TIME_SINCE_OPERATOR.name, new State<AtomicLong, Long>(AtomicLong.class, Long.class, Long.valueOf(0))
+				{
+						@Override
+						Long customGet(int index)
+						{
+								return System.currentTimeMillis() - value_array[index].get();
+						}
+
+						@Override
+						void customSet(int index, Long in)
+						{
+								value_array[index].set(System.currentTimeMillis()); // set to now, ignore input argument
+						}
+				});
 				state_map.put(States.CURRENT_POSE.name, new UtmPoseState());
 				state_map.put(States.HOME_POSE.name, new UtmPoseState());
 				state_map.put(States.NEXT_AVAILABLE_JAR.name, new State<Void, Long>(Void.class, Long.class, Long.valueOf(0))
