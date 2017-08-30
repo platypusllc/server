@@ -62,11 +62,23 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 		<F> F getState(String state_name)
 		{
-				return (F)(vehicle_state.get(state_name));
+				Object result = vehicle_state.get(state_name);
+				if (result == null)
+				{
+						Log.w("AP", String.format("state \"%s\" returned null", state_name));
+						return null;
+				}
+				return (F)result;
 		}
 		<F> F getState(String state_name, int index)
 		{
-				return (F)(vehicle_state.get(state_name, index));
+				Object result = vehicle_state.get(state_name, index);
+				if (result == null)
+				{
+						Log.w("AP", String.format("state \"%s\"[%d] returned null", state_name, index));
+						return null;
+				}
+				return (F)result;
 		}
 		<F> void setState(String state_name, F value) { vehicle_state.set(state_name, value); }
 		<F> void setState(String state_name, F value, int index) { vehicle_state.set(state_name, index, value); }

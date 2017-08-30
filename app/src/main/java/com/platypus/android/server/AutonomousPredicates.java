@@ -52,6 +52,7 @@ public class AutonomousPredicates
 		static long ap_count = 0;
 		Map<Long, ScheduledFuture> triggered_actions_map = new HashMap<>();
 		ScheduledThreadPoolExecutor poolExecutor = new ScheduledThreadPoolExecutor(4);
+		final double ISNEAR_DISTANCE_THRESHOLD = 3;
 		// TODO: do we want something that can increase and decrease the thread pool, rather than fixed?
 
 		class TriggeredAction implements Runnable
@@ -135,7 +136,7 @@ public class AutonomousPredicates
 						@Override
 						public boolean test(Void v)
 						{
-								Log.v(logTag, "Executing the original default predicate");
+								// Log.v(logTag, "Executing the original default predicate");
 								return false; // must start as false and composition must start with an OR
 						}
 				};
@@ -149,14 +150,6 @@ public class AutonomousPredicates
 						final String definition = String.format("%s %s %f", left_hand_side, comparator, right_hand_side);
 
 						Log.d(logTag, String.format("Generating new predicate: %s", definition));
-
-						// if the left_hand_side doesn't exist, or doesn't something that can be cast into a double, this needs to fail immediately
-						/*
-						if (!VehicleState.States.isNumeric(left_hand_side))
-						{
-								throw new Exception(String.format("State \"%s\" not available or is not numeric. Throwing an exception.", left_hand_side));
-						}
-						*/
 
 						return new Predicate<Void>()
 						{
@@ -211,10 +204,10 @@ public class AutonomousPredicates
 				}
 				private Predicate<Void> generatePredicate(final String boolean_state) throws Exception
 				{
-						String my_boolean_state = boolean_state;
+						//String my_boolean_state = boolean_state;
 						Log.d(logTag, String.format("Generating new boolean only predicate"));
-
-						// TODO: look for leading "^" i.e. a NOT. If present, trim it and negate the generated predicate
+						/*
+						// look for leading "^" i.e. a NOT. If present, trim it and negate the generated predicate
 						Pattern not_pattern = Pattern.compile("[\\^]");
 						Matcher not_matcher = not_pattern.matcher(boolean_state);
 						final boolean negated = not_matcher.find();
@@ -228,14 +221,9 @@ public class AutonomousPredicates
 						}
 
 						final String boolean_state_final = my_boolean_state;
-
-						// Make sure the requested state is available and is a boolean
-						/*
-						if (!VehicleState.States.isBoolean(boolean_state))
-						{
-								throw new Exception(String.format("State \"%s\" not available or is not numeric. Throwing an exception.", boolean_state));
-						}
+						// if "^" character is present, use Predicate.negate() to return a negated predicate
 						*/
+
 
 						return new Predicate<Void>()
 						{
@@ -244,23 +232,25 @@ public class AutonomousPredicates
 								{
 										try
 										{
-												Object retrieval = _serverImpl.getState(boolean_state_final);
+												Object retrieval = _serverImpl.getState(boolean_state);
 												if (retrieval == null)
 												{
-														Log.w(logTag, String.format("Boolean only predicate received a null when it asked for %s", boolean_state_final));
+														Log.w(logTag, String.format("Boolean only predicate received a null when it asked for %s", boolean_state));
 														return false;
 												}
 												Boolean result = Boolean.class.cast(retrieval);
+												/*
 												if (negated)
 												{
 														Log.d(logTag, String.format("Executed a predicate: ^%s = %s", boolean_state_final, Boolean.toString(!result)));
-														return !result;
 												}
 												else
 												{
 														Log.d(logTag, String.format("Executed a predicate: %s = %s", boolean_state_final, Boolean.toString(result)));
-														return result;
 												}
+												*/
+												Log.d(logTag, String.format("Executed a predicate: %s = %s", boolean_state, Boolean.toString(result)));
+												return result;
 										}
 										catch (Exception e)
 										{
@@ -270,6 +260,7 @@ public class AutonomousPredicates
 								}
 						};
 				}
+
 				public DynamicPredicateComposition and(final Predicate<Void> _predicate) throws Exception
 				{
 						depth++;
@@ -465,25 +456,36 @@ public class AutonomousPredicates
 				Log.v(logTag, String.format("booleans: %s", Arrays.toString(booleans_list.toArray())));
 				booleans_list.add(0, "|"); // include an extra leading OR symbol "|"
 
-				Pattern pattern = Pattern.compile("[()]+"); // used to find any parentheses easily
+				Pattern parenthesis_pattern = Pattern.compile("[()]+"); // used to find any parentheses easily
+				Pattern leading_negation_pattern = Pattern.compile("^\\^"); // MUST be used on trimmed string (a leading space ruins it)
+				Pattern inner_pattern = Pattern.compile("(?:\\([^()]+\\)|[^()])+(?=\\))"); // only stuff inside the outermost parentheses
 				String predicate_symbol_regex = "[[<>!=]=?:@]+"; // split on predicate symbols. Account for possibility of >=, <=, ==, and != as individual symbols.
 				int predicate_count = 0;
 				try
 				{
 						for (String predicate : predicate_strings)
 						{
+								predicate = predicate.trim(); // MUST eliminate any leading spaces!
 								String splitting_boolean = booleans_list.get(predicate_count);
 								Log.v(logTag, String.format("Using splitting boolean %s", splitting_boolean));
-								Matcher matcher = pattern.matcher(predicate);
-								if (matcher.find())
+								Matcher parenthesis_matcher = parenthesis_pattern.matcher(predicate);
+								if (parenthesis_matcher.find())
 								{
 										// contains parentheses. Compound predicate. Trim off outer parentheses and recurse.
+										// TODO: look for a leading "^" that negates the parentheses
 										Log.v(logTag, String.format("predicate %s is compound. Need to recurse", predicate));
-										Pattern inner_pattern = Pattern.compile("(?:\\([^()]+\\)|[^()])+(?=\\))"); // only stuff inside the outermost parentheses
 										Matcher inner_matcher = inner_pattern.matcher(predicate);
 										if (inner_matcher.find())
 										{
-												Predicate<Void> inner_predicate = parseTrigger(inner_matcher.group());
+												String inner_predicate_string = inner_matcher.group();
+												Predicate<Void> inner_predicate = parseTrigger(inner_predicate_string);
+												// TODO: use inner_predicate.negate() if there was a leading "^"
+												Matcher negation_matcher = leading_negation_pattern.matcher(predicate);
+												if (negation_matcher.find())
+												{
+														Log.d(logTag, String.format("Predicate %s will be negated", inner_predicate_string));
+														inner_predicate = inner_predicate.negate();
+												}
 												Log.d(logTag, String.format("Using splitting boolean %s on compound predicate", splitting_boolean));
 												// based on splitting boolean, call DynamicPredicateComposition methods using the above dpc object
 												switch (splitting_boolean)
@@ -561,10 +563,10 @@ public class AutonomousPredicates
 																switch (splitting_boolean)
 																{
 																		case "&":
-																				dpc.and(dpc.isNear(lat, lon, 100.0));
+																				dpc.and(dpc.isNear(lat, lon, ISNEAR_DISTANCE_THRESHOLD));
 																				break;
 																		case "|":
-																				dpc.or(dpc.isNear(lat, lon, 100.0));
+																				dpc.or(dpc.isNear(lat, lon, ISNEAR_DISTANCE_THRESHOLD));
 																				break;
 																		default:
 																				break;

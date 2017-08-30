@@ -6,6 +6,13 @@
 		interval: 1000,
 		ends: n
 	},
+	example_negated:
+	{
+		action: example,
+		trigger:"^(example_value : [5, 10] & example_state)",
+		interval: 1000,
+		ends: n
+	},	
 	fancy_example:
 	{
 		action: example,
@@ -30,8 +37,8 @@
 	forced_return_home:
 	{
 		action: return_home,
-		trigger: "^is_autonomous & battery_voltage : [0.1, 14.5]",
+		trigger: "^(is_autonomous) & battery_voltage : [0.1, 14.5]",
 		interval: 1000,
 		ends: y
-	}
+	},
 }

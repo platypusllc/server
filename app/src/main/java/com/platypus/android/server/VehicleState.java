@@ -5,11 +5,10 @@ import android.util.Log;
 import com.platypus.crw.data.UtmPose;
 
 import java.lang.reflect.Array;
-import java.util.Collection;
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 
 /**
  * Created by jason on 8/11/17.
@@ -19,6 +18,9 @@ public class VehicleState
 {
 
 		final int NUMBER_OF_SAMPLER_JARS = 4;
+		private VehicleServerImpl _serverImpl;
+		static String logTag = "AP";
+		AtomicBoolean[] jar_available = new AtomicBoolean[NUMBER_OF_SAMPLER_JARS];
 
 		enum States
 		{
@@ -58,24 +60,52 @@ public class VehicleState
 					Constructor 2: same as constructor 1, but assume size = 1
 					https://stackoverflow.com/questions/529085/how-to-create-a-generic-array-in-java
 				*/
-				// TODO: array or map of S objects. Default get() set() just operate on index 0, include setAll(), length(), etc.
+
 				S[] value_array;
-				State(Class<S> array_class, int size)
+				State(Class<S> array_class, Class<F> value_class, int size, F default_value)
 				{
 						value_array = (S[])(Array.newInstance(array_class, size));
-						for (int i = 0; i < value_array.length; i++)
+						try
 						{
-								try
+								Class primitive_class;
+								// TODO: improve this ugly workaround (Double, Boolean, Long, and Integer not having constructors that make any sense)
+								if (default_value instanceof Double)
 								{
-										value_array[i] = array_class.newInstance(); // default value!
+										primitive_class = Double.TYPE;
 								}
-								catch (Exception e)
+								else if (default_value instanceof Boolean)
 								{
-										Log.e(logTag, String.format("State class constructor error: %s", e.getMessage()));
+										primitive_class = Boolean.TYPE;
+								}
+								else if (default_value instanceof Long)
+								{
+										primitive_class = Long.TYPE;
+								}
+								else if (default_value instanceof Integer)
+								{
+										primitive_class = Integer.TYPE;
+								}
+								else
+								{
+										primitive_class = Void.TYPE;
+								}
+								Constructor value_constructor = value_class.getConstructor(primitive_class);
+								Constructor array_constructor = array_class.getConstructor(primitive_class);
+								for (int i = 0; i < value_array.length; i++)
+								{
+										Object constructed_value = value_constructor.newInstance(default_value);
+										value_array[i] = (S)array_constructor.newInstance(constructed_value);
 								}
 						}
+						catch (Exception e)
+						{
+								Log.e(logTag, String.format("State class constructor error: %s", e.getMessage()));
+						}
 				}
-				State(Class<S> array_class) { this(array_class, 1); } // default size = 1
+				State(Class<S> array_class, Class<F> value_class, F default_value)
+				{
+						this(array_class, value_class, 1, default_value); // default size = 1
+				}
 				abstract F customGet(int index); // the custom implementation of get
 				abstract void customSet(int index, F in); // changing value in a map or array
 
@@ -111,8 +141,8 @@ public class VehicleState
 
 		class BooleanState extends State<AtomicBoolean, Boolean>
 		{
-				BooleanState() { super(AtomicBoolean.class); }
-				BooleanState(int size) { super(AtomicBoolean.class, size); }
+				BooleanState() { super(AtomicBoolean.class, Boolean.class, Boolean.valueOf(false)); }
+				BooleanState(int size) { super(AtomicBoolean.class, Boolean.class, size, Boolean.valueOf(false)); }
 				@Override
 				public Boolean customGet(int index)
 				{
@@ -127,8 +157,8 @@ public class VehicleState
 
 		class LongState extends State<AtomicLong, Long>
 		{
-				LongState() { super(AtomicLong.class); }
-				LongState(int size) { super(AtomicLong.class, size); }
+				LongState() { super(AtomicLong.class, Long.class, Long.valueOf(0)); }
+				LongState(int size) { super(AtomicLong.class, Long.class, size, Long.valueOf(0)); }
 				@Override
 				Long customGet(int index)
 				{
@@ -143,8 +173,8 @@ public class VehicleState
 
 		class DoubleState extends State<Double, Double>
 		{
-				DoubleState() { super(Double.class); }
-				DoubleState(int size) { super(Double.class, size); }
+				DoubleState() { super(Double.class, Double.class, Double.valueOf(0.0)); }
+				DoubleState(int size) { super(Double.class, Double.class, size, Double.valueOf(0.0)); }
 				Object lock = new Object();
 				@Override
 				public Double customGet(int index)
@@ -167,8 +197,8 @@ public class VehicleState
 
 		class UtmPoseState extends State<UtmPose, UtmPose>
 		{
-				UtmPoseState() { super(UtmPose.class); }
-				UtmPoseState(int size) { super(UtmPose.class, size); }
+				UtmPoseState() { super(UtmPose.class, UtmPose.class, new UtmPose()); }
+				UtmPoseState(int size) { super(UtmPose.class, UtmPose.class, size, new UtmPose()); }
 				Object lock = new Object();
 				@Override
 				public UtmPose customGet(int index)
@@ -190,25 +220,50 @@ public class VehicleState
 
 		public <F> F get(String state_name)
 		{
-				return (F)(state_map.get(state_name).get());
+				if (!state_map.containsKey(state_name))
+				{
+						Log.e(logTag, String.format("state \"%s\" does not exist", state_name));
+				}
+				Object result = state_map.get(state_name).get();
+				if (result == null)
+				{
+						Log.w(logTag, String.format("state \"%s\" returned null", state_name));
+						return null;
+				}
+				return (F)result;
 		}
 		public <F> F get(String state_name, int index)
 		{
-				return (F)(state_map.get(state_name).get(index));
+				if (!state_map.containsKey(state_name))
+				{
+						Log.e(logTag, String.format("state \"%s\" does not exist", state_name));
+				}
+				Object result = state_map.get(state_name).get(index);
+				if (result == null)
+				{
+						Log.w(logTag, String.format("state \"%s\"[%d] returned null", state_name, index));
+						return null;
+				}
+				return (F)result;
 		}
 		public <F> void set(String state_name, F in)
 		{
+				if (!state_map.containsKey(state_name))
+				{
+						Log.e(logTag, String.format("Tried to set \"%s\", which does not exist", state_name));
+						return;
+				}
 				state_map.get(state_name).set(in);
 		}
 		public <F> void set(String state_name, int index, F in)
 		{
+				if (!state_map.containsKey(state_name))
+				{
+						Log.e(logTag, String.format("Tried to set \"%s\", which does not exist", state_name));
+						return;
+				}
 				state_map.get(state_name).set(index, in);
 		}
-
-		private VehicleServerImpl _serverImpl;
-		static String logTag = "AP";
-
-		AtomicBoolean[] jar_available = new AtomicBoolean[4];
 
 		VehicleState(VehicleServerImpl server)
 		{
@@ -220,7 +275,7 @@ public class VehicleState
 				}
 
 				state_map.put(States.EXAMPLE_STATE.name,
-								new State<AtomicBoolean, Boolean>(AtomicBoolean.class)
+								new State<AtomicBoolean, Boolean>(AtomicBoolean.class, Boolean.class, false)
 				{
 						@Override
 						Boolean customGet(int index)
@@ -233,7 +288,7 @@ public class VehicleState
 				});
 
 				state_map.put(States.EXAMPLE_VALUE.name,
-								new State<Double, Double>(Double.class)
+								new State<Double, Double>(Double.class, Double.class, 0.0)
 				{
 						Object lock = new Object();
 						@Override
@@ -249,14 +304,14 @@ public class VehicleState
 						void customSet(int index, Double in) { }
 				});
 
-				state_map.put(States.ALWAYS_FALSE.name, new State<Boolean, Boolean>(Boolean.class)
+				state_map.put(States.ALWAYS_FALSE.name, new State<Boolean, Boolean>(Boolean.class, Boolean.class, Boolean.valueOf(false))
 				{
 						@Override
 						Boolean customGet(int index) { return false; }
 						@Override
 						void customSet(int index, Boolean in) { }
 				});
-				state_map.put(States.ALWAYS_TRUE.name, new State<Boolean, Boolean>(Boolean.class)
+				state_map.put(States.ALWAYS_TRUE.name, new State<Boolean, Boolean>(Boolean.class, Boolean.class, Boolean.valueOf(true))
 				{
 						@Override
 						Boolean customGet(int index) { return true; }
@@ -264,7 +319,7 @@ public class VehicleState
 						void customSet(int index, Boolean in) { }
 				});
 
-				state_map.put(States.EXAMPLE_ARRAY.name, new State<Long, Long>(Long.class, 3)
+				state_map.put(States.EXAMPLE_ARRAY.name, new State<Long, Long>(Long.class, Long.class, 3, Long.valueOf(0))
 				{
 						long counter;
 						Object lock = new Object();
@@ -291,7 +346,7 @@ public class VehicleState
 				state_map.put(States.T.name, new DoubleState());
 				state_map.put(States.DO.name, new DoubleState());
 				state_map.put(States.BATTERY_VOLTAGE.name, new DoubleState());
-				state_map.put(States.ELAPSED_TIME.name, new State<AtomicLong, Long>(AtomicLong.class)
+				state_map.put(States.ELAPSED_TIME.name, new State<AtomicLong, Long>(AtomicLong.class, Long.class, Long.valueOf(0))
 				{
 						long first = System.currentTimeMillis();
 
@@ -307,7 +362,7 @@ public class VehicleState
 				state_map.put(States.TIME_SINCE_OPERATOR.name, new LongState());
 				state_map.put(States.CURRENT_POSE.name, new UtmPoseState());
 				state_map.put(States.HOME_POSE.name, new UtmPoseState());
-				state_map.put(States.NEXT_AVAILABLE_JAR.name, new State<Void, Long>(Void.class)
+				state_map.put(States.NEXT_AVAILABLE_JAR.name, new State<Void, Long>(Void.class, Long.class, Long.valueOf(0))
 				{
 						// note how the value_array is totally ignored here.
 						// Limitations of the class force the available jar boolean array to be outside
