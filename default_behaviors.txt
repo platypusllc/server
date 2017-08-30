@@ -22,7 +22,7 @@
 	},
 	sampler_example:
 	{
-		action: sampler_start,
+		action: start_sampler,
 		trigger: "GPS @ [45.403863, 10.999423] & EC > 0",
 		interval: 1000,
 		ends: y

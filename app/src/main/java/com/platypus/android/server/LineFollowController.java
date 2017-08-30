@@ -17,8 +17,9 @@ class LineFollowController implements VehicleController {
     Pose3D current_pose;
     Pose3D original_pose;
     boolean original_pose_set = false;
-    long elapsed_time_ms = 0;
+    long station_keep_time_ms = 0;
     long start_time = 0;
+    boolean station_keeping = false;
 
     final double LOOKAHEAD_DISTANCE_BASE = 5.0;
     double lookahead;
@@ -37,7 +38,6 @@ class LineFollowController implements VehicleController {
     private double heading_desired, heading_current, heading_error;
     private double heading_error_deriv, heading_signal;
     private double thrust_signal, angle_from_projected_to_boat, cross_product;
-
 
     @Override
     public void update(VehicleServer server, double dt)
@@ -66,6 +66,9 @@ class LineFollowController implements VehicleController {
         {
             heading_error_accum = 0.0; // reset any integral terms
             last_wp_index = current_wp_index;
+
+            // TODO: set station_keep_time_ms to the requested station keep time
+            station_keep_time_ms = server_impl.getCurrentWaypointKeepTime();
 
             UtmPose destination_UtmPose = server_impl.getCurrentWaypoint();
             if (destination_UtmPose == null)
@@ -98,7 +101,18 @@ class LineFollowController implements VehicleController {
         double distanceSq = planarDistanceSq(current_pose, destination_pose);
         if (distanceSq < SUFFICIENT_PROXIMITY*SUFFICIENT_PROXIMITY)
         {
-            server_impl.incrementWaypointIndex();
+            // TODO: check if there is a station keep time associated with the current waypoint
+            // TODO: if there is, do NOT increment the index until that amount of time has expired
+            if (!station_keeping && station_keep_time_ms > 0)
+            {
+                station_keeping = true;
+                start_time = System.currentTimeMillis();
+            }
+            if (station_keeping && (System.currentTimeMillis() - start_time) > station_keep_time_ms)
+            {
+                station_keeping = false;
+                server_impl.incrementWaypointIndex();
+            }
         }
         else
         {

@@ -26,6 +26,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -101,7 +102,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		{
 				EXAMPLE("example"),
 				RETURN_HOME("return_home"),
-				START_SAMPLER("sampler_start"),
+				START_SAMPLER("start_sampler"),
 				STOP_SAMPLER("sampler_stop"),
 				RESET_SAMPLER("sampler_reset"),
 				DO_NOTHING("do_nothing");
@@ -179,7 +180,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														command.put(String.format("s%d", i), samplerSettings);
 														mController.send(command);
 
-														// TODO: insert a new waypoint at the current boat location
+														// TODO: insert a new waypoint at the current boat location with 4 minute wait
+														insertWaypoint(getCurrentWaypointIndex(), (UtmPose)getState(VehicleState.States.CURRENT_POSE.name), 4*60*1000);
 
 														return;
 												}
@@ -260,7 +262,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		private final Timer _navigationTimer = new Timer();
 		private final Timer _captureTimer = new Timer();
 		UtmPose[] _waypoints = new UtmPose[0];
-		AtomicLong[] _waypointsKeepTimes = new AtomicLong[0];
+		Long[] _waypointsKeepTimes = new Long[0];
 
 		AtomicInteger current_waypoint_index = new AtomicInteger(-1);
 
@@ -294,7 +296,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		{
 				synchronized (_waypointLock)
 				{
-						if (i < _waypoints.length)
+						if (i >= 0 && i < _waypoints.length)
 						{
 								return _waypoints[i];
 						}
@@ -307,14 +309,32 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 		public Long getCurrentWaypointKeepTime()
 		{
-				// TODO
-				return null;
+				synchronized (_waypointLock)
+				{
+						if (current_waypoint_index.get() >= 0)
+						{
+								return _waypointsKeepTimes[current_waypoint_index.get()];
+						}
+						else
+						{
+								return null;
+						}
+				}
 		}
 
 		public Long getSpecificWaypointKeepTime(int i)
 		{
-				// TODO
-				return null;
+				synchronized (_waypointLock)
+				{
+						if (i >= 0 && i < _waypointsKeepTimes.length)
+						{
+								return _waypointsKeepTimes[i];
+						}
+						else
+						{
+								return null;
+						}
+				}
 		}
 
 
@@ -1464,6 +1484,21 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				sendState(pose.clone());
 		}
 
+		void insertWaypoint(int inserted_index, UtmPose waypoint, long station_keep_time)
+		{
+				synchronized (_waypointLock)
+				{
+						ArrayList<UtmPose> waypoint_list = new ArrayList<>();
+						ArrayList<Long> times_list = new ArrayList<>();
+						waypoint_list.addAll(Arrays.asList(_waypoints));
+						times_list.addAll(Arrays.asList(_waypointsKeepTimes));
+						waypoint_list.add(inserted_index, waypoint);
+						times_list.add(inserted_index, station_keep_time);
+						_waypoints = waypoint_list.toArray(new UtmPose[0]);
+						_waypointsKeepTimes = times_list.toArray(new Long[0]);
+				}
+		}
+
 		@Override
 		public void startWaypoints(final UtmPose[] waypoints, final String controller)
 		{
@@ -1479,6 +1514,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								current_waypoint_index.set(0);
 						}
 						_waypoints = waypoints.clone();
+						_waypointsKeepTimes = new Long[_waypoints.length]; // assume all keep times are zero
 				}
 
 				// Create a waypoint navigation task
