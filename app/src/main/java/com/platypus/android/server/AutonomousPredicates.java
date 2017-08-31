@@ -163,15 +163,24 @@ public class AutonomousPredicates
 										}
 										catch (Exception e)
 										{
-												Log.e(logTag, e.getMessage());
+												Log.e(logTag, String.format("error inside predicate \"%s\": %s", definition, e.getMessage()));
 										}
 										if (retrieval == null)
 										{
 												Log.w(logTag, String.format("Predicate %s received a null when it asked for %s", definition, left_hand_side));
 												return false;
 										}
-										Double a = Double.class.cast(retrieval);
-										Double b = Double.class.cast(right_hand_side);
+										double a, b;
+										try
+										{
+												a = ((Number)retrieval).doubleValue();
+												b = right_hand_side;
+										}
+										catch (Exception e)
+										{
+												Log.e(logTag, String.format("error inside predicate \"%s\": %s", definition, e.getMessage()));
+												return false;
+										}
 										boolean result = false;
 										switch(comparator)
 										{
@@ -348,7 +357,7 @@ public class AutonomousPredicates
 										}
 										catch (Exception e)
 										{
-												Log.e(logTag, e.getMessage());
+												Log.e(logTag, String.format("isNear predicate error: %s", e.getMessage()));
 										}
 										Log.d(logTag, String.format("Executed isNear predicate: Distance from target %f < %f is %s", distance, radius, Boolean.toString(result)));
 										return result;
@@ -384,7 +393,7 @@ public class AutonomousPredicates
 				}
 				catch (Exception e)
 				{
-						Log.e(logTag, e.getMessage());
+						Log.e(logTag, String.format("loadFromFile() error: %s", e.getMessage()));
 						return;
 				}
 
@@ -408,7 +417,7 @@ public class AutonomousPredicates
 				}
 				catch (Exception e)
 				{
-						Log.e(logTag, e.getMessage());
+						Log.e(logTag, String.format("loadFromFile() JSON parsing error: %s", e.getMessage()));
 						return;
 				}
 
@@ -427,7 +436,7 @@ public class AutonomousPredicates
 						}
 						catch (Exception e)
 						{
-								Log.e(logTag, e.getMessage());
+								Log.e(logTag, String.format("loadFromFile() JSON parsing error: %s", e.getMessage()));
 								continue;
 						}
 				}
@@ -690,7 +699,7 @@ public class AutonomousPredicates
 				}
 				catch (Exception e)
 				{
-						Log.e(logTag, e.getMessage());
+						Log.e(logTag, String.format("createTask() error: %s", e.getMessage()));
 				}
 		}
 

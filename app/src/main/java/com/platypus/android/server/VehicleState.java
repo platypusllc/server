@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javolution.lang.Reflection;
+
 /**
  * Created by jason on 8/11/17.
  */
@@ -91,12 +93,23 @@ public class VehicleState
 								{
 										primitive_class = Void.TYPE;
 								}
-								Constructor value_constructor = value_class.getConstructor(primitive_class);
-								Constructor array_constructor = array_class.getConstructor(primitive_class);
-								for (int i = 0; i < value_array.length; i++)
+								if (primitive_class != Void.TYPE)
 								{
-										Object constructed_value = value_constructor.newInstance(default_value);
-										value_array[i] = (S)array_constructor.newInstance(constructed_value);
+										Constructor value_constructor = value_class.getConstructor(primitive_class);
+										Constructor array_constructor = array_class.getConstructor(primitive_class);
+										for (int i = 0; i < value_array.length; i++)
+										{
+												Object constructed_value = value_constructor.newInstance(default_value);
+												value_array[i] = (S) array_constructor.newInstance(constructed_value);
+										}
+								}
+								else
+								{
+										Constructor array_constructor = array_class.getConstructor();
+										for (int i = 0; i < value_array.length; i++)
+										{
+												value_array[i] = (S) array_constructor.newInstance();
+										}
 								}
 						}
 						catch (Exception e)
@@ -205,7 +218,15 @@ public class VehicleState
 				@Override
 				public UtmPose customGet(int index)
 				{
-						synchronized (lock) { return value_array[index].clone(); }
+						synchronized (lock)
+						{
+								if (value_array[index] == null)
+								{
+										Log.w("AP", "The requested UtmPose is null");
+										return null;
+								}
+								return value_array[index].clone();
+						}
 				}
 
 				@Override
@@ -213,6 +234,11 @@ public class VehicleState
 				{
 						synchronized (lock)
 						{
+								if (in == null)
+								{
+										Log.w("AP", "The supplied UtmPose is null.");
+										return;
+								}
 								value_array[index] = in.clone();
 						}
 				}
@@ -357,8 +383,17 @@ public class VehicleState
 						@Override
 						Long customGet(int index)
 						{
-								value_array[index].set(System.currentTimeMillis() - first);
-								return null;
+								try
+								{
+										value_array[index].set(System.currentTimeMillis() - first);
+										Log.v(logTag, String.format("retrieved elapsed time = %d ms", value_array[index].get()));
+										return value_array[index].get();
+								}
+								catch (Exception e)
+								{
+										Log.e(logTag, String.format("Elapsed time customGet() error: %s", e.getMessage()));
+										return null;
+								}
 						}
 						@Override
 						void customSet(int index, Long in) { }

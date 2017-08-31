@@ -19,6 +19,7 @@ class LineFollowController implements VehicleController {
     boolean original_pose_set = false;
     long station_keep_time_ms = 0;
     long start_time = 0;
+    long elapsed_time = 0;
     boolean station_keeping = false;
 
     final double LOOKAHEAD_DISTANCE_BASE = 5.0;
@@ -69,6 +70,7 @@ class LineFollowController implements VehicleController {
 
             // TODO: set station_keep_time_ms to the requested station keep time
             station_keep_time_ms = server_impl.getCurrentWaypointKeepTime();
+            Log.v("AP", String.format("new station keep time = %d ms", station_keep_time_ms));
 
             UtmPose destination_UtmPose = server_impl.getCurrentWaypoint();
             if (destination_UtmPose == null)
@@ -101,17 +103,24 @@ class LineFollowController implements VehicleController {
         double distanceSq = planarDistanceSq(current_pose, destination_pose);
         if (distanceSq < SUFFICIENT_PROXIMITY*SUFFICIENT_PROXIMITY)
         {
-            // TODO: check if there is a station keep time associated with the current waypoint
-            // TODO: if there is, do NOT increment the index until that amount of time has expired
-            if (!station_keeping && station_keep_time_ms > 0)
+            // check if there is a station keep time associated with the current waypoint
+            // if there is, do NOT increment the index until that amount of time has expired
+            if (!station_keeping)
             {
+                Log.i("AP", String.format("Starting station keeping for %d ms", station_keep_time_ms));
                 station_keeping = true;
                 start_time = System.currentTimeMillis();
             }
-            if (station_keeping && (System.currentTimeMillis() - start_time) > station_keep_time_ms)
+            else
             {
-                station_keeping = false;
-                server_impl.incrementWaypointIndex();
+                elapsed_time = System.currentTimeMillis() - start_time;
+                Log.v("AP", String.format("Station keep time left = %d ms",  station_keep_time_ms - elapsed_time));
+                if (elapsed_time > station_keep_time_ms)
+                {
+                    Log.i("AP", "Finished station keeping");
+                    station_keeping = false;
+                    server_impl.incrementWaypointIndex();
+                }
             }
         }
         else

@@ -105,6 +105,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				START_SAMPLER("start_sampler"),
 				STOP_SAMPLER("sampler_stop"),
 				RESET_SAMPLER("sampler_reset"),
+				START_SAMPLER_TEST("start_sampler_test"),
 				DO_NOTHING("do_nothing");
 
 				final String name;
@@ -159,7 +160,14 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						case START_SAMPLER:
 						{
 								// First, find next available sample jar
-								Long next_available_jar = (Long) vehicle_state.get("next_available_jar");
+								Object retrieval = getState(VehicleState.States.NEXT_AVAILABLE_JAR.name);
+								if (retrieval == null)
+								{
+										Log.e("AP", "Retrieved a null after requesting next available jar");
+										return;
+								}
+								Long next_available_jar = (Long) retrieval;
+
 								if (next_available_jar < 0)
 								{
 										Log.w("AP", "No sampler jars are available. Ignoring START_SAMPLER command");
@@ -178,10 +186,25 @@ public class VehicleServerImpl extends AbstractVehicleServer
 												if (expected_type.equals("SAMPLER"))
 												{
 														command.put(String.format("s%d", i), samplerSettings);
-														mController.send(command);
 
-														// TODO: insert a new waypoint at the current boat location with 4 minute wait
-														insertWaypoint(getCurrentWaypointIndex(), (UtmPose)getState(VehicleState.States.CURRENT_POSE.name), 4*60*1000);
+														// TODO: uncomment this so the sampler actually starts::: mController.send(command);
+
+														Log.v("AP", String.format("Before insertWaypoint: \n" +
+																		"# of WPs = %d\n" +
+																		"current index = %d\n" +
+																		"WPs: %s", _waypoints.length, current_waypoint_index.get(), Arrays.toString(_waypoints)));
+
+														// TODO: switch back to the 4 minute wait
+														final long SAMPLER_STATION_KEEP_TIME = 5000; //4*60*1000;
+														int cwp = current_waypoint_index.get();
+														insertWaypoint((cwp > 0 ? cwp : 0), // never less than 0
+																		(UtmPose)getState(VehicleState.States.CURRENT_POSE.name),
+																		SAMPLER_STATION_KEEP_TIME);
+
+														Log.v("AP", String.format("After insertWaypoint: \n" +
+																		"# of WPs = %d\n" +
+																		"current index = %d\n" +
+																		"WPs: %s", _waypoints.length, current_waypoint_index.get(), Arrays.toString(_waypoints)));
 
 														return;
 												}
@@ -189,7 +212,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								}
 								catch (Exception e)
 								{
-										Log.e("AP", e.getMessage());
+										Log.e("AP", String.format("START_SAMPLER action error: %s", e.getMessage()));
 								}
 								break;
 						}
@@ -217,15 +240,38 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								}
 								catch (Exception e)
 								{
-										Log.e("AP", e.getMessage());
+										Log.e("AP", String.format("Reset sampler action error: %s", e.getMessage()));
 								}
 								break;
 						}
 
 						// TODO: finish up the remaining actions
 						case RETURN_HOME:
+						{
 								Log.w("AP", "RETURNING HOME");
 								break;
+						}
+
+						case START_SAMPLER_TEST:
+						{
+								Log.i("AP", "Starting the forced sampler test");
+								// TODO: ASDF
+								// call startWaypoints
+								// force the server to think it is at one of the waypoints
+								// see if the sampler starts, a new waypoint is inserted, and station keeping starts
+								/*
+								UtmPose[] example_waypoints =
+												{
+														new UtmPose(new Pose3D(656471.32, 5029766.27, 0, 0, 0, 0), new Utm(32, true)),
+														new UtmPose(new Pose3D(656480., 5029766, 0, 0, 0, 0), new Utm(32, true)),
+														new UtmPose(new Pose3D(656490., 5029766, 0, 0, 0, 0), new Utm(32, true))
+												};
+								setAutonomous(true);
+								startWaypoints(example_waypoints, "whatever");
+								current_waypoint_index.set(2);
+								*/
+								break;
+						}
 
 						default:
 								break;
@@ -242,7 +288,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
 		public static final double SAFE_VECTORED_THRUST = 1.0;
 		public static final long VELOCITY_TIMEOUT_MS = 10000;
-		private static final String TAG = VehicleServerImpl.class.getName();
+		private static final String TAG = "VehicleServerImpl"; //VehicleServerImpl.class.getName();
 		protected final SharedPreferences mPrefs;
 		protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
 		protected final Object _captureLock = new Object();
@@ -1488,14 +1534,22 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		{
 				synchronized (_waypointLock)
 				{
+						if (inserted_index < 0)
+						{
+								Log.w("AP", "insertWaypoint(): inserted_index is less than 0. Setting to 0.");
+								inserted_index = 0;
+						}
 						ArrayList<UtmPose> waypoint_list = new ArrayList<>();
 						ArrayList<Long> times_list = new ArrayList<>();
 						waypoint_list.addAll(Arrays.asList(_waypoints));
 						times_list.addAll(Arrays.asList(_waypointsKeepTimes));
 						waypoint_list.add(inserted_index, waypoint);
 						times_list.add(inserted_index, station_keep_time);
-						_waypoints = waypoint_list.toArray(new UtmPose[0]);
+						// start the new batch of waypoints, but begin at the inserted waypoint
+						setAutonomous(true);
+						startWaypoints(waypoint_list.toArray(new UtmPose[0]), "whatever");
 						_waypointsKeepTimes = times_list.toArray(new Long[0]);
+						current_waypoint_index.set(inserted_index);
 				}
 		}
 
@@ -1514,7 +1568,11 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								current_waypoint_index.set(0);
 						}
 						_waypoints = waypoints.clone();
-						_waypointsKeepTimes = new Long[_waypoints.length]; // assume all keep times are zero
+						_waypointsKeepTimes = new Long[_waypoints.length];
+						for (int i = 0; i < _waypointsKeepTimes.length; i++)
+						{
+								_waypointsKeepTimes[i] = 0L; // assume all keep times are zero
+						}
 				}
 
 				// Create a waypoint navigation task
@@ -1533,7 +1591,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								if (!(Boolean)getState(VehicleState.States.IS_AUTONOMOUS.name))
 								{
 										// If we are not autonomous, do nothing
-										Log.i(TAG, "Paused");
+										Log.d(TAG, "Paused");
 										sendWaypointUpdate(WaypointState.PAUSED);
 								}
 								else if (wp_index == _waypoints.length)
@@ -1552,7 +1610,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								else
 								{
 										// TODO: measure dt directly instead of approximating
-										Log.d(TAG, "controller.update(), " + controller);
+										Log.v(TAG, "controller.update(), " + controller);
 										vc.update(VehicleServerImpl.this, dt);
 										sendWaypointUpdate(WaypointState.GOING);
 								}
@@ -1699,8 +1757,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				//_isAutonomous.set(isAutonomous);
 				setState(VehicleState.States.IS_AUTONOMOUS.name, isAutonomous);
 				//if (isAutonomous && first_autonomy.get())
-				if (isAutonomous && !(Boolean)getState(VehicleState.States.HAS_FIRST_AUTONOMY.name))
+				if (isAutonomous && !(Boolean) getState(VehicleState.States.HAS_FIRST_AUTONOMY.name))
 				{
+						Log.i("AP", "Setting HAS_FIRST_AUTONOMY to true");
 						//first_autonomy.set(false);
 						setState(VehicleState.States.HAS_FIRST_AUTONOMY.name, true);
 						//home_UTM = UtmPose_to_UTM(_utmPose);
