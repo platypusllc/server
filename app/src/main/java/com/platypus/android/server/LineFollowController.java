@@ -17,6 +17,7 @@ class LineFollowController implements VehicleController {
     Pose3D current_pose;
     Pose3D original_pose;
     boolean original_pose_set = false;
+    String logTag = "LineFollowController";
 
     final double LOOKAHEAD_DISTANCE_BASE = 5.0;
     double lookahead;
