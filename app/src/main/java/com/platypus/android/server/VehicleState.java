@@ -43,6 +43,7 @@ public class VehicleState
 				IS_AUTONOMOUS("is_autonomous"),
 				HAS_FIRST_AUTONOMY("has_first_autonomy"),
 				IS_RUNNING("is_running"),
+				//IS_PERFORMING_EXCLUSIVE(),
 				IS_EXECUTING_FAILSAFE("is_exec_failsafe"),
 				IS_TAKING_SAMPLE("is_taking_sample"),
 				NEXT_AVAILABLE_JAR("next_jar"),
@@ -244,7 +245,7 @@ public class VehicleState
 				}
 		}
 
-		HashMap<String, State> state_map = new HashMap<>();
+		private HashMap<String, State> state_map = new HashMap<>();
 
 		public <F> F get(String state_name)
 		{

@@ -11,25 +11,25 @@ import com.platypus.crw.data.Pose3D;
 
 class LineFollowController implements VehicleController {
 
-    int last_wp_index = -2;
-    Pose3D source_pose;
-    Pose3D destination_pose;
-    Pose3D current_pose;
-    Pose3D original_pose;
-    boolean original_pose_set = false;
-    long station_keep_time_ms = 0;
-    long start_time = 0;
-    long elapsed_time = 0;
-    boolean station_keeping = false;
+    private int last_wp_index = -2;
+    private Pose3D source_pose;
+    private Pose3D destination_pose;
+    private Pose3D current_pose;
+    private Pose3D original_pose;
+    private boolean original_pose_set = false;
+    private long station_keep_time_ms = 0;
+    private long start_time = 0;
+    private long elapsed_time = 0;
+    private boolean station_keeping = false;
 
-    final double LOOKAHEAD_DISTANCE_BASE = 5.0;
-    double lookahead;
-    final double SUFFICIENT_PROXIMITY = 3.0;
-    double heading_error_old = 0.0;
-    double heading_error_accum = 0.0;
-    double[] rudder_pids;
-    double[] thrust_pids;
-    double base_thrust, thrust_coefficient;
+    private final double LOOKAHEAD_DISTANCE_BASE = 5.0;
+    private double lookahead;
+    private final double SUFFICIENT_PROXIMITY = 3.0;
+    private double heading_error_old = 0.0;
+    private double heading_error_accum = 0.0;
+    private double[] rudder_pids;
+    private double[] thrust_pids;
+    private double base_thrust, thrust_coefficient;
 
     private double x_dest, x_source, x_current, y_dest, y_source, y_current, th_full, th_current;
     private double x_projected, y_projected, x_lookahead, y_lookahead;

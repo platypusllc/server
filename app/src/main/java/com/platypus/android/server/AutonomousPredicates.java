@@ -43,6 +43,84 @@ import javax.measure.unit.SI;
  * https://developer.android.com/reference/org/json/JSONTokener.html
  * http://regexr.com/
  * http://www.regexplanet.com/advanced/java/index.html
+
+ Example scenario: the boat has a task to continuously explore an area, and if it finds EC > 1000, take a sample.
+    If the boat detects values over 800, slow down.
+    The boat is hardcoded to track where it has already sampled and doesn't take another sample if within 10 meters.
+    The boat should return home if the battery is low or if all the sampler jars are full.
+    We want the boat to finish a sample before returning home, unless the battery is low.
+    If the low battery trigger occurs during a sample, make sure to turn off the pump.
+    What task definitions would create this behavior?
+
+    priority level integer:
+    0: augmentation behaviors (typically permanent). Can occur even during failsafes. Independent of priority.
+    1: failsafe actions. Explicitly cancels all tasks with priority > 1.
+    2: exclusive actions. Actions with priority >= 2 will not run.
+    3: background actions (typically permanent). If no other actions are occurring, then these can trigger. Default.
+
+    need the following booleans
+    is_performing_action (for priority 3, must be false)
+    is_exclusive (for priority 2, must be false)
+
+    priority 0 does not change either boolean, nor pay any attention to them.
+    priority 1 sets both to true, but cancels all tasks that are priority > 1, so it doesn't matter
+    priority 2 sets both to true
+    priority 3 sets only is_performing_action to true
+
+    TODO: need mechanism to turn those booleans true and false automatically. Use .then(): set_to_true_action.then(triggered_action).then(set_to_false_action)
+
+    explore:
+		 {
+        action: explore, // in reality would need some parameters, but for now just assume they are there
+        trigger: "always_true & ^(taking_sample)",
+        interval: 1000,
+        ends: n,
+        priority: 3, // only if no other non-augmentation actions are running
+		 },
+    slow_down_EC:
+		 {
+				action: slow_down,
+        trigger: "EC > 800",
+        interval: 500,
+        ends: n,
+        priority: 0,
+		 }
+    speed_up_EC:
+		 {
+				action: speed_up,
+        trigger: "EC < 800",
+        interval: 500,
+        ends: n,
+        priority: 0,
+		 }
+    sample:
+		 {
+		    action: start_sampler,
+        trigger: "EC > 1000 & jars_available",
+        interval: 500, // check faster than sensor updates so you can catch single values
+        ends: n, // need to trigger once for each jar
+        priority: 2, // override the exploration action only
+		 }
+    home_low_battery:
+		 {
+		    action: return_home,
+        trigger: "battery < 14.5",
+        interval: 60000,
+        ends: y,
+        priority: 1, // when this runs, cancel all non-augmentation actions so they aren't even evaluated
+		 }
+    home_no_jars:
+		 {
+				action: return_home,
+        trigger: "^(jars_available)",
+        interval: 60000,
+        ends: y,
+        priority: 2, // don't want to prematurely cancel a sample
+		 }
+
+ *
+ *
+ *
  */
 
 public class AutonomousPredicates
@@ -650,18 +728,22 @@ public class AutonomousPredicates
 								switch(key)
 								{
 										case "action":
+										case "a":
 												action = definition.getString(key);
 												action = action.trim();
 												// make sure the action is one of the available ones
 												if (!VehicleServerImpl.Actions.contains(action)) throw new Exception("task definition contains unknown action");
 												break;
 										case "trigger":
+										case "t":
 												predicate = parseTrigger(definition.getString(key));
 												break;
 										case "interval":
+										case "i":
 												ms_interval = definition.getLong(key);
 												break;
 										case "ends":
+										case "e":
 												String ends_string = (definition.getString(key)).toLowerCase();
 												switch(ends_string)
 												{

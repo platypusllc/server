@@ -187,24 +187,28 @@ public class VehicleServerImpl extends AbstractVehicleServer
 												{
 														command.put(String.format("s%d", i), samplerSettings);
 
-														// TODO: uncomment this so the sampler actually starts::: mController.send(command);
+														// TODO: only call mController.send() if hardware is connected
+														mController.send(command);
 
+														/*
 														Log.v("AP", String.format("Before insertWaypoint: \n" +
 																		"# of WPs = %d\n" +
 																		"current index = %d\n" +
 																		"WPs: %s", _waypoints.length, current_waypoint_index.get(), Arrays.toString(_waypoints)));
+														*/
 
-														// TODO: switch back to the 4 minute wait
-														final long SAMPLER_STATION_KEEP_TIME = 5000; //4*60*1000;
+														final long SAMPLER_STATION_KEEP_TIME = 4*60*1000;
 														int cwp = current_waypoint_index.get();
 														insertWaypoint((cwp > 0 ? cwp : 0), // never less than 0
 																		(UtmPose)getState(VehicleState.States.CURRENT_POSE.name),
 																		SAMPLER_STATION_KEEP_TIME);
 
+														/*
 														Log.v("AP", String.format("After insertWaypoint: \n" +
 																		"# of WPs = %d\n" +
 																		"current index = %d\n" +
 																		"WPs: %s", _waypoints.length, current_waypoint_index.get(), Arrays.toString(_waypoints)));
+														*/
 
 														return;
 												}
