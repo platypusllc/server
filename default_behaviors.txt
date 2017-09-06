@@ -13,7 +13,7 @@
 		interval: 1000,
 		ends: n
 	},	
-	fancy_example:
+	compound_example:
 	{
 		action: example,
 		trigger: "example_state | (example_value >= 5 & example_value < 12)",
@@ -37,8 +37,15 @@
 	forced_return_home:
 	{
 		action: return_home,
-		trigger: "^(is_autonomous) & battery_voltage : [0.1, 14.5]",
-		interval: 1000,
+		trigger: "battery_voltage : [0.1, 14.5] & ^(is_taking_sample)",
+		interval: 10000,
 		ends: y
 	},
+	inactivity_return_home:
+	{
+		action: return_home,
+		trigger: "^(is_autonomous) & time_since_operator > 60000 & ^(is_taking_sample)",
+		interval: 10000,
+		ends: n
+	}
 }

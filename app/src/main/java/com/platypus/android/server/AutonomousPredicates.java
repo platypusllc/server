@@ -43,8 +43,23 @@ import javax.measure.unit.SI;
  * https://developer.android.com/reference/org/json/JSONTokener.html
  * http://regexr.com/
  * http://www.regexplanet.com/advanced/java/index.html
+ *
 
- Example scenario: the boat has a task to continuously explore an area, and if it finds EC > 1000, take a sample.
+ Current needs: the boat needs to have a short list of capabilities
+ 1) Go to a list of waypoints
+ 2) Automatically return home using breadcrumbs, where home is place of first autonomy or manually set
+    a) Return home if battery is low (do not let sampler event occur while returning)
+    b) Return home if no sampler jars are available (do not let sampler event occur)
+    c) Return home if no operator activity is detected (DO let sampler events occur while returning home)
+    The boat should always let the sampler finish before it returns home.
+ 3) Turn on the sampler manually
+ 4) Turn on the sampler if it travels to certain locations or detects certain sensor values
+ The relationship between returning home and taking samples can be handled with just booleans for those
+    particular events (is_sampling, is_returning_home). We don't need priority levels here.
+ Updating those particular booleans can be handled in the actions, so we don't need a special mechanism
+    embedded in the autonomous predicates building process.
+
+ Future scenario: the boat has a task to continuously explore an area, and if it finds EC > 1000, take a sample.
     If the boat detects values over 800, slow down.
     The boat is hardcoded to track where it has already sampled and doesn't take another sample if within 10 meters.
     The boat should return home if the battery is low or if all the sampler jars are full.
@@ -68,6 +83,10 @@ import javax.measure.unit.SI;
     priority 3 sets only is_performing_action to true
 
     TODO: need mechanism to turn those booleans true and false automatically. Use .then(): set_to_true_action.then(triggered_action).then(set_to_false_action)
+    TODO: need mechanism to include AND checks of the predicates depending on the priority number, SO PRIORITY MUST BE PARSED FIRST
+
+    TODO: *** BIG IMPORTANT QUESTION *** HOW CAN WE CANCEL AN ACTION AS IT IS OCCURRING? IS THAT POSSIBLE?
+    TODO:     Because, remember, you can cancel the tasks, but those are just trigger predicate evaluations, not the actions themselves
 
     explore:
 		 {
@@ -803,6 +822,6 @@ public class AutonomousPredicates
 
 		void displayActions()
 		{
-				// display some kind of summary of the current trigger definitions in the debug activity
+				// TODO: display some kind of summary of the current trigger definitions in the debug activity
 		}
 }

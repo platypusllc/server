@@ -8,6 +8,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javolution.lang.Reflection;
@@ -43,10 +44,10 @@ public class VehicleState
 				IS_AUTONOMOUS("is_autonomous"),
 				HAS_FIRST_AUTONOMY("has_first_autonomy"),
 				IS_RUNNING("is_running"),
-				//IS_PERFORMING_EXCLUSIVE(),
-				IS_EXECUTING_FAILSAFE("is_exec_failsafe"),
+				IS_GOING_HOME("is_going_home"),
 				IS_TAKING_SAMPLE("is_taking_sample"),
 				NEXT_AVAILABLE_JAR("next_jar"),
+				JARS_AVAILABLE("jars_available"),
 				ALWAYS_TRUE("always_true"),
 				ALWAYS_FALSE("always_false");
 
@@ -166,6 +167,23 @@ public class VehicleState
 				}
 				@Override
 				public void customSet(int index, Boolean in)
+				{
+						value_array[index].set(in);
+				}
+		}
+
+		class IntegerState extends State<AtomicInteger, Integer>
+		{
+				IntegerState() { super(AtomicInteger.class, Integer.class, Integer.valueOf(0)); }
+				IntegerState(int size) { super(AtomicInteger.class, Integer.class, size, Integer.valueOf(0)); }
+				@Override
+				Integer customGet(int index)
+				{
+						return value_array[index].get();
+				}
+
+				@Override
+				void customSet(int index, Integer in)
 				{
 						value_array[index].set(in);
 				}
@@ -369,7 +387,7 @@ public class VehicleState
 				state_map.put(States.IS_AUTONOMOUS.name, new BooleanState());
 				state_map.put(States.IS_RUNNING.name, new BooleanState());
 				state_map.put(States.HAS_FIRST_AUTONOMY.name, new BooleanState());
-				state_map.put(States.IS_EXECUTING_FAILSAFE.name, new BooleanState());
+				state_map.put(States.IS_GOING_HOME.name, new BooleanState());
 				state_map.put(States.IS_TAKING_SAMPLE.name, new BooleanState());
 				state_map.put(States.EC.name, new DoubleState());
 				state_map.put(States.T.name, new DoubleState());
@@ -415,28 +433,43 @@ public class VehicleState
 				});
 				state_map.put(States.CURRENT_POSE.name, new UtmPoseState());
 				state_map.put(States.HOME_POSE.name, new UtmPoseState());
-				state_map.put(States.NEXT_AVAILABLE_JAR.name, new State<Void, Long>(Void.class, Long.class, Long.valueOf(0))
+				state_map.put(States.NEXT_AVAILABLE_JAR.name, new State<Void, Integer>(Void.class, Integer.class, Integer.valueOf(0))
 				{
 						// note how the value_array is totally ignored here.
 						// Limitations of the class force the available jar boolean array to be outside
 						@Override
-						Long customGet(int index)
+						Integer customGet(int index)
 						{
 								for (int i = 0; i < jar_available.length; i++)
 								{
-										if (jar_available[i].get())
-										{
-												jar_available[i].set(false); // jar is now unavailable
-												return Long.valueOf(i);
-										}
+										if (jar_available[i].get()) return Integer.valueOf(i);
 								}
-								return -1L;
+								return -1;
 						}
 						@Override
-						void customSet(int index, Long in) { }
+						void customSet(int index, Integer in) { }
+				});
+				state_map.put(States.JARS_AVAILABLE.name, new State<AtomicBoolean, Boolean>(AtomicBoolean.class, Boolean.class, Boolean.valueOf(true))
+				{
+						@Override
+						Boolean customGet(int index)
+						{
+								Long next_available_jar = (Long)state_map.get(States.NEXT_AVAILABLE_JAR.name).get();
+								return (next_available_jar >= 0);
+						}
+
+						@Override
+						void customSet(int index, Boolean in)
+						{
+								value_array[index].set(in);
+						}
 				});
 		}
 
+		void usingJar(int i)
+		{
+				jar_available[i].set(false);
+		}
 		void resetSampleJars()
 		{
 				for (int i = 0; i < jar_available.length; i++)

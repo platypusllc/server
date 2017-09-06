@@ -29,15 +29,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -166,7 +163,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 										Log.e("AP", "Retrieved a null after requesting next available jar");
 										return;
 								}
-								Long next_available_jar = (Long) retrieval;
+								Integer next_available_jar = (Integer) retrieval;
 
 								if (next_available_jar < 0)
 								{
@@ -185,11 +182,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 												String expected_type = mPrefs.getString(sensor_array_name, "NONE");
 												if (expected_type.equals("SAMPLER"))
 												{
-														command.put(String.format("s%d", i), samplerSettings);
-
-														// TODO: only call mController.send() if hardware is connected
-														mController.send(command);
-
 														/*
 														Log.v("AP", String.format("Before insertWaypoint: \n" +
 																		"# of WPs = %d\n" +
@@ -197,7 +189,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		"WPs: %s", _waypoints.length, current_waypoint_index.get(), Arrays.toString(_waypoints)));
 														*/
 
-														final long SAMPLER_STATION_KEEP_TIME = 4*60*1000;
+														final long SAMPLER_STATION_KEEP_TIME = 4*60*1000; // TODO: don't hardcode this
 														int cwp = current_waypoint_index.get();
 														insertWaypoint((cwp > 0 ? cwp : 0), // never less than 0
 																		(UtmPose)getState(VehicleState.States.CURRENT_POSE.name),
@@ -209,6 +201,16 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		"current index = %d\n" +
 																		"WPs: %s", _waypoints.length, current_waypoint_index.get(), Arrays.toString(_waypoints)));
 														*/
+
+														command.put(String.format("s%d", i), samplerSettings);
+
+														// TODO: only call mController.send() if hardware is connected
+														setState(VehicleState.States.IS_TAKING_SAMPLE.name, true);
+														vehicle_state.usingJar(next_available_jar);
+														mController.send(command);
+
+														// TODO: start a time task that will run after SAMPLER_STATION_KEEP_TIME, setting is_taking_sample to false
+
 
 														return;
 												}
