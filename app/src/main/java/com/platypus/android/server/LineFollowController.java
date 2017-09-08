@@ -72,12 +72,13 @@ class LineFollowController implements VehicleController {
             station_keep_time_ms = server_impl.getCurrentWaypointKeepTime();
             Log.v("AP", String.format("new station keep time = %d ms", station_keep_time_ms));
 
-            UtmPose destination_UtmPose = server_impl.getCurrentWaypoint();
-            if (destination_UtmPose == null)
+            double[] destination = server_impl.getCurrentWaypoint();
+            if (destination == null)
             {
                 server.setVelocity(twist);
                 return;
             }
+            UtmPose destination_UtmPose = new UtmPose(destination);
             destination_pose = destination_UtmPose.pose;
 
             if (current_wp_index == 0)
@@ -86,7 +87,8 @@ class LineFollowController implements VehicleController {
             }
             else
             {
-                UtmPose source_UtmPose = server_impl.getSpecificWaypoint(current_wp_index-1);
+                double[] source = server_impl.getSpecificWaypoint(current_wp_index-1);
+                UtmPose source_UtmPose = new UtmPose(source);
                 source_pose = source_UtmPose.pose;
             }
 

@@ -191,8 +191,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 														final long SAMPLER_STATION_KEEP_TIME = 4*60*1000; // TODO: don't hardcode this
 														int cwp = current_waypoint_index.get();
+														UtmPose current_utmpose = getState(VehicleState.States.CURRENT_POSE.name);
 														insertWaypoint((cwp > 0 ? cwp : 0), // never less than 0
-																		(UtmPose)getState(VehicleState.States.CURRENT_POSE.name),
+																		current_utmpose.getLatLong(),
 																		SAMPLER_STATION_KEEP_TIME);
 
 														/*
@@ -261,7 +262,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						case START_SAMPLER_TEST:
 						{
 								Log.i("AP", "Starting the forced sampler test");
-								// TODO: ASDF
+								// ASDF
 								// call startWaypoints
 								// force the server to think it is at one of the waypoints
 								// see if the sampler starts, a new waypoint is inserted, and station keeping starts
@@ -313,7 +314,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		private final Timer _updateTimer = new Timer();
 		private final Timer _navigationTimer = new Timer();
 		private final Timer _captureTimer = new Timer();
-		UtmPose[] _waypoints = new UtmPose[0];
+		double[][] _waypoints = new double[0][0];
 		Long[] _waypointsKeepTimes = new Long[0];
 
 		AtomicInteger current_waypoint_index = new AtomicInteger(-1);
@@ -329,7 +330,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index.get()));
 		}
 
-		public UtmPose getCurrentWaypoint()
+		public double[] getCurrentWaypoint()
 		{
 				synchronized (_waypointLock)
 				{
@@ -344,7 +345,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 		}
 
-		public UtmPose getSpecificWaypoint(int i)
+		public double[] getSpecificWaypoint(int i)
 		{
 				synchronized (_waypointLock)
 				{
@@ -394,12 +395,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		protected TimerTask _captureTask = null;
 		protected TimerTask _navigationTask = null;
 		ScheduledFuture mVelocityFuture = null;
-		/**
-		 * Inertial state vector, currently containing a 6D pose estimate:
-		 * [x,y,z,roll,pitch,yaw]
-		 */
-		// UtmPose _utmPose = new UtmPose(new Pose3D(476608.34, 4671214.40, 172.35, 0, 0, 0), new Utm(17, true));
-
 
 		/**
 		 * Filter used internally to update the current pose estimate
@@ -460,64 +455,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				UTM utm = UTM.latLongToUtm(latlong, ReferenceEllipsoid.WGS84);
 				return UTM_to_UtmPose(utm);
 		}
-
-		final private long HEARTBEAT_MAX_WAIT_MS = 60000;
-		final private double FAILSAFE_TRIGGER_VOLTAGE = 14.0;
-		private final Timer _failsafe_timer = new Timer();
-		/*
-		private TimerTask failsafe_check = new TimerTask()
-		{
-				double local_battery_voltage = 0;
-				long ms_since_last_heartbeat;
-
-				@Override
-				public void run()
-				{
-						if (first_autonomy.get())
-								return; // don't even bother with these checks until the boat is autonomous once
-						ms_since_last_heartbeat = System.currentTimeMillis() - last_heartbeat.get();
-						synchronized (_failsafe_check_lock)
-						{
-								local_battery_voltage = battery_voltage;
-						}
-						if (!is_executing_failsafe.get()) //
-						{
-								if (local_battery_voltage < FAILSAFE_TRIGGER_VOLTAGE)
-								{
-										Log.e(TAG, "triggering failsafe, battery is low");
-										is_executing_failsafe.set(true);
-								}
-								else if ((ms_since_last_heartbeat > HEARTBEAT_MAX_WAIT_MS) && !_isAutonomous.get())
-								{
-										Log.e(TAG, "triggering failsafe, no operator heartbeat");
-										is_executing_failsafe.set(true);
-								}
-
-								if (is_executing_failsafe.get())
-								{
-										Log.e(TAG, "triggering failsafe...");
-										startGoHome();
-								}
-								else
-								{
-										return;
-								}
-						}
-						else
-						{
-								// already executing the failsafe
-								// if operator heartbeat reappears and battery voltage is enough, stop returning home
-
-                if (ms_since_last_heartbeat < HEARTBEAT_MAX_WAIT_MS &&
-                        local_battery_voltage > FAILSAFE_TRIGGER_VOLTAGE)
-                {
-                    stopWaypoints();
-                }
-
-						}
-				}
-		};
-		*/
 
 		boolean[] received_expected_sensor_type = {false, false, false};
 
@@ -606,10 +543,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				@Override
 				public void run()
 				{
-						// Do an intelligent state prediction update here
-						//_utmPose = filter.pose(System.currentTimeMillis()); // TODO: what the hell is this?
 						UtmPose pose = filter.pose(System.currentTimeMillis());
-						vehicle_state.set(VehicleState.States.CURRENT_POSE.name, pose.clone());
+						setState(VehicleState.States.CURRENT_POSE.name, pose);
 						try
 						{
 								mLogger.info(new JSONObject()
@@ -622,7 +557,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						{
 								Log.w(TAG, "Unable to serialize pose.");
 						}
-						sendState(pose.clone());
+						sendState(pose);
 
 						// Send vehicle command by converting raw command to appropriate vehicle model.
 						JSONObject command = new JSONObject();
@@ -920,29 +855,20 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						return NAN_GAINS;
 		}
 
+
 		@Override
-		public void setHome(UtmPose utmPose)
+		public void setHome(double[] new_home)
 		{
-				setState(VehicleState.States.HOME_POSE.name, utmPose);
-				/*
-				synchronized (home_lock)
-				{
-						home_UTM = UtmPose_to_UTM(utmPose);
-				}
-				*/
+				setState(VehicleState.States.HOME_POSE.name, new UtmPose(new_home));
 		}
 
 		@Override
-		public UtmPose getHome()
+		public double[] getHome()
 		{
-				return getState(VehicleState.States.HOME_POSE.name);
-				/*
-				synchronized (home_lock)
-				{
-						return UTM_to_UtmPose(home_UTM);
-				}
-				*/
+				UtmPose utmPose = getState(VehicleState.States.HOME_POSE.name);
+				return utmPose.getLatLong();
 		}
+
 
 		@Override
 		public void startGoHome()
@@ -976,9 +902,10 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						path_waypoints[wp_index] = UTM_to_UtmPose(wp);
 						wp_index++;
 				}
-				startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
+				startWaypoints(path_waypoints);
 				*/
 		}
+
 
 		/**
 		 * @see VehicleServer#setGains(int, double[])
@@ -1512,13 +1439,22 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void setPose(UtmPose pose)
 		{
-
+				Log.e("whatever", String.format("setPose(): %s", pose.toString()));
+				// TODO: figure out why the tablet calls this once per second
+				// TODO: startWaypoints causes the values in the UtmPose here to change randomly!
+				// TODO: what the hell is happening?
+				// TODO: closing the tablet and reconnecting after restarting does NOT change the UtmPose here
+				// TODO: but stopping the phone and restarting it DOES reset the UtmPose here
+				// TODO: shutting down the tablet causes the calls to setPose to stop
+				// TODO: they happen at around 1 Hz, which coincides with the tablet's getWaypointsIndex() poll
+				// TODO: all this could be core library misalignment, but I tried that already.
+				// TODO: I will make quadruple sure the core library jars are EXACTLY the same
+				/*
 				// Change the offset of this vehicle by modifying filter
 				filter.reset(pose, System.currentTimeMillis());
 
 				// Copy this pose over the existing value
-				//_utmPose = pose.clone();
-				setState(VehicleState.States.CURRENT_POSE.name, pose.clone());
+				setState(VehicleState.States.CURRENT_POSE.name, pose);
 
 				// Report the new pose in the log file and to listeners.
 				try
@@ -1533,10 +1469,11 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				{
 						Log.w(TAG, "Unable to serialize pose.");
 				}
-				sendState(pose.clone());
+				sendState(pose);
+				*/
 		}
 
-		void insertWaypoint(int inserted_index, UtmPose waypoint, long station_keep_time)
+		void insertWaypoint(int inserted_index, double[] waypoint, long station_keep_time)
 		{
 				synchronized (_waypointLock)
 				{
@@ -1545,7 +1482,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								Log.w("AP", "insertWaypoint(): inserted_index is less than 0. Setting to 0.");
 								inserted_index = 0;
 						}
-						ArrayList<UtmPose> waypoint_list = new ArrayList<>();
+						ArrayList<double[]> waypoint_list = new ArrayList<>();
 						ArrayList<Long> times_list = new ArrayList<>();
 						waypoint_list.addAll(Arrays.asList(_waypoints));
 						times_list.addAll(Arrays.asList(_waypointsKeepTimes));
@@ -1553,19 +1490,17 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						times_list.add(inserted_index, station_keep_time);
 						// start the new batch of waypoints, but begin at the inserted waypoint
 						setAutonomous(true);
-						startWaypoints(waypoint_list.toArray(new UtmPose[0]), "whatever");
+						startWaypoints(waypoint_list.toArray(new double[0][0]));
 						_waypointsKeepTimes = times_list.toArray(new Long[0]);
 						current_waypoint_index.set(inserted_index);
 				}
 		}
 
 		@Override
-		public void startWaypoints(final UtmPose[] waypoints, final String controller)
+		public void startWaypoints(final double[][] waypoints)
 		{
-				// last_heartbeat.set(System.currentTimeMillis());
 				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
-				Log.i(TAG, "Starting waypoints with " + controller + ": "
-								+ Arrays.toString(waypoints));
+				Log.i(TAG, "Starting waypoints");
 
 				synchronized (_waypointLock)
 				{
@@ -1616,7 +1551,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								else
 								{
 										// TODO: measure dt directly instead of approximating
-										Log.v(TAG, "controller.update(), " + controller);
+										Log.v(TAG, "controller update()");
 										vc.update(VehicleServerImpl.this, dt);
 										sendWaypointUpdate(WaypointState.GOING);
 								}
@@ -1638,7 +1573,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				{
 						mLogger.info(new JSONObject()
 										.put("nav", new JSONObject()
-														.put("controller", controller)
 														.put("waypoints", new JSONArray(waypoints))));
 				}
 				catch (JSONException e)
@@ -1650,7 +1584,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void stopWaypoints()
 		{
-				// last_heartbeat.set(System.currentTimeMillis());
 				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				// Stop the thread that is doing the "navigation" by terminating its
 				// navigation process, clear all the waypoints, and stop the vehicle.
@@ -1666,22 +1599,19 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 				synchronized (_waypointLock)
 				{
-						_waypoints = new UtmPose[0];
+						_waypoints = new double[0][0];
 						current_waypoint_index.set(-1);
 				}
 				sendWaypointUpdate(WaypointState.CANCELLED);
 		}
 
 		@Override
-		public UtmPose[] getWaypoints()
+		public double[][] getWaypoints()
 		{
-				UtmPose[] wpts;
 				synchronized (_waypointLock)
 				{
-						wpts = new UtmPose[_waypoints.length];
-						System.arraycopy(_waypoints, 0, wpts, 0, wpts.length);
+						return _waypoints.clone();
 				}
-				return wpts;
 		}
 
 		@Override
@@ -1702,14 +1632,15 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 		}
 
+
 		@Override
 		public int getWaypointsIndex()
 		{
-				//last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
 				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index.get()));
 				return current_waypoint_index.get();
 		}
+
 
 		/**
 		 * Returns the current estimated 6D velocity of the vehicle.
@@ -1724,7 +1655,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		 */
 		public void setVelocity(Twist vel)
 		{
-				//last_heartbeat.set(System.currentTimeMillis());
 				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				_velocities = vel.clone();
 
@@ -1758,7 +1688,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void setAutonomous(boolean isAutonomous)
 		{
-				//last_heartbeat.set(System.currentTimeMillis());
 				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				//_isAutonomous.set(isAutonomous);
 				setState(VehicleState.States.IS_AUTONOMOUS.name, isAutonomous);

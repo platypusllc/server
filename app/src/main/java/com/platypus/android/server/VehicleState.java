@@ -244,6 +244,7 @@ public class VehicleState
 										Log.w("AP", "The requested UtmPose is null");
 										return null;
 								}
+								//Log.e("whatever", String.format("Getting UtmPose %s", value_array[index].toString()));
 								return value_array[index].clone();
 						}
 				}
@@ -258,6 +259,7 @@ public class VehicleState
 										Log.w("AP", "The supplied UtmPose is null.");
 										return;
 								}
+								//Log.e("whatever", String.format("Setting UtmPose to %s", in.toString()));
 								value_array[index] = in.clone();
 						}
 				}
