@@ -216,11 +216,12 @@ public class VehicleService extends Service {
             UtmPose utm = new UtmPose(pose, origin);
 
             // Apply update using filter object
-            if (_vehicleServerImpl != null) {
-                _vehicleServerImpl.filter.gpsUpdate(utm, location.getTime());
-//				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
-//						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
-//						+ ", " + location.getBearing());
+            if (_vehicleServerImpl != null) _vehicleServerImpl.filter.gpsUpdate(utm, location.getTime());
+            if (!(Boolean)_vehicleServerImpl.getState(VehicleState.States.HAS_FIRST_GPS.name))
+            {
+                // use the first GPS fix as the default home pose
+                _vehicleServerImpl.setState(VehicleState.States.HAS_FIRST_GPS.name, true);
+                _vehicleServerImpl.setState(VehicleState.States.HOME_POSE.name, utm);
             }
         }
     };

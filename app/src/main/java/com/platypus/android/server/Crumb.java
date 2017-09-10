@@ -1,5 +1,9 @@
 package com.platypus.android.server;
 
+import android.util.Log;
+
+import com.platypus.crw.data.UtmPose;
+
 import org.jscience.geography.coordinates.UTM;
 import javax.measure.unit.SI;
 
@@ -7,7 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by jason on 6/7/17.
@@ -16,15 +20,15 @@ import java.util.Map;
 public class Crumb
 {
 		// Instance fields
-		long index;
-		UTM location;
-		double g = 0.; // initialize with zero
-		double h; // run-time initialize e.g. set to the distance to the goal (if using A*)
-		List<Long> successors = new ArrayList<>();
-		long parent;
+		private long index;
+		private UTM location;
+		private double g = 0.; // initialize with zero
+		private double h; // run-time initialize e.g. set to the distance to the goal (if using A*)
+		private List<Long> successors = new ArrayList<>();
+		private long parent;
 
 		// Instance methods
-		public Crumb(long _index, UTM _location)
+		Crumb(long _index, UTM _location)
 		{
 				index = _index;
 				location = _location;
@@ -34,8 +38,8 @@ public class Crumb
 		public void setParent(long _parent) { parent = _parent; }
 		public long getParent() { return parent; }
 		public double getCost() { return g + h; }
-		public long getIndex() { return index; }
-		public UTM getLocation() { return location; }
+		long getIndex() { return index; }
+		UTM getLocation() { return location; }
 		public List<Long> getSuccessors() { return successors; }
 
 		// Static fields
@@ -44,10 +48,49 @@ public class Crumb
 		private static Map<Long, Map<Long, Double>> pairwise_distances = new HashMap<>();
 		private static Map<Long, List<Long>> neighbors = new HashMap<>();
 		private static Object crumbs_lock = new Object();
-
+		private static String logTag = "crumbs";
+		public static void checkForNewCrumb(UtmPose current_utmpose)
+		{
+				if (current_utmpose.equals(new UtmPose())) return; // ignore default location
+				long last_index = crumbs_by_index.size();
+				if (last_index < 1)
+				{
+						Log.i(logTag, "Generating first crumb");
+						newCrumb(UTM.valueOf(
+										current_utmpose.origin.zone,
+										current_utmpose.origin.isNorth ? 'T' : 'L',
+										current_utmpose.pose.getX(),
+										current_utmpose.pose.getY(),
+										SI.METER
+						));
+						return;
+				}
+				Log.v(logTag, String.format("Checking to drop a new crumb..."));
+				Crumb last_crumb = crumbs_by_index.get(last_index - 1);
+				UTM last_utm = last_crumb.getLocation();
+				double distance = Math.pow(current_utmpose.pose.getX() - last_utm.eastingValue(SI.METER), 2.0);
+				distance += Math.pow(current_utmpose.pose.getY() - last_utm.northingValue(SI.METER), 2.0);
+				if (distance >= MAX_NEIGHBOR_DISTANCE*MAX_NEIGHBOR_DISTANCE)
+				{
+						Log.i(logTag, "Generating a new crumb");
+						newCrumb(UTM.valueOf(
+										current_utmpose.origin.zone,
+										current_utmpose.origin.isNorth ? 'T' : 'L',
+										current_utmpose.pose.getX(),
+										current_utmpose.pose.getY(),
+										SI.METER
+						));
+				}
+		}
+		static Crumb getRandomCrumb()
+		{
+				if (crumbs_by_index.size() < 1) return null;
+				long index = ThreadLocalRandom.current().nextLong(0, crumbs_by_index.size());
+				return crumbs_by_index.get(index);
+		}
 
 		// Static methods
-		public static double distanceBetweenUTM(UTM location_i, UTM location_j)
+		static double distanceBetweenUTM(UTM location_i, UTM location_j)
 		{
 				return Math.sqrt(
 								location_i.eastingValue(SI.METER)*location_j.eastingValue(SI.METER) +
@@ -55,49 +98,57 @@ public class Crumb
 				);
 		}
 
-		public static double distanceBetweenCrumbs(long index_i, long index_j)
+		static double distanceBetweenCrumbs(long index_i, long index_j)
 		{
 				UTM location_i = crumbs_by_index.get(index_i).getLocation();
 				UTM location_j = crumbs_by_index.get(index_j).getLocation();
 				return distanceBetweenUTM(location_i, location_j);
 		}
 
-		public static long newCrumb(UTM _location)
+		static long newCrumb(UTM _location)
 		{
-				synchronized (crumbs_lock)
+				try
 				{
-						// initialize objects
-						long new_index = crumbs_by_index.size();
-						Crumb new_crumb = new Crumb(new_index, _location);
-						crumbs_by_index.put(new_index, new_crumb);
-						pairwise_distances.put(new_index, new HashMap<Long, Double>());
-						neighbors.put(new_index, new ArrayList<Long>());
-
-						// calculate pairwise distances and neighbors
-						for (Map.Entry<Long, Crumb> entry_i : crumbs_by_index.entrySet())
+						synchronized (crumbs_lock)
 						{
-								for (Map.Entry<Long, Crumb> entry_j : crumbs_by_index.entrySet())
+								// initialize objects
+								long new_index = crumbs_by_index.size();
+								Crumb new_crumb = new Crumb(new_index, _location);
+								crumbs_by_index.put(new_index, new_crumb);
+								pairwise_distances.put(new_index, new HashMap<Long, Double>());
+								neighbors.put(new_index, new ArrayList<Long>());
+
+								// calculate pairwise distances and neighbors
+								for (Map.Entry<Long, Crumb> entry_i : crumbs_by_index.entrySet())
 								{
-										long index_i = entry_i.getKey();
-										long index_j = entry_j.getKey();
-
-										// if a Crumb is being compared to itself
-										// OR
-										// if a calculation was previously performed for pair (i,j)
-										if (index_i == index_j || pairwise_distances.get(index_i).containsKey(index_j))
+										for (Map.Entry<Long, Crumb> entry_j : crumbs_by_index.entrySet())
 										{
-												continue; // don't perform the calculations
-										}
+												long index_i = entry_i.getKey();
+												long index_j = entry_j.getKey();
 
-										double pairwise_distance = distanceBetweenCrumbs(index_i, index_j);
-										pairwise_distances.get(index_i).put(index_j, pairwise_distance);
-										if (pairwise_distance <= MAX_NEIGHBOR_DISTANCE)
-										{
-												neighbors.get(index_i).add(index_j);
+												// if a Crumb is being compared to itself
+												// OR
+												// if a calculation was previously performed for pair (i,j)
+												if (index_i == index_j || pairwise_distances.get(index_i).containsKey(index_j))
+												{
+														continue; // don't perform the calculations
+												}
+
+												double pairwise_distance = distanceBetweenCrumbs(index_i, index_j);
+												pairwise_distances.get(index_i).put(index_j, pairwise_distance);
+												if (pairwise_distance <= MAX_NEIGHBOR_DISTANCE)
+												{
+														neighbors.get(index_i).add(index_j);
+												}
 										}
 								}
+								return new_index;
 						}
-						return new_index;
+				}
+				catch (Exception e)
+				{
+						Log.e("crumbs", String.format("newCrumb() error: %s", e.getMessage()));
+						return -1;
 				}
 		}
 

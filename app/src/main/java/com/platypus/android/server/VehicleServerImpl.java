@@ -307,6 +307,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		final Controller mController;
 		// Velocity shutdown timer.
 		final ScheduledThreadPoolExecutor mVelocityExecutor = new ScheduledThreadPoolExecutor(1);
+
 		/**
 		 * Raw gyroscopic readings from the phone gyro.
 		 */
@@ -314,6 +315,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		private final Timer _updateTimer = new Timer();
 		private final Timer _navigationTimer = new Timer();
 		private final Timer _captureTimer = new Timer();
+		private final Timer _crumbSendTimer = new Timer();
 		double[][] _waypoints = new double[0][0];
 		Long[] _waypointsKeepTimes = new Long[0];
 
@@ -421,7 +423,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		//Define sound URI
 		Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
-		public UTM UtmPose_to_UTM(UtmPose utmPose)
+		public static UTM UtmPose_to_UTM(UtmPose utmPose)
 		{
 				return UTM.valueOf(
 								utmPose.origin.zone,
@@ -533,18 +535,38 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				return scaled_signals;
 		}
 
+		private TimerTask _crumbSendTask = new TimerTask()
+		{
+				@Override
+				public void run()
+				{
+						Log.i(TAG, "Sending a random crumb");
+						Crumb crumb = Crumb.getRandomCrumb();
+						if (crumb == null) return;
+						UTM utm = crumb.getLocation();
+						UtmPose utmpose = UTM_to_UtmPose(utm);
+						sendCrumb(utmpose.getLatLong(), crumb.getIndex());
+						Log.i(TAG, String.format("Sent crumb # %d", crumb.getIndex()));
+				}
+		};
+
 		/**
 		 * Internal update function called at regular intervals to process command
 		 * and control events.
 		 */
 		private TimerTask _updateTask = new TimerTask()
 		{
-
 				@Override
 				public void run()
 				{
 						UtmPose pose = filter.pose(System.currentTimeMillis());
 						setState(VehicleState.States.CURRENT_POSE.name, pose);
+						if (getState(VehicleState.States.HAS_FIRST_GPS.name))
+						{
+								Crumb.checkForNewCrumb(pose); // see if a new crumb should be added
+						}
+
+
 						try
 						{
 								mLogger.info(new JSONObject()
@@ -771,6 +793,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 				// Start a regular update function
 				_updateTimer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
+
+				_crumbSendTimer.scheduleAtFixedRate(_crumbSendTask, 0, 1000);
 
 				// Create a thread to read data from the controller board.
 				Thread receiveThread = new Thread(new Runnable()
@@ -1681,15 +1705,11 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public void setAutonomous(boolean isAutonomous)
 		{
 				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
-				//_isAutonomous.set(isAutonomous);
 				setState(VehicleState.States.IS_AUTONOMOUS.name, isAutonomous);
-				//if (isAutonomous && first_autonomy.get())
 				if (isAutonomous && !(Boolean) getState(VehicleState.States.HAS_FIRST_AUTONOMY.name))
 				{
 						Log.i("AP", "Setting HAS_FIRST_AUTONOMY to true");
-						//first_autonomy.set(false);
 						setState(VehicleState.States.HAS_FIRST_AUTONOMY.name, true);
-						//home_UTM = UtmPose_to_UTM(_utmPose);
 						setState(VehicleState.States.HOME_POSE.name, getState(VehicleState.States.CURRENT_POSE.name));
 				}
 
@@ -1712,6 +1732,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 				_updateTimer.cancel();
 				_updateTimer.purge();
+
+				_crumbSendTimer.cancel();
+				_crumbSendTimer.purge();
 
 				_navigationTimer.cancel();
 				_navigationTimer.purge();

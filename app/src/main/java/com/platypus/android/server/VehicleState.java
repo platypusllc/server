@@ -43,6 +43,7 @@ public class VehicleState
 				IS_CONNECTED("is_connected"),
 				IS_AUTONOMOUS("is_autonomous"),
 				HAS_FIRST_AUTONOMY("has_first_autonomy"),
+				HAS_FIRST_GPS("has_first_gps"),
 				IS_RUNNING("is_running"),
 				IS_GOING_HOME("is_going_home"),
 				IS_TAKING_SAMPLE("is_taking_sample"),
@@ -389,6 +390,7 @@ public class VehicleState
 				state_map.put(States.IS_AUTONOMOUS.name, new BooleanState());
 				state_map.put(States.IS_RUNNING.name, new BooleanState());
 				state_map.put(States.HAS_FIRST_AUTONOMY.name, new BooleanState());
+				state_map.put(States.HAS_FIRST_GPS.name, new BooleanState());
 				state_map.put(States.IS_GOING_HOME.name, new BooleanState());
 				state_map.put(States.IS_TAKING_SAMPLE.name, new BooleanState());
 				state_map.put(States.EC.name, new DoubleState());
