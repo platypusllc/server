@@ -39,11 +39,12 @@ public class Crumb
 		public List<Long> getSuccessors() { return successors; }
 
 		// Static fields
-		final static double MAX_NEIGHBOR_DISTANCE = 10;
-		public static Map<Long, Crumb> crumbs_by_index = new HashMap<>();
-		public static Map<Long, Double> distance_to_goal = new HashMap<>();
-		public static Map<Long, Map<Long, Double>> pairwise_distances = new HashMap<>();
-		public static Map<Long, List<Long>> neighbors = new HashMap<>();
+		private final static double MAX_NEIGHBOR_DISTANCE = 10;
+		private static Map<Long, Crumb> crumbs_by_index = new HashMap<>();
+		private static Map<Long, Map<Long, Double>> pairwise_distances = new HashMap<>();
+		private static Map<Long, List<Long>> neighbors = new HashMap<>();
+		private static Object crumbs_lock = new Object();
+
 
 		// Static methods
 		public static double distanceBetweenUTM(UTM location_i, UTM location_j)
@@ -63,38 +64,41 @@ public class Crumb
 
 		public static long newCrumb(UTM _location)
 		{
-				// initialize objects
-				long new_index = crumbs_by_index.size();
-				Crumb new_crumb = new Crumb(new_index, _location);
-				crumbs_by_index.put(new_index, new_crumb);
-				pairwise_distances.put(new_index, new HashMap<Long, Double>());
-				neighbors.put(new_index, new ArrayList<Long>());
-
-				// calculate pairwise distances and neighbors
-				for (Map.Entry<Long, Crumb> entry_i : crumbs_by_index.entrySet())
+				synchronized (crumbs_lock)
 				{
-						for (Map.Entry<Long, Crumb> entry_j : crumbs_by_index.entrySet())
+						// initialize objects
+						long new_index = crumbs_by_index.size();
+						Crumb new_crumb = new Crumb(new_index, _location);
+						crumbs_by_index.put(new_index, new_crumb);
+						pairwise_distances.put(new_index, new HashMap<Long, Double>());
+						neighbors.put(new_index, new ArrayList<Long>());
+
+						// calculate pairwise distances and neighbors
+						for (Map.Entry<Long, Crumb> entry_i : crumbs_by_index.entrySet())
 						{
-								long index_i = entry_i.getKey();
-								long index_j = entry_j.getKey();
-
-								// if a Crumb is being compared to itself
-								// OR
-								// if a calculation was previously performed for pair (i,j)
-								if (index_i == index_j || pairwise_distances.get(index_i).containsKey(index_j))
+								for (Map.Entry<Long, Crumb> entry_j : crumbs_by_index.entrySet())
 								{
-										continue; // don't perform the calculations
-								}
+										long index_i = entry_i.getKey();
+										long index_j = entry_j.getKey();
 
-								double pairwise_distance = distanceBetweenCrumbs(index_i, index_j);
-								pairwise_distances.get(index_i).put(index_j, pairwise_distance);
-								if (pairwise_distance <= MAX_NEIGHBOR_DISTANCE)
-								{
-										neighbors.get(index_i).add(index_j);
+										// if a Crumb is being compared to itself
+										// OR
+										// if a calculation was previously performed for pair (i,j)
+										if (index_i == index_j || pairwise_distances.get(index_i).containsKey(index_j))
+										{
+												continue; // don't perform the calculations
+										}
+
+										double pairwise_distance = distanceBetweenCrumbs(index_i, index_j);
+										pairwise_distances.get(index_i).put(index_j, pairwise_distance);
+										if (pairwise_distance <= MAX_NEIGHBOR_DISTANCE)
+										{
+												neighbors.get(index_i).add(index_j);
+										}
 								}
 						}
+						return new_index;
 				}
-				return new_index;
 		}
 
 		public static List<Long> straightHome(UTM start, UTM goal)

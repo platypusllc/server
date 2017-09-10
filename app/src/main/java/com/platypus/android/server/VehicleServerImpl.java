@@ -855,7 +855,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						return NAN_GAINS;
 		}
 
-
 		@Override
 		public void setHome(double[] new_home)
 		{
@@ -868,7 +867,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				UtmPose utmPose = getState(VehicleState.States.HOME_POSE.name);
 				return utmPose.getLatLong();
 		}
-
 
 		@Override
 		public void startGoHome()
@@ -905,7 +903,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				startWaypoints(path_waypoints);
 				*/
 		}
-
 
 		/**
 		 * @see VehicleServer#setGains(int, double[])
@@ -1439,17 +1436,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void setPose(UtmPose pose)
 		{
-				Log.e("whatever", String.format("setPose(): %s", pose.toString()));
-				// TODO: figure out why the tablet calls this once per second
-				// TODO: startWaypoints causes the values in the UtmPose here to change randomly!
-				// TODO: what the hell is happening?
-				// TODO: closing the tablet and reconnecting after restarting does NOT change the UtmPose here
-				// TODO: but stopping the phone and restarting it DOES reset the UtmPose here
-				// TODO: shutting down the tablet causes the calls to setPose to stop
-				// TODO: they happen at around 1 Hz, which coincides with the tablet's getWaypointsIndex() poll
-				// TODO: all this could be core library misalignment, but I tried that already.
-				// TODO: I will make quadruple sure the core library jars are EXACTLY the same
-				/*
 				// Change the offset of this vehicle by modifying filter
 				filter.reset(pose, System.currentTimeMillis());
 
@@ -1470,7 +1456,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						Log.w(TAG, "Unable to serialize pose.");
 				}
 				sendState(pose);
-				*/
 		}
 
 		void insertWaypoint(int inserted_index, double[] waypoint, long station_keep_time)
@@ -1500,7 +1485,14 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		public void startWaypoints(final double[][] waypoints)
 		{
 				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
-				Log.i(TAG, "Starting waypoints");
+				Log.i(TAG, "Starting waypoints...");
+				StringBuilder waypoints_printout = new StringBuilder("Latitude    Longitude\n");
+				for (double[] waypoint : waypoints)
+				{
+						waypoints_printout.append(String.format("%.6f    %.6f\n", waypoint[0], waypoint[1]));
+				}
+				Log.d(TAG, waypoints_printout.toString());
+
 
 				synchronized (_waypointLock)
 				{
