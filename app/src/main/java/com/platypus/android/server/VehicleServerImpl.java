@@ -135,6 +135,12 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		private AutonomousPredicates autonomous_predicates;
 		private VehicleState vehicle_state;
 
+		@Override
+		public void newAutonomousPredicateMessage(String apm)
+		{
+				// TODO
+		}
+
 		void exampleAction()
 		{
 				Log.i("AP", "PERFORMING EXAMPLE ACTION");
