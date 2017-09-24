@@ -197,10 +197,14 @@ public class VehicleService extends Service {
         public void onLocationChanged(Location location) {
 
             // Convert from lat/long to UTM coordinates
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+            Log.d("onLocationChanged", String.format("latlng = %f, %f", lat, lng));
             UTM utmLoc = UTM.latLongToUtm(
-                    LatLong.valueOf(location.getLatitude(),
-                            location.getLongitude(), NonSI.DEGREE_ANGLE),
+                    LatLong.valueOf(lat, lng, NonSI.DEGREE_ANGLE),
                     ReferenceEllipsoid.WGS84);
+            Log.d("onLocationChanged", String.format("utm = %s  %d%c",
+                    utmLoc.toString(), utmLoc.longitudeZone(), utmLoc.latitudeZone()));
 
             // Convert to UTM data structure
             Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
@@ -211,16 +215,15 @@ public class VehicleService extends Service {
                     (90.0 - location.getBearing()) * Math.PI
                             / 180.0)
                     : Quaternion.fromEulerAngles(0, 0, 0)));
-            Utm origin = new Utm(utmLoc.longitudeZone(),
-                    utmLoc.latitudeZone() > 'O');
+
+            boolean isNorth = utmLoc.latitudeZone() > 'M';
+            Log.d("onLocationChanged", "isNorth = " + (isNorth ? "True" : "False"));
+            Utm origin = new Utm(utmLoc.longitudeZone(), isNorth);
             UtmPose utm = new UtmPose(pose, origin);
 
             // Apply update using filter object
             if (_vehicleServerImpl != null) {
                 _vehicleServerImpl.filter.gpsUpdate(utm, location.getTime());
-//				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
-//						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
-//						+ ", " + location.getBearing());
             }
         }
     };
