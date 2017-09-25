@@ -753,7 +753,15 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     {
                         command.put(String.format("s%d", i), samplerSettings);
                         mController.send(command);
-                        mLogger.info(new JSONObject().put("cmd", command));
+                        if (k[0] != -1)
+                        {
+                            mLogger.info(new JSONObject().put("sampler",
+                                    String.format("jar # %d start", (new Double(k[0]).intValue()) + 1)));
+                        }
+                        else if (k[0] == -1)
+                        {
+                            mLogger.info(new JSONObject().put("sampler", "reset"));
+                        }
                     }
                 }
             }
