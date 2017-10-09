@@ -742,7 +742,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 }
                 else if (k[0] == -1)
                 {
-                    samplerSettings.put("r",""); //sends reset
+                    samplerSettings.put("r","-1"); //sends reset
                 }
 
                 for (int i = 1; i < 4; i++)
