@@ -738,11 +738,26 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 if (k[0] != -1)
                 {
                     String sampler = Double.toString(k[0]);
-                    samplerSettings.put("e",sampler); //sends enable
+                    if (k[1] == 1)
+                    {
+                        samplerSettings.put("e",sampler); //sends start
+                    }
+                    else if (k[1] == 0)
+                    {
+                        samplerSettings.put("d",sampler); //sends stop
+                    }
+
                 }
                 else if (k[0] == -1)
                 {
-                    samplerSettings.put("r","-1"); //sends reset
+                    if (k[1] == 1)
+                    {
+                        samplerSettings.put("r", "-1"); //sends reset all
+                    }
+                    else if (k[1] == 0)
+                    {
+                        samplerSettings.put("s", "-1"); //sends stop all
+                    }
                 }
 
                 for (int i = 1; i < 4; i++)
@@ -755,12 +770,27 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         mController.send(command);
                         if (k[0] != -1)
                         {
-                            mLogger.info(new JSONObject().put("sampler",
-                                    String.format("jar # %d start", (new Double(k[0]).intValue()) + 1)));
+                            if (k[1] == 1)
+                            {
+                                mLogger.info(new JSONObject().put("sampler",
+                                        String.format("jar # %d start", (new Double(k[0]).intValue()) + 1)));
+                            }
+                            else if (k[1] == 0)
+                            {
+                                mLogger.info(new JSONObject().put("sampler",
+                                        String.format("jar # %d stop", (new Double(k[0]).intValue()) + 1)));
+                            }
                         }
                         else if (k[0] == -1)
                         {
-                            mLogger.info(new JSONObject().put("sampler", "reset"));
+                            if (k[1] == 1)
+                            {
+                                mLogger.info(new JSONObject().put("sampler", "reset all"));
+                            }
+                            else if (k[1] == 0)
+                            {
+                                mLogger.info(new JSONObject().put("sampler", "stop all"));
+                            }
                         }
                     }
                 }
