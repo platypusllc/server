@@ -134,6 +134,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         }
     }
 
+    public String getVehicleType()
+    {
+        String vehicleType = mPrefs.getString("pref_vehicle_type",
+                _context.getResources().getString(R.string.pref_vehicle_type_default));
+        return vehicleType;
+    }
+
     protected TimerTask _captureTask = null;
     protected TimerTask _navigationTask = null;
     ScheduledFuture mVelocityFuture = null;

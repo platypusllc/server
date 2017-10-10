@@ -37,12 +37,12 @@ class LineFollowController implements VehicleController {
     private double heading_error_deriv, heading_signal;
     private double thrust_signal, angle_from_projected_to_boat, cross_product;
 
-
     @Override
     public void update(VehicleServer server, double dt)
     {
         Twist twist = new Twist();
         VehicleServerImpl server_impl = (VehicleServerImpl) server;
+        String vehicle_type = server_impl.getVehicleType();
 
         // Get the position of the vehicle
         UtmPose state = server.getPose();
@@ -130,13 +130,14 @@ class LineFollowController implements VehicleController {
             // PID
             rudder_pids = server_impl.getGains(5);
             heading_error_deriv = (heading_error - heading_error_old)/dt;
+
             if (rudder_pids[1] > 0.0)
             {
                 heading_error_accum += dt*heading_error;
             }
             heading_error_old = heading_error;
             heading_signal = rudder_pids[0]*heading_error
-                    + rudder_pids[1]*heading_error_accum
+                    // + rudder_pids[1]*heading_error_accum
                     + rudder_pids[2]*heading_error_deriv;
 
             if (Math.abs(heading_signal) > 1.0)
@@ -153,9 +154,14 @@ class LineFollowController implements VehicleController {
                     Math.cos(angle_from_projected_to_boat)*Math.sin(th_full);
             thrust_coefficient = 1.0;
 
-            if (Math.abs(heading_error)*180./Math.PI > 45.0)
+            // check vehicle type. Modify turning in place behavior.
+            if (!vehicle_type.equals("VECTORED"))
             {
-                thrust_coefficient = 0.0;
+                // propboats should turn in place if they are off by more than 45 degrees
+                if (Math.abs(heading_error) * 180. / Math.PI > 45.0)
+                {
+                    thrust_coefficient = 0.0;
+                }
             }
             thrust_signal = thrust_coefficient*base_thrust;
 

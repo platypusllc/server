@@ -27,7 +27,6 @@ import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -65,7 +64,7 @@ public class VehicleService extends Service {
     public static final String STOP_ACTION = "com.platypus.android.server.SERVICE_STOP";
     private static final int SERVICE_ID = 11312;
     private static final String TAG = VehicleService.class.getSimpleName();
-    final int GPS_UPDATE_RATE = 200; // in milliseconds
+    final int GPS_UPDATE_RATE = 100; // in milliseconds
 
     // Variable storing the current started/stopped status of the service.
     protected AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -126,6 +125,9 @@ public class VehicleService extends Service {
     private WifiLock _wifiLock = null;
     // global variable to reference rotation vector values
     private float[] rotationMatrix = new float[9];
+
+    SharedPreferences sp;
+
     private final SensorEventListener rotationVectorListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
@@ -135,10 +137,16 @@ public class VehicleService extends Service {
                         event.values);
                 double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
 
-                if (_vehicleServerImpl != null) {
-                    _vehicleServerImpl.filter.compassUpdate(yaw,
-                            System.currentTimeMillis());
-//					logger.info("COMPASS: " + yaw);
+                // include 90 degrees offset if a bluebox housing is installed on the boat
+		            if (sp != null)
+		            {
+				            boolean bluebox_installed = sp.getBoolean("pref_bluebox_installed", false);
+				            if (bluebox_installed) yaw -= Math.PI / 2.0;
+		            }
+
+                if (_vehicleServerImpl != null)
+                {
+                    _vehicleServerImpl.filter.compassUpdate(yaw, System.currentTimeMillis());
                 }
             }
         }
@@ -365,6 +373,7 @@ public class VehicleService extends Service {
         }
         // Create the internal vehicle server implementation.
         _vehicleServerImpl = new VehicleServerImpl(this, mLogger, mController);
+		    sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         // Start up UDP vehicle service in the background
         startOrUpdateUdpServer();
