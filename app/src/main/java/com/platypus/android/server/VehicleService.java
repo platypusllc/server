@@ -170,6 +170,7 @@ public class VehicleService extends Service {
 			 * M[ 5] | | values[1] | = gyroValues[1] // \ M[ 6] M[ 7] M[ 8] / \
 			 * values[2] / = gyroValues[2] //
 			 */
+
             float[] gyroValues = new float[3];
             gyroValues[0] = rotationMatrix[0] * event.values[0]
                     + rotationMatrix[1] * event.values[1] + rotationMatrix[2]

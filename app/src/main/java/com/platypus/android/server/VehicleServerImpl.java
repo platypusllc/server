@@ -65,7 +65,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
     public static final double SAFE_VECTORED_THRUST = 1.0;
     public static final long VELOCITY_TIMEOUT_MS = 10000;
-    private static final String TAG = VehicleServerImpl.class.getName();
+    private static final String TAG = "VehicleServerImpl";
     protected final SharedPreferences mPrefs;
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
     protected final Object _captureLock = new Object();
@@ -985,8 +985,57 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                         } else if (type.equalsIgnoreCase("bluebox")) {
                             // need to log sensor types that don't appear in the core library enum
+                            boolean skip = false; // TODO: add new sensor types to Platypus core lib
+                            String nmea = value.getString("data");
+                            String[] chunks = nmea.split(",");
+                            String key = chunks[0];
+                            if (key.equals("$GPGGA"))
+                            {
+                                // TODO: $GPGGA (gps)
+                                skip = true;
+                            }
+                            else if (key.equals("$PGO00"))
+                            {
+                                String sensor_type = chunks[4];
+                                if (sensor_type.equals("conductivity"))
+                                {
+                                    reading.channel = sensor;
+                                    reading.type = SensorType.ES2;
+                                    reading.data = new double[]{Double.parseDouble(chunks[5]), 0.0};
+                                }
+                                else if (sensor_type.equals("Oxygen"))
+                                {
+                                    reading.channel = sensor;
+                                    reading.type = SensorType.ATLAS_DO;
+                                    reading.data = new double[]{Double.parseDouble(chunks[5])};
+                                }
+                                else if (sensor_type.equals("Turbidity"))
+                                {
+                                    skip = true; // TODO
+                                }
+                                else if (sensor_type.equals("Redox"))
+                                {
+                                    skip = true; // TODO
+                                }
+                                else if (sensor_type.equals("temperature"))
+                                {
+                                    reading.channel = sensor;
+                                    reading.type = SensorType.ES2;
+                                    reading.data = new double[]{0.0, Double.parseDouble(chunks[5])};
+                                }
+                                else
+                                {
+                                    Log.w(TAG, String.format("Unknown Bluebox $PGO00 sensor type: %s", sensor_type));
+                                    skip = true;
+                                }
+                            }
+                            else
+                            {
+                                Log.w(TAG, String.format("Unknown BlueBox message of type: %s", key));
+                                skip = true;
+                            }
                             mLogger.info(value);
-                            continue;
+                            if (skip) continue;
                         }
                         else { // unrecognized sensor type
                             Log.w(TAG, "Received data from sensor of unknown type: " + type);
