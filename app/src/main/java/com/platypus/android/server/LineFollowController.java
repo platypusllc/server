@@ -130,15 +130,23 @@ class LineFollowController implements VehicleController {
             // PID
             rudder_pids = server_impl.getGains(5);
             heading_error_deriv = (heading_error - heading_error_old)/dt;
-
+            Log.v("gyro", String.format("heading error rate = %.2f  rev./sec", heading_error_deriv/2/Math.PI));
+            double[] gyro = server_impl.getGyro(); // gyro[2] is yaw rate
             if (rudder_pids[1] > 0.0)
             {
                 heading_error_accum += dt*heading_error;
             }
             heading_error_old = heading_error;
+
+            // we only want derivative action when error is low
+            double error_envelope = 1.0 - Math.min(1.0, Math.abs(heading_error/(Math.PI/2.)));
+            // error_envelope is small when heading error approaches 90 degrees or more, i.e. derivative term is small
+            // error_envelope approaches 1 when heading error approaches 0, so drastic derivative terms can take arresting action
+
             heading_signal = rudder_pids[0]*heading_error
+                    + -1*rudder_pids[2]*gyro[2]*error_envelope;
                     // + rudder_pids[1]*heading_error_accum
-                    + rudder_pids[2]*heading_error_deriv;
+                    //+ rudder_pids[2]*heading_error_deriv;
 
             if (Math.abs(heading_signal) > 1.0)
             {

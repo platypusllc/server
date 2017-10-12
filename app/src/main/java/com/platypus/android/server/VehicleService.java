@@ -183,7 +183,13 @@ public class VehicleService extends Service {
                     * event.values[2];
 
             if (_vehicleServerImpl != null)
+            {
+                Log.v("gyro", String.format("gyro:  %.2f,  %.2f,  %.2f  rev./sec",
+                        gyroValues[0] / 2. / Math.PI,
+                        gyroValues[1] / 2. / Math.PI,
+                        gyroValues[2] / 2. / Math.PI));
                 _vehicleServerImpl.setPhoneGyro(gyroValues);
+            }
         }
 
         @Override

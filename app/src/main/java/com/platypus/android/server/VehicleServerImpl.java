@@ -84,6 +84,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     /**
      * Raw gyroscopic readings from the phone gyro.
      */
+    final Object gyro_lock = new Object();
     final double[] _gyroPhone = new double[3];
     private final Timer _updateTimer = new Timer();
     private final Timer _navigationTimer = new Timer();
@@ -827,12 +828,20 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * Returns the current gyro readings
      */
     public double[] getGyro() {
-        return _gyroPhone.clone();
+        synchronized (gyro_lock)
+        {
+            return _gyroPhone.clone();
+        }
     }
 
     public void setPhoneGyro(float[] gyroValues) {
-        for (int i = 0; i < gyroValues.length; i++)
-            _gyroPhone[i] = (double) gyroValues[i];
+        synchronized (gyro_lock)
+        {
+            for (int i = 0; i < gyroValues.length; i++)
+            {
+                _gyroPhone[i] = (double) gyroValues[i];
+            }
+        }
     }
 
     /**
@@ -997,17 +1006,23 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                             else if (key.equals("$PGO00"))
                             {
                                 String sensor_type = chunks[4];
+                                double sensor_value = Double.parseDouble(chunks[5]);
                                 if (sensor_type.equals("conductivity"))
                                 {
                                     reading.channel = sensor;
                                     reading.type = SensorType.ES2;
-                                    reading.data = new double[]{Double.parseDouble(chunks[5]), 0.0};
+                                    reading.data = new double[]{sensor_value, 0.0};
                                 }
                                 else if (sensor_type.equals("Oxygen"))
                                 {
+                                    if (sensor_value < 0)
+                                    {
+                                        Log.w(TAG, "BlueBox DO sensor returned negative value.");
+                                        continue;
+                                    }
                                     reading.channel = sensor;
                                     reading.type = SensorType.ATLAS_DO;
-                                    reading.data = new double[]{Double.parseDouble(chunks[5])};
+                                    reading.data = new double[]{sensor_value};
                                 }
                                 else if (sensor_type.equals("Turbidity"))
                                 {
