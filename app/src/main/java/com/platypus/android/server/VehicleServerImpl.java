@@ -3,9 +3,11 @@ package com.platypus.android.server;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.hardware.Sensor;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -19,6 +21,7 @@ import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
 
 import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.Time;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.json.JSONArray;
@@ -29,6 +32,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledFuture;
@@ -52,8 +56,8 @@ import com.platypus.crw.data.Quaternion;
 public class VehicleServerImpl extends AbstractVehicleServer
 {
 
-		public static final int UPDATE_INTERVAL_MS = 100;
-		public static final int NUM_SENSORS = 5;
+		private static final int UPDATE_INTERVAL_MS = 100;
+		//public static final int NUM_SENSORS = 5;
 
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		// ASDF
@@ -138,10 +142,10 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void newAutonomousPredicateMessage(String apm)
 		{
-				// TODO
+				// TODO: ASDF
 		}
 
-		void exampleAction()
+		private void exampleAction()
 		{
 				Log.i("AP", "PERFORMING EXAMPLE ACTION");
 		}
@@ -295,18 +299,17 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		/**
 		 * Defines the PID gains that will be returned if there is an error.
 		 */
-		public static final double[] NAN_GAINS =
+		private static final double[] NAN_GAINS =
 						new double[]{Double.NaN, Double.NaN, Double.NaN};
-		public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
-		public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
-		public static final double SAFE_VECTORED_THRUST = 1.0;
-		public static final long VELOCITY_TIMEOUT_MS = 10000;
+		private static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
+		private static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
+		private static final double SAFE_VECTORED_THRUST = 1.0;
+		private static final long VELOCITY_TIMEOUT_MS = 10000;
 		private static final String TAG = "VehicleServerImpl"; //VehicleServerImpl.class.getName();
-		protected final SharedPreferences mPrefs;
-		protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
-		protected final Object _captureLock = new Object();
-		protected final Object _navigationLock = new Object();
-		protected final Object _waypointLock = new Object();
+		private final SharedPreferences mPrefs;
+		private final Object _captureLock = new Object();
+		private final Object _navigationLock = new Object();
+		private final Object _waypointLock = new Object();
 		// Internal references.
 		final Context _context;
 		final VehicleLogger mLogger;
@@ -317,28 +320,29 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		/**
 		 * Raw gyroscopic readings from the phone gyro.
 		 */
-		final double[] _gyroPhone = new double[3];
+		private final double[] _gyroPhone = new double[3];
 		private final Timer _updateTimer = new Timer();
 		private final Timer _navigationTimer = new Timer();
 		private final Timer _captureTimer = new Timer();
 		private final Timer _crumbSendTimer = new Timer();
-		double[][] _waypoints = new double[0][0];
-		Long[] _waypointsKeepTimes = new Long[0];
+		private final Timer _sensorSendTimer = new Timer();
+		private double[][] _waypoints = new double[0][0];
+		private Long[] _waypointsKeepTimes = new Long[0];
 
-		AtomicInteger current_waypoint_index = new AtomicInteger(-1);
+		private AtomicInteger current_waypoint_index = new AtomicInteger(-1);
 
-		public int getCurrentWaypointIndex()
+		int getCurrentWaypointIndex()
 		{
 				return current_waypoint_index.get();
 		}
 
-		public void incrementWaypointIndex()
+		void incrementWaypointIndex()
 		{
 				current_waypoint_index.incrementAndGet();
 				Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index.get()));
 		}
 
-		public double[] getCurrentWaypoint()
+		double[] getCurrentWaypoint()
 		{
 				synchronized (_waypointLock)
 				{
@@ -353,7 +357,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 		}
 
-		public double[] getSpecificWaypoint(int i)
+		double[] getSpecificWaypoint(int i)
 		{
 				synchronized (_waypointLock)
 				{
@@ -368,7 +372,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 		}
 
-		public Long getCurrentWaypointKeepTime()
+		Long getCurrentWaypointKeepTime()
 		{
 				synchronized (_waypointLock)
 				{
@@ -398,11 +402,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 		}
 
-
-
-		protected TimerTask _captureTask = null;
-		protected TimerTask _navigationTask = null;
-		ScheduledFuture mVelocityFuture = null;
+		private TimerTask _captureTask = null;
+		private TimerTask _navigationTask = null;
+		private ScheduledFuture mVelocityFuture = null;
 
 		/**
 		 * Filter used internally to update the current pose estimate
@@ -413,23 +415,23 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		 * Inertial velocity vector, containing a 6D angular velocity estimate: [rx,
 		 * ry, rz, rPhi, rPsi, rOmega]
 		 */
-		Twist _velocities = new Twist(DEFAULT_TWIST);
+		private Twist _velocities = new Twist(DEFAULT_TWIST);
 		/**
 		 * Hard-coded PID gains and thrust limits per vehicle type.
 		 * These values are loaded from the application SharedPreferences in the class constructor.
 		 */
-		double[] r_PID = new double[3];
-		double[] t_PID = new double[3];
+		private double[] r_PID = new double[3];
+		private double[] t_PID = new double[3];
 
 		// TODO: Remove this variable, it is totally arbitrary
 		private double winch_depth_ = Double.NaN;
 
 		//Define Notification Manager
-		NotificationManager notificationManager;
+		private NotificationManager notificationManager;
 		//Define sound URI
-		Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+		private Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
-		public static UTM UtmPose_to_UTM(UtmPose utmPose)
+		private static UTM UtmPose_to_UTM(UtmPose utmPose)
 		{
 				return UTM.valueOf(
 								utmPose.origin.zone,
@@ -445,7 +447,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				return UTM.utmToLatLong(UtmPose_to_UTM(utmPose), ReferenceEllipsoid.WGS84);
 		}
 
-		public UtmPose UTM_to_UtmPose(UTM utm)
+		private UtmPose UTM_to_UtmPose(UTM utm)
 		{
 				if (utm == null) return null;
 				Pose3D pose = new Pose3D(utm.eastingValue(SI.METER),
@@ -514,7 +516,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 		};
 
-		double[] scaleDown(double[] raw_signals)
+		private double[] scaleDown(double[] raw_signals)
 		{
         /*ASDF*/
 				double[] scaled_signals = raw_signals.clone();
@@ -546,7 +548,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				@Override
 				public void run()
 				{
-						Log.i(TAG, "Sending a random crumb");
+						Log.v(TAG, "Sending a random crumb");
 						Crumb crumb = Crumb.getRandomCrumb();
 						if (crumb == null) return;
 						UTM utm = crumb.getLocation();
@@ -555,6 +557,30 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						Log.i(TAG, String.format("Sent crumb # %d", crumb.getIndex()));
 				}
 		};
+
+		private TimerTask _sensorSendTask = new TimerTask()
+		{
+				@Override
+				public void run()
+				{
+						TimestampedSensorData tsd = TimestampedSensorData.getRandomDatum();
+						if (tsd == null) return;
+						Log.i(TAG, String.format("Sending unacknowledged SensorData, # %d", tsd.getId()));
+						SensorData sd = TimestampedSensorData.allSensorData.get(tsd.getId()).getSensorData();
+						sendSensor(sd, tsd.getId());
+				}
+		};
+
+		@Override
+		public void acknowledgeCrumb(long id)
+		{
+				// TODO: update Crumb to be more like TimestampedSensorData so only unack'd objects are sent
+		}
+		@Override
+		public void acknowledgeSensorData(long id)
+		{
+				TimestampedSensorData.acknowledged(id);
+		}
 
 		/**
 		 * Internal update function called at regular intervals to process command
@@ -571,7 +597,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						{
 								Crumb.checkForNewCrumb(pose); // see if a new crumb should be added
 						}
-
 
 						try
 						{
@@ -623,6 +648,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 												if (mController.isConnected())
 														mController.send(command);
 												mLogger.info(new JSONObject().put("cmd", command));
+												//Log.v(TAG, command.toString());
 										}
 										catch (JSONException e)
 										{
@@ -770,7 +796,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		 * @param context the application context to use
 		 */
 
-		protected VehicleServerImpl(Context context, VehicleLogger logger, Controller controller)
+		VehicleServerImpl(Context context, VehicleLogger logger, Controller controller)
 		{
 				_context = context;
 				mLogger = logger;
@@ -781,8 +807,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 				notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
 				_sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
-				//_failsafe_timer.scheduleAtFixedRate(failsafe_check, 0, 10000);
 				vehicle_state = new VehicleState(this);
+				setState(VehicleState.States.IS_RUNNING.name, true);
 				autonomous_predicates = new AutonomousPredicates(this);
 				autonomous_predicates.loadDefaults();
 
@@ -797,20 +823,21 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				t_PID[1] = mPrefs.getFloat("gain_tI", 0.0f);
 				t_PID[2] = mPrefs.getFloat("gain_tD", 0.0f);
 
-				// Start a regular update function
+				// Start any regular update runnables
 				_updateTimer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
-
 				_crumbSendTimer.scheduleAtFixedRate(_crumbSendTask, 0, 1000);
+				_sensorSendTimer.scheduleAtFixedRate(_sensorSendTask, 0, 500);
 
 				// Create a thread to read data from the controller board.
-				Thread receiveThread = new Thread(new Runnable()
+				final Thread receiveThread = new Thread(new Runnable()
 				{
 						@Override
 						public void run()
 						{
 								// Start a loop to receive data from accessory.
 								//while (_isRunning.get())
-								while (getState(VehicleState.States.IS_RUNNING.name))
+								boolean isRunning = getState(VehicleState.States.IS_RUNNING.name);
+								while (isRunning)
 								{
 										try
 										{
@@ -822,7 +849,11 @@ public class VehicleServerImpl extends AbstractVehicleServer
 										}
 										catch (IOException | Controller.ControllerException e)
 										{
-												Log.w(TAG, e);
+												Log.w(TAG, e.getMessage());
+										}
+										catch (Exception e)
+										{
+												Log.e(TAG, String.format("eboard serial receiving thread error: %s", e.getMessage()));
 										}
 										finally
 										{
@@ -843,7 +874,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		 * @param max   maximum allowable value
 		 * @return value after it has been clipped between min and max.
 		 */
-		public static double clip(double input, double min, double max)
+		private static double clip(double input, double min, double max)
 		{
 				return Math.min(Math.max(input, min), max);
 		}
@@ -860,7 +891,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		 * @param output_max upper bound of desired mapping.
 		 * @return the input value mapped into the output range.
 		 */
-		public static double map(double input,
+		private static double map(double input,
 		                         double input_min, double input_max,
 		                         double output_min, double output_max)
 		{
@@ -1037,6 +1068,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		protected void onCommand(JSONObject cmd)
 		{
 
+				// Log.v(TAG, String.format("onCommand: %s", cmd.toString()));
 				@SuppressWarnings("unchecked")
 				Iterator<String> keyIterator = cmd.keys();
 
@@ -1063,6 +1095,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 										if (value.has("type"))
 										{
 												String type = value.getString("type");
+												Log.v(TAG, "Received sensor type " + type);
 
 												// check if received type matches expected type
 												if (!type.equalsIgnoreCase("battery"))
@@ -1070,9 +1103,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														if (type.equalsIgnoreCase(expected_type))
 														{
 																received_expected_sensor_type[sensor - 1] = true;
+                                //String message = "s" + sensor + ": expected = " + expected_type + " received = " + type;
+                                //Log.v(TAG, message);
                                 /*
-                                String message = "s" + sensor + ": expected = " + expected_type + " received = " + type;
-                                Log.w(TAG, message);
                                 NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
                                         .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
                                         .setContentTitle("Sensor Success")
@@ -1094,7 +1127,10 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														}
 												}
 
-												SensorData reading = new SensorData();
+												// sensors can return more than one value at a time, so use a list
+												List<SensorData> readings = new ArrayList<>();
+												UtmPose current_utmpose = (UtmPose)getState(VehicleState.States.CURRENT_POSE.name);
+												double[] current_latlng = current_utmpose.getLatLong();
 
 												if (type.equalsIgnoreCase("es2"))
 												{
@@ -1107,9 +1143,21 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 																// Todo: update stored temp and ec values then push to DO/pH probes
 																// Fill in readings from parsed sensor data.
-																reading.channel = sensor;
-																reading.type = SensorType.ES2;
-																reading.data = new double[]{ecData, tempData};
+																SensorData ec_sd = new SensorData();
+																ec_sd.channel = sensor;
+																ec_sd.type = DataType.EC_DECAGON;
+																ec_sd.value = ecData;
+																ec_sd.latlng = current_latlng;
+																readings.add(ec_sd);
+
+																SensorData t_sd = new SensorData();
+																t_sd.channel = sensor;
+																t_sd.type = DataType.T_DECAGON;
+																t_sd.value = tempData;
+																t_sd.latlng = current_latlng;
+																readings.add(t_sd);
+
+																// set the internal state
 																setState(VehicleState.States.EC.name, ecData);
 																setState(VehicleState.States.T.name, tempData);
 														}
@@ -1122,18 +1170,28 @@ public class VehicleServerImpl extends AbstractVehicleServer
 												else if (type.equalsIgnoreCase("atlas_do"))
 												{
 														// Fill in readings from parsed sensor data.
-														reading.channel = sensor;
-														reading.type = SensorType.ATLAS_DO;
-														reading.data = new double[]{value.getDouble("data")};
-														setState(VehicleState.States.DO.name, reading.data[0]);
+														double do_data = value.getDouble("data");
+														SensorData sd = new SensorData();
+														sd.channel = sensor;
+														sd.type = DataType.DO_ATLAS;
+														sd.value = do_data;
+														sd.latlng = current_latlng;
+														readings.add(sd);
+														// set the internal state
+														setState(VehicleState.States.DO.name, do_data);
 												}
 												else if (type.equalsIgnoreCase("atlas_ph"))
 												{
 														// Fill in readings from parsed sensor data.
-														reading.channel = sensor;
-														reading.type = SensorType.ATLAS_PH;
-														reading.data = new double[]{value.getDouble("data")};
-														setState(VehicleState.States.PH.name, reading.data[0]);
+														double ph_data = value.getDouble("data");
+														SensorData sd = new SensorData();
+														sd.channel = sensor;
+														sd.type = DataType.PH_ATLAS;
+														sd.value = ph_data;
+														sd.latlng = current_latlng;
+														readings.add(sd);
+														// set the internal state
+														setState(VehicleState.States.PH.name, ph_data);
 												}
 												else if (type.equalsIgnoreCase("hds"))
 												{
@@ -1145,10 +1203,14 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		double depth = Double.parseDouble(nmea.split(",")[3]);
 
 																		// Fill in readings from parsed sensor data.
-																		reading.type = SensorType.HDS_DEPTH;
-																		reading.channel = sensor;
-																		reading.data = new double[]{depth};
-																		setState(VehicleState.States.WATER_DEPTH.name, reading.data[0]);
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.DEPTH_LOWRANCE;
+																		sd.value = depth;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+
+																		setState(VehicleState.States.WATER_DEPTH.name, depth);
 																}
 																catch (Exception e)
 																{
@@ -1161,10 +1223,12 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																try
 																{
 																		double temp = Double.parseDouble((nmea.split(",")[1]));
-
-																		reading.type = SensorType.HDS_TEMP;
-																		reading.channel = sensor;
-																		reading.data = new double[]{temp};
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.T_LOWRANCE;
+																		sd.value = temp;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
 																}
 																catch (Exception e)
 																{
@@ -1193,9 +1257,12 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																double motor1Velocity = Double.parseDouble(data[2]);
 
 																// Fill in readings from parsed sensor data.
-																reading.channel = sensor;
-																reading.type = SensorType.BATTERY;
-																reading.data = new double[]{voltage, motor0Velocity, motor1Velocity};
+																SensorData sd = new SensorData();
+																sd.channel = sensor;
+																sd.type = DataType.BATTERY;
+																sd.value = voltage;
+																sd.latlng = current_latlng;
+																readings.add(sd);
 
 																setState(VehicleState.States.BATTERY_VOLTAGE.name, voltage);
 														}
@@ -1206,6 +1273,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 												}
 												else if (type.equalsIgnoreCase("winch"))
 												{
+														/*
 														// Fill in readings from parsed sensor data.
 														reading.channel = sensor;
 														reading.type = SensorType.UNKNOWN;
@@ -1213,13 +1281,89 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 														// TODO: Remove this hack to store winch depth
 														winch_depth_ = reading.data[0];
-
+														*/
+														continue;
 												}
 												else if (type.equalsIgnoreCase("bluebox"))
 												{
 														// need to log sensor types that don't appear in the core library enum
-														mLogger.info(value);
-														continue;
+														boolean skip = false; // TODO: add new sensor types to Platypus core lib
+														String nmea = value.getString("data");
+														String[] chunks = nmea.split(",");
+														String key = chunks[0];
+														if (key.equals("$GPGGA"))
+														{
+																// TODO: $GPGGA (gps)
+																skip = true;
+														}
+														else if (key.equals("$PGO00"))
+														{
+																String sensor_type = chunks[4];
+																double sensor_value = Double.parseDouble(chunks[5]);
+																if (sensor_type.equals("conductivity"))
+																{
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.EC_GOSYS;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
+																else if (sensor_type.equals("Oxygen"))
+																{
+																		if (sensor_value < 0)
+																		{
+																				Log.w(TAG, "BlueBox DO sensor returned negative value.");
+																				continue;
+																		}
+
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.DO_GOSYS;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
+																else if (sensor_type.equals("Turbidity"))
+																{
+																		skip = true; // TODO
+																}
+																else if (sensor_type.equals("Redox"))
+																{
+																		skip = true; // TODO
+																}
+																else if (sensor_type.equals("temperature"))
+																{
+																		if (sensor_value < 0)
+																		{
+																				Log.w(TAG, "BlueBox T sensor returned negative value.");
+																				continue;
+																		}
+
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.T_GOSYS;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
+																else
+																{
+																		Log.w(TAG, String.format("Unknown Bluebox $PGO00 sensor type: %s", sensor_type));
+																		skip = true;
+																}
+														}
+														else
+														{
+																Log.w(TAG, String.format("Unknown BlueBox message of type: %s", key));
+																skip = true;
+														}
+														if (skip)
+														{
+																// log the raw message that doesn't fit a typical SensorData object
+																mLogger.info(value);
+																continue;
+														}
 												}
 												else
 												{ // unrecognized sensor type
@@ -1227,14 +1371,19 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														continue;
 												}
 
-												mLogger.info(new JSONObject()
-																.put("sensor", new JSONObject()
-																				.put("channel", reading.channel)
-																				.put("type", reading.type.toString())
-																				.put("data", new JSONArray(reading.data))));
+												for (SensorData sd : readings)
+												{
+														mLogger.info(new JSONObject()
+																		.put("sensor", new JSONObject()
+																						.put("channel", sd.channel)
+																						.put("type", sd.type.name())
+																						.put("data", sd.value)));
 
-												// Send out the collected sensor reading
-												sendSensor(sensor, reading);
+														// Send out the collected sensor reading
+														// sendSensor(sd); // send data in the timer task instead of here
+														if (sd.type == DataType.BATTERY) continue; // don't store battery data
+														new TimestampedSensorData(sd);
+												}
 										}
 								}
 								else if (name.startsWith("g"))
@@ -1431,6 +1580,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 		}
 
+		/*
 		@Override
 		public SensorType getSensorType(int channel)
 		{
@@ -1448,6 +1598,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		{
 				return NUM_SENSORS;
 		}
+		*/
 
 		@Override
 		public UtmPose getPose()
@@ -1573,7 +1724,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								else
 								{
 										// TODO: measure dt directly instead of approximating
-										Log.v(TAG, "controller update()");
+										//Log.v(TAG, "controller update()");
 										vc.update(VehicleServerImpl.this, dt);
 										sendWaypointUpdate(WaypointState.GOING);
 								}

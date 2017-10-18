@@ -242,7 +242,7 @@ public class VehicleState
 						{
 								if (value_array[index] == null)
 								{
-										Log.w("AP", "The requested UtmPose is null");
+										Log.w(logTag, "The requested UtmPose is null");
 										return null;
 								}
 								//Log.e("whatever", String.format("Getting UtmPose %s", value_array[index].toString()));
@@ -257,7 +257,7 @@ public class VehicleState
 						{
 								if (in == null)
 								{
-										Log.w("AP", "The supplied UtmPose is null.");
+										Log.w(logTag, "The supplied UtmPose is null.");
 										return;
 								}
 								//Log.e("whatever", String.format("Setting UtmPose to %s", in.toString()));
