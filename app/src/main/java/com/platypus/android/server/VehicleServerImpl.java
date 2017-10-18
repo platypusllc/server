@@ -574,7 +574,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		@Override
 		public void acknowledgeCrumb(long id)
 		{
-				// TODO: update Crumb to be more like TimestampedSensorData so only unack'd objects are sent
+				Crumb.acknowledge(id);
 		}
 		@Override
 		public void acknowledgeSensorData(long id)

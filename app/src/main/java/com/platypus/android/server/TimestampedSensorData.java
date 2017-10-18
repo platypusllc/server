@@ -17,7 +17,7 @@ class TimestampedSensorData
 		private static long count = 0;
 		private static final long count_cutoff = 1000; // start purging stored values once you hit this
 		static HashMap<Long, TimestampedSensorData> allSensorData = new HashMap<>();
-		static HashMap<Long, TimestampedSensorData> unsentSensorData = new HashMap<>();
+		private static HashMap<Long, TimestampedSensorData> unsentSensorData = new HashMap<>();
 
 		static TimestampedSensorData getRandomDatum()
 		{
@@ -63,11 +63,10 @@ class TimestampedSensorData
 
 		static void acknowledged(long id)
 		{
-				// TODO: need new core lib function that lets the tablet tell the phone it received this data point
 				synchronized (lock)
 				{
 						allSensorData.get(id).listener_acknowledged = true;
-						unsentSensorData.remove(id);
+						if (unsentSensorData.containsKey(id)) unsentSensorData.remove(id);
 				}
 		}
 
