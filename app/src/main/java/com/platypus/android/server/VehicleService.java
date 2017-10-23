@@ -27,7 +27,6 @@ import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -65,7 +64,7 @@ public class VehicleService extends Service {
     public static final String STOP_ACTION = "com.platypus.android.server.SERVICE_STOP";
     private static final int SERVICE_ID = 11312;
     private static final String TAG = VehicleService.class.getSimpleName();
-    final int GPS_UPDATE_RATE = 200; // in milliseconds
+    final int GPS_UPDATE_RATE = 100; // in milliseconds
 
     // Variable storing the current started/stopped status of the service.
     protected AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -126,6 +125,9 @@ public class VehicleService extends Service {
     private WifiLock _wifiLock = null;
     // global variable to reference rotation vector values
     private float[] rotationMatrix = new float[9];
+
+    SharedPreferences sp;
+
     private final SensorEventListener rotationVectorListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
@@ -135,10 +137,16 @@ public class VehicleService extends Service {
                         event.values);
                 double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
 
-                if (_vehicleServerImpl != null) {
-                    _vehicleServerImpl.filter.compassUpdate(yaw,
-                            System.currentTimeMillis());
-//					logger.info("COMPASS: " + yaw);
+                // include 90 degrees offset if a bluebox housing is installed on the boat
+		            if (sp != null)
+		            {
+				            boolean bluebox_installed = sp.getBoolean("pref_bluebox_installed", false);
+				            if (bluebox_installed) yaw -= Math.PI / 2.0;
+		            }
+
+                if (_vehicleServerImpl != null)
+                {
+                    _vehicleServerImpl.filter.compassUpdate(yaw, System.currentTimeMillis());
                 }
             }
         }
@@ -162,6 +170,7 @@ public class VehicleService extends Service {
 			 * M[ 5] | | values[1] | = gyroValues[1] // \ M[ 6] M[ 7] M[ 8] / \
 			 * values[2] / = gyroValues[2] //
 			 */
+
             float[] gyroValues = new float[3];
             gyroValues[0] = rotationMatrix[0] * event.values[0]
                     + rotationMatrix[1] * event.values[1] + rotationMatrix[2]
@@ -174,7 +183,13 @@ public class VehicleService extends Service {
                     * event.values[2];
 
             if (_vehicleServerImpl != null)
+            {
+                Log.v("gyro", String.format("gyro:  %.2f,  %.2f,  %.2f  rev./sec",
+                        gyroValues[0] / 2. / Math.PI,
+                        gyroValues[1] / 2. / Math.PI,
+                        gyroValues[2] / 2. / Math.PI));
                 _vehicleServerImpl.setPhoneGyro(gyroValues);
+            }
         }
 
         @Override
@@ -197,10 +212,14 @@ public class VehicleService extends Service {
         public void onLocationChanged(Location location) {
 
             // Convert from lat/long to UTM coordinates
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+            Log.d("onLocationChanged", String.format("latlng = %f, %f", lat, lng));
             UTM utmLoc = UTM.latLongToUtm(
-                    LatLong.valueOf(location.getLatitude(),
-                            location.getLongitude(), NonSI.DEGREE_ANGLE),
+                    LatLong.valueOf(lat, lng, NonSI.DEGREE_ANGLE),
                     ReferenceEllipsoid.WGS84);
+            Log.d("onLocationChanged", String.format("utm = %s  %d%c",
+                    utmLoc.toString(), utmLoc.longitudeZone(), utmLoc.latitudeZone()));
 
             // Convert to UTM data structure
             Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
@@ -211,8 +230,10 @@ public class VehicleService extends Service {
                     (90.0 - location.getBearing()) * Math.PI
                             / 180.0)
                     : Quaternion.fromEulerAngles(0, 0, 0)));
-            Utm origin = new Utm(utmLoc.longitudeZone(),
-                    utmLoc.latitudeZone() > 'O');
+
+            boolean isNorth = utmLoc.latitudeZone() > 'M';
+            Log.d("onLocationChanged", "isNorth = " + (isNorth ? "True" : "False"));
+            Utm origin = new Utm(utmLoc.longitudeZone(), isNorth);
             UtmPose utm = new UtmPose(pose, origin);
 
             // Apply update using filter object
@@ -363,6 +384,7 @@ public class VehicleService extends Service {
         }
         // Create the internal vehicle server implementation.
         _vehicleServerImpl = new VehicleServerImpl(this, mLogger, mController);
+		    sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         // Start up UDP vehicle service in the background
         startOrUpdateUdpServer();

@@ -3,11 +3,9 @@ package com.platypus.android.server;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.hardware.Sensor;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.preference.PreferenceManager;
-import android.provider.ContactsContract;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -21,7 +19,6 @@ import com.platypus.crw.data.Utm;
 import com.platypus.crw.data.UtmPose;
 
 import org.jscience.geography.coordinates.LatLong;
-import org.jscience.geography.coordinates.Time;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.json.JSONArray;
@@ -53,11 +50,11 @@ import com.platypus.crw.data.Quaternion;
  * @author pkv
  * @author kss
  */
+
 public class VehicleServerImpl extends AbstractVehicleServer
 {
 
 		private static final int UPDATE_INTERVAL_MS = 100;
-		//public static final int NUM_SENSORS = 5;
 
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		// ASDF
@@ -311,11 +308,11 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		private final Object _navigationLock = new Object();
 		private final Object _waypointLock = new Object();
 		// Internal references.
-		final Context _context;
-		final VehicleLogger mLogger;
-		final Controller mController;
+		private final Context _context;
+		private final VehicleLogger mLogger;
+		private final Controller mController;
 		// Velocity shutdown timer.
-		final ScheduledThreadPoolExecutor mVelocityExecutor = new ScheduledThreadPoolExecutor(1);
+		private final ScheduledThreadPoolExecutor mVelocityExecutor = new ScheduledThreadPoolExecutor(1);
 
 		/**
 		 * Raw gyroscopic readings from the phone gyro.
@@ -400,6 +397,13 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								return null;
 						}
 				}
+		}
+
+		public String getVehicleType()
+		{
+				String vehicleType = mPrefs.getString("pref_vehicle_type",
+								_context.getResources().getString(R.string.pref_vehicle_type_default));
+				return vehicleType;
 		}
 
 		private TimerTask _captureTask = null;
@@ -759,7 +763,6 @@ public class VehicleServerImpl extends AbstractVehicleServer
                                 -1.0, 1.0, // Original range.
                                 -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
                         */
-
 												velocity0.put("v", (float) constrainedV0);
 												velocity1.put("v", (float) constrainedV1);
 
@@ -825,8 +828,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 				// Start any regular update runnables
 				_updateTimer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
-				_crumbSendTimer.scheduleAtFixedRate(_crumbSendTask, 0, 1000);
-				_sensorSendTimer.scheduleAtFixedRate(_sensorSendTask, 0, 500);
+				//_crumbSendTimer.scheduleAtFixedRate(_crumbSendTask, 0, 1000); // TODO: don't to send crumbs for now
+				//_sensorSendTimer.scheduleAtFixedRate(_sensorSendTask, 0, 500); // TODO: use memoryless sensordata transmission for now
 
 				// Create a thread to read data from the controller board.
 				final Thread receiveThread = new Thread(new Runnable()
@@ -1105,6 +1108,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																received_expected_sensor_type[sensor - 1] = true;
                                 //String message = "s" + sensor + ": expected = " + expected_type + " received = " + type;
                                 //Log.v(TAG, message);
+
                                 /*
                                 NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
                                         .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
@@ -1380,9 +1384,11 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																						.put("data", sd.value)));
 
 														// Send out the collected sensor reading
-														// sendSensor(sd); // send data in the timer task instead of here
-														if (sd.type == DataType.BATTERY) continue; // don't store battery data
-														new TimestampedSensorData(sd);
+														sendSensor(sd, 0); // send data in the timer task instead of here
+
+														// TODO: use memoryless sensordata transmission for now
+														//if (sd.type == DataType.BATTERY) continue; // don't store battery data
+														//new TimestampedSensorData(sd);
 												}
 										}
 								}
