@@ -31,7 +31,7 @@ public class SimpleFilter implements VehicleFilter {
 	boolean _isInitializedCompass = false;
 	
 	// State represented by 6D pose
-	UtmPose _pose = new UtmPose(new Pose3D(476608.34, 4671214.40, 172.35, 0, 0, 0), new Utm(17, true));
+	UtmPose _pose = new UtmPose(); // new UtmPose(new Pose3D(476608.34, 4671214.40, 172.35, 0, 0, 0), new Utm(17, true));
 	Twist _vels = new Twist();
 	
 	// The current time in milliseconds, used to measure filter update intervals

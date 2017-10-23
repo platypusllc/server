@@ -1,0 +1,51 @@
+{
+	basic_example:
+	{
+		action: example,
+		trigger:"example_value : [8, 10]",
+		interval: 1000,
+		ends: n
+	},
+	example_negated:
+	{
+		action: example,
+		trigger:"^(example_value : [5, 10] & example_state)",
+		interval: 1000,
+		ends: n
+	},	
+	compound_example:
+	{
+		action: example,
+		trigger: "example_state | (example_value >= 5 & example_value < 12)",
+		interval: 2000,
+		ends: y
+	},
+	sampler_example:
+	{
+		action: start_sampler,
+		trigger: "GPS @ [45.403863, 10.999423] & EC > 0",
+		interval: 1000,
+		ends: y
+	},
+	conjunctive_normal_form:
+	{
+		action: example,
+		trigger: "(always_false | always_false | always_true) & (always_false | always_false | example_state)",
+		interval: 1000,
+		ends: y
+	},
+	forced_return_home:
+	{
+		action: return_home,
+		trigger: "battery_voltage : [0.1, 14.5] & ^(is_taking_sample)",
+		interval: 10000,
+		ends: y
+	},
+	inactivity_return_home:
+	{
+		action: return_home,
+		trigger: "^(is_autonomous) & time_since_operator > 60000 & ^(is_taking_sample)",
+		interval: 10000,
+		ends: n
+	}
+}

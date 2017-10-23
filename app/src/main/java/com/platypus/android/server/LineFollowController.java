@@ -6,27 +6,29 @@ import com.platypus.crw.VehicleController;
 import com.platypus.crw.VehicleServer;
 import com.platypus.crw.data.Twist;
 import com.platypus.crw.data.UtmPose;
-
 import com.platypus.crw.data.Pose3D;
 
 class LineFollowController implements VehicleController {
 
-    int last_wp_index = -2;
-    Pose3D source_pose;
-    Pose3D destination_pose;
-    Pose3D current_pose;
-    Pose3D original_pose;
-    boolean original_pose_set = false;
-    String logTag = "LineFollowController";
+    private int last_wp_index = -2;
+    private Pose3D source_pose;
+    private Pose3D destination_pose;
+    private Pose3D current_pose;
+    private Pose3D original_pose;
+    private boolean original_pose_set = false;
+    private long station_keep_time_ms = 0;
+    private long start_time = 0;
+    private long elapsed_time = 0;
+    private boolean station_keeping = false;
 
-    final double LOOKAHEAD_DISTANCE_BASE = 5.0;
-    double lookahead;
-    final double SUFFICIENT_PROXIMITY = 3.0;
-    double heading_error_old = 0.0;
-    double heading_error_accum = 0.0;
-    double[] rudder_pids;
-    double[] thrust_pids;
-    double base_thrust, thrust_coefficient;
+    private final double LOOKAHEAD_DISTANCE_BASE = 5.0;
+    private double lookahead;
+    private final double SUFFICIENT_PROXIMITY = 3.0;
+    private double heading_error_old = 0.0;
+    private double heading_error_accum = 0.0;
+    private double[] rudder_pids;
+    private double[] thrust_pids;
+    private double base_thrust, thrust_coefficient;
 
     private double x_dest, x_source, x_current, y_dest, y_source, y_current, th_full, th_current;
     private double x_projected, y_projected, x_lookahead, y_lookahead;
@@ -66,12 +68,17 @@ class LineFollowController implements VehicleController {
             heading_error_accum = 0.0; // reset any integral terms
             last_wp_index = current_wp_index;
 
-            UtmPose destination_UtmPose = server_impl.getCurrentWaypoint();
-            if (destination_UtmPose == null)
+            // TODO: set station_keep_time_ms to the requested station keep time
+            station_keep_time_ms = server_impl.getCurrentWaypointKeepTime();
+            Log.v("AP", String.format("new station keep time = %d ms", station_keep_time_ms));
+
+            double[] destination = server_impl.getCurrentWaypoint();
+            if (destination == null)
             {
                 server.setVelocity(twist);
                 return;
             }
+            UtmPose destination_UtmPose = new UtmPose(destination);
             destination_pose = destination_UtmPose.pose;
 
             if (current_wp_index == 0)
@@ -80,7 +87,8 @@ class LineFollowController implements VehicleController {
             }
             else
             {
-                UtmPose source_UtmPose = server_impl.getSpecificWaypoint(current_wp_index-1);
+                double[] source = server_impl.getSpecificWaypoint(current_wp_index-1);
+                UtmPose source_UtmPose = new UtmPose(source);
                 source_pose = source_UtmPose.pose;
             }
 
@@ -97,8 +105,25 @@ class LineFollowController implements VehicleController {
         double distanceSq = planarDistanceSq(current_pose, destination_pose);
         if (distanceSq < SUFFICIENT_PROXIMITY*SUFFICIENT_PROXIMITY)
         {
-            Log.d(logTag, String.format("distance^2 = %.0f, switch to next waypoint", distanceSq));
-            server_impl.incrementWaypointIndex();
+            // check if there is a station keep time associated with the current waypoint
+            // if there is, do NOT increment the index until that amount of time has expired
+            if (!station_keeping)
+            {
+                Log.i("AP", String.format("Starting station keeping for %d ms", station_keep_time_ms));
+                station_keeping = true;
+                start_time = System.currentTimeMillis();
+            }
+            else
+            {
+                elapsed_time = System.currentTimeMillis() - start_time;
+                Log.v("AP", String.format("Station keep time left = %d ms",  station_keep_time_ms - elapsed_time));
+                if (elapsed_time > station_keep_time_ms)
+                {
+                    Log.i("AP", "Finished station keeping");
+                    station_keeping = false;
+                    server_impl.incrementWaypointIndex();
+                }
+            }
         }
         else
         {
