@@ -91,6 +91,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     private final Timer _captureTimer = new Timer();
     protected UtmPose[] _waypoints = new UtmPose[0];
     int current_waypoint_index = -1;
+
     public int getCurrentWaypointIndex()
     {
         synchronized (_waypointLock)
@@ -1232,6 +1233,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public int getNumSensors() {
         return NUM_SENSORS;
+        //Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
+        //return current_waypoint_index;
     }
 
     @Override

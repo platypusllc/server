@@ -24,7 +24,6 @@ public enum AirboatController {
 		double[] buffer = new double[BUFFER_SIZE];
 		int bIndex = 0;
 		double bSum = 0.0;
-
 		public void reset()
 		{
 			bSum = 0.0;
@@ -47,6 +46,7 @@ public enum AirboatController {
 				server.setVelocity(twist);
 				return;
 			}
+
 			Pose3D waypoint = waypoint_UtmPose.pose;
 
 			double distanceSq = planarDistanceSq(pose, waypoint);
@@ -62,7 +62,6 @@ public enum AirboatController {
 				prev_angle_destination = 0;
 				
 				// If we are "at" the destination, de-queue current waypoint
-
 				server_impl.incrementWaypointIndex();
 			}
 			else
