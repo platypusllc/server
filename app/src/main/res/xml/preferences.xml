@@ -85,6 +85,11 @@
             android:key="pref_vehicle_type"
             android:title="@string/pref_vehicle_type_title"
             android:summary="@string/pref_vehicle_type_summary" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="pref_bluebox_installed"
+            android:title="Is a BlueBox installed?"
+            android:summary="Only check this box if you have an INTCATCH BlueBox housing installed on the boat"/>
         <ListPreference
             android:key="pref_sensor_1_type"
             android:title="Sensor 1 Type"

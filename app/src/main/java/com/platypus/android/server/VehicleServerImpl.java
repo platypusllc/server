@@ -26,14 +26,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -52,7 +55,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     public static final int UPDATE_INTERVAL_MS = 100;
     public static final int NUM_SENSORS = 5;
-    public static final VehicleController DEFAULT_CONTROLLER = AirboatController.STOP.controller;
+
     /**
      * Defines the PID gains that will be returned if there is an error.
      */
@@ -61,12 +64,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public static final double[] DEFAULT_TWIST = {0, 0, 0, 0, 0, 0};
     public static final double SAFE_DIFFERENTIAL_THRUST = 1.0;
     public static final double SAFE_VECTORED_THRUST = 1.0;
-    public static final long VELOCITY_TIMEOUT_MS = 2000;
-    private static final String TAG = VehicleServerImpl.class.getName();
+    public static final long VELOCITY_TIMEOUT_MS = 10000;
+    private static final String TAG = "VehicleServerImpl";
     protected final SharedPreferences mPrefs;
     protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
     protected final Object _captureLock = new Object();
     protected final Object _navigationLock = new Object();
+    protected final Object _waypointLock = new Object();
     // Status information
     final AtomicBoolean _isConnected = new AtomicBoolean(false);
     final AtomicBoolean _isAutonomous = new AtomicBoolean(false);
@@ -80,18 +84,65 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     /**
      * Raw gyroscopic readings from the phone gyro.
      */
+    final Object gyro_lock = new Object();
     final double[] _gyroPhone = new double[3];
     private final Timer _updateTimer = new Timer();
     private final Timer _navigationTimer = new Timer();
     private final Timer _captureTimer = new Timer();
     protected UtmPose[] _waypoints = new UtmPose[0];
     int current_waypoint_index = -1;
-    boolean start_waypoints_from_tablet = true;
+
+    public int getCurrentWaypointIndex()
+    {
+        synchronized (_waypointLock)
+        {
+            return current_waypoint_index;
+        }
+    }
     public void incrementWaypointIndex()
     {
-        current_waypoint_index++;
-        Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index));
+        synchronized (_waypointLock)
+        {
+            current_waypoint_index++;
+            Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index));
+        }
     }
+    public UtmPose getCurrentWaypoint()
+    {
+        synchronized (_waypointLock)
+        {
+            if (current_waypoint_index >= 0)
+            {
+                return _waypoints[current_waypoint_index];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+    public UtmPose getSpecificWaypoint(int i)
+    {
+        synchronized (_waypointLock)
+        {
+            if (i < _waypoints.length)
+            {
+                return _waypoints[i];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+
+    public String getVehicleType()
+    {
+        String vehicleType = mPrefs.getString("pref_vehicle_type",
+                _context.getResources().getString(R.string.pref_vehicle_type_default));
+        return vehicleType;
+    }
+
     protected TimerTask _captureTask = null;
     protected TimerTask _navigationTask = null;
     ScheduledFuture mVelocityFuture = null;
@@ -120,14 +171,99 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     // TODO: Remove this variable, it is totally arbitrary
     private double winch_depth_ = Double.NaN;
-    // Last known temperature and EC values for sensor compensation
-    private double _lastTemp = 20.0; // Deg C
-    private double _lastEC = 0.0; // uS/cm
 
     //Define Notification Manager
     NotificationManager notificationManager;
     //Define sound URI
     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+    private UTM home_UTM = UtmPose_to_UTM(_utmPose); // cannot be null or core lib will crash
+    private Object home_lock = new Object();
+    AtomicBoolean first_autonomy = new AtomicBoolean(true); // used to generate a home_UTM automatically once
+    public UTM UtmPose_to_UTM(UtmPose utmPose)
+    {
+        return UTM.valueOf (
+                utmPose.origin.zone,
+                utmPose.origin.isNorth ? 'T' : 'L',
+                utmPose.pose.getX(),
+                utmPose.pose.getY(),
+                SI.METER
+        );
+    }
+    public LatLong UtmPose_to_LatLng(UtmPose utmPose)
+    {
+        return UTM.utmToLatLong(UtmPose_to_UTM(utmPose), ReferenceEllipsoid.WGS84);
+    }
+    public UtmPose UTM_to_UtmPose(UTM utm)
+    {
+        if (utm == null) return null;
+        Pose3D pose = new Pose3D(utm.eastingValue(SI.METER),
+                utm.northingValue(SI.METER),
+                0.0,
+                Quaternion.fromEulerAngles(0, 0, 0));
+        Utm origin = new Utm(utm.longitudeZone(),
+                utm.latitudeZone() > 'O');
+        return new UtmPose(pose, origin);
+    }
+    public UtmPose LatLng_to_UtmPose(LatLong latlong)
+    {
+        // Convert from lat/long to UTM coordinates
+        UTM utm = UTM.latLongToUtm(latlong, ReferenceEllipsoid.WGS84);
+        return UTM_to_UtmPose(utm);
+    }
+    private final Object _failsafe_check_lock = new Object();
+    double battery_voltage = 16.0;
+    final private long HEARTBEAT_MAX_WAIT_MS = 60000;
+    final private double FAILSAFE_TRIGGER_VOLTAGE = 14.0;
+    private AtomicLong last_heartbeat = new AtomicLong(System.currentTimeMillis());
+    private AtomicBoolean is_executing_failsafe = new AtomicBoolean(false);
+    private final Timer _failsafe_timer = new Timer();
+    private TimerTask failsafe_check = new TimerTask() {
+        double local_battery_voltage = 0;
+        long ms_since_last_heartbeat;
+        @Override
+        public void run()
+        {
+            if (first_autonomy.get()) return; // don't even bother with these checks until the boat is autonomous once
+            ms_since_last_heartbeat = System.currentTimeMillis() - last_heartbeat.get();
+            synchronized (_failsafe_check_lock) { local_battery_voltage = battery_voltage; }
+            if (!is_executing_failsafe.get()) //
+            {
+                if (local_battery_voltage < FAILSAFE_TRIGGER_VOLTAGE)
+                {
+                    Log.e(TAG, "triggering failsafe, battery is low");
+                    is_executing_failsafe.set(true);
+                }
+                else if ((ms_since_last_heartbeat > HEARTBEAT_MAX_WAIT_MS) && !_isAutonomous.get())
+                {
+                    Log.e(TAG, "triggering failsafe, no operator heartbeat");
+                    is_executing_failsafe.set(true);
+                }
+
+                if (is_executing_failsafe.get())
+                {
+                    Log.e(TAG, "triggering failsafe...");
+                    startGoHome();
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // already executing the failsafe
+                // if operator heartbeat reappears and battery voltage is enough, stop returning home
+                /*
+                if (ms_since_last_heartbeat < HEARTBEAT_MAX_WAIT_MS &&
+                        local_battery_voltage > FAILSAFE_TRIGGER_VOLTAGE)
+                {
+                    stopWaypoints();
+                }
+                */
+            }
+        }
+    };
 
     boolean[] received_expected_sensor_type = {false, false, false};
     public void reset_expected_sensors()
@@ -154,9 +290,11 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     String sensor_array_name = "pref_sensor_" + Integer.toString(i+1) + "_type";
                     String expected_type = mPrefs.getString(sensor_array_name, "NONE");
                     if (expected_type.equals("NONE")
-                            || expected_type.equals("RC_SBUS"))
+                            || expected_type.equals("RC_SBUS")
+                            || expected_type.equals("HDS")
+                            || expected_type.equals("SAMPLER"))
                     {
-                        continue;
+                        continue; // these types do not expect JSON
                     }
                     String message = "s" + (i+1) + " expects " + expected_type + " not received yet";
                     Log.w(TAG, message);
@@ -170,6 +308,33 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             }
         }
     };
+
+    double[] scaleDown(double[] raw_signals)
+    {
+        /*ASDF*/
+        double[] scaled_signals = raw_signals.clone();
+        boolean needs_scaling = false;
+        double max_signal = 0.0;
+        for (double signal : raw_signals)
+        {
+            if (Math.abs(signal) > 1.0)
+            {
+                needs_scaling = true;
+            }
+            if (Math.abs(signal) > max_signal)
+            {
+                max_signal = Math.abs(signal);
+            }
+        }
+        if (needs_scaling)
+        {
+            for (int i = 0; i < raw_signals.length; i++)
+            {
+                scaled_signals[i] = raw_signals[i]/max_signal;
+            }
+        }
+        return scaled_signals;
+    }
 
     /**
      * Internal update function called at regular intervals to process command
@@ -198,12 +363,14 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     _context.getResources().getString(R.string.pref_vehicle_type_default));
             switch (vehicleType) {
                 case "DIFFERENTIAL":
+                {
                     // Construct objects to hold velocities
                     JSONObject velocity0 = new JSONObject();
                     JSONObject velocity1 = new JSONObject();
 
                     // Send velocities as a JSON command
-                    try {
+                    try
+                    {
                         double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -1.0, 1.0);
                         double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -1.0, 1.0);
 
@@ -225,20 +392,27 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         if (mController.isConnected())
                             mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
-                    } catch (JSONException e) {
+                    }
+                    catch (JSONException e)
+                    {
                         Log.w(TAG, "Failed to serialize command.", e);
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e)
+                    {
                         Log.w(TAG, "Failed to send command.", e);
                     }
-                    break;
+                }
+                break;
 
                 case "VECTORED":
+                {
                     // Construct objects to hold velocities
                     JSONObject thrust = new JSONObject();
                     JSONObject rudder = new JSONObject();
 
                     // Send velocities as a JSON command
-                    try {
+                    try
+                    {
                         double constrainedV = clip(_velocities.dx(), -1.0, 1.0);
 
                         // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
@@ -262,12 +436,95 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                         if (mController.isConnected())
                             mController.send(command);
                         mLogger.info(new JSONObject().put("cmd", command));
-                    } catch (JSONException e) {
+                    }
+                    catch (JSONException e)
+                    {
                         Log.w(TAG, "Failed to serialize command.", e);
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e)
+                    {
                         Log.w(TAG, "Failed to send command.", e);
                     }
-                    break;
+                }
+                break;
+
+                case "PROPGUARD":
+                {
+                    // Construct objects to hold velocities
+                    JSONObject velocity0 = new JSONObject();
+                    JSONObject velocity1 = new JSONObject();
+
+                    // Send velocities as a JSON command
+                    try
+                    {
+                        /*ASDF*/
+                        // to start out, I will *not* include the negative thrust bias
+                        // instead, i'll just have it just set thrust to zero while error is > 45 degrees
+
+                        // _velocities.dx() --> thrust effort fraction
+                        // _velocities.drz() --> heading effort fraction
+
+                        // try using the integral gain for thrust as the scale between positive and negative thrust
+                        double[] thrust_pids = getGains(0);
+                        if (thrust_pids[1] == 0)
+                        {
+                            thrust_pids[1] = 5.;
+                        }
+                        double T = _velocities.dx();
+                        double H = _velocities.drz();
+                        // bias thrust backwards according to heading
+                        // T -= 0.5*H;
+
+                        //double[] rawV = {_velocities.dx() - _velocities.drz(),
+                        //        _velocities.dx() + _velocities.drz()};
+                        double[] rawV = {T - H, T + H};
+
+                        double[] constrainedV = scaleDown(rawV);
+                        double constrainedV0 = constrainedV[0];
+                        double constrainedV1 = constrainedV[1];
+
+                        // need to account for prop guard, reduce positive motor signals if turning in place
+                        if (Math.signum(constrainedV0) > 0 && Math.signum(constrainedV1) < 0)
+                        {
+                            constrainedV0 = constrainedV0/(thrust_pids[1]);
+                        }
+                        if (Math.signum(constrainedV0) < 0 && Math.signum(constrainedV1) > 0)
+                        {
+                            constrainedV1 = constrainedV1/(thrust_pids[1]);
+                        }
+
+                        // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
+                        /*
+                        constrainedV0 = map(constrainedV0,
+                                -1.0, 1.0, // Original range.
+                                -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                        constrainedV1 = map(constrainedV1,
+                                -1.0, 1.0, // Original range.
+                                -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                        */
+
+                        velocity0.put("v", (float) constrainedV0);
+                        velocity1.put("v", (float) constrainedV1);
+
+                        command.put("m0", velocity0);
+                        command.put("m1", velocity1);
+
+                        // Send and log the transmitted command.
+                        if (mController.isConnected())
+                            mController.send(command);
+                        mLogger.info(new JSONObject().put("cmd", command));
+                    }
+                    catch (JSONException e)
+                    {
+                        Log.w(TAG, "Failed to serialize command.", e);
+                    }
+                    catch (IOException e)
+                    {
+                        Log.w(TAG, "Failed to send command.", e);
+                    }
+                }
+                break;
+
                 default:
                     Log.w(TAG, "Unknown vehicle type: " + vehicleType);
             }
@@ -292,14 +549,15 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
         notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
         _sensorTypeTimer.scheduleAtFixedRate(expect_sensor_type_task, 0, 100);
+        _failsafe_timer.scheduleAtFixedRate(failsafe_check, 0, 10000);
 
         // Load PID values from SharedPreferences.
         // Use hard-coded defaults if not specified.
-        r_PID[0] = mPrefs.getFloat("gain_rP", 1.0f);
+        r_PID[0] = mPrefs.getFloat("gain_rP", 0.7f);
         r_PID[1] = mPrefs.getFloat("gain_rI", 0.0f);
-        r_PID[2] = mPrefs.getFloat("gain_rD", 1.0f);
+        r_PID[2] = mPrefs.getFloat("gain_rD", 0.5f);
 
-        t_PID[0] = mPrefs.getFloat("gain_tP", 0.1f);
+        t_PID[0] = mPrefs.getFloat("gain_tP", 0.5f);
         t_PID[1] = mPrefs.getFloat("gain_tI", 0.0f);
         t_PID[2] = mPrefs.getFloat("gain_tD", 0.0f);
 
@@ -375,6 +633,58 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             return NAN_GAINS;
     }
 
+    @Override
+    public void setHome(UtmPose utmPose)
+    {
+        synchronized (home_lock)
+        {
+            home_UTM = UtmPose_to_UTM(utmPose);
+        }
+    }
+
+    @Override
+    public UtmPose getHome()
+    {
+        synchronized (home_lock)
+        {
+            return UTM_to_UtmPose(home_UTM);
+        }
+    }
+
+    @Override
+    public void startGoHome()
+    {
+        if (home_UTM == null)
+        {
+            Log.e(TAG, "Cannot trigger failsafe, home is null");
+        }
+        is_executing_failsafe.set(true);
+        // need to execute a single start waypoints command
+        // need current position and home position
+        // START the go home action
+        UTM current_location = UTM.valueOf(
+                _utmPose.origin.zone,
+                _utmPose.origin.isNorth ? 'T' : 'L',
+                _utmPose.pose.getX(),
+                _utmPose.pose.getY(),
+                SI.METER);
+
+        /////////////////////////////////////////////
+        // List<Long> path_crumb_indices = Crumb.aStar(current_location, home_UTM);
+        List<Long> path_crumb_indices = Crumb.straightHome(current_location, home_UTM);
+        /////////////////////////////////////////////
+
+        UtmPose[] path_waypoints = new UtmPose[path_crumb_indices.size()];
+        int wp_index = 0;
+        for (long index : path_crumb_indices)
+        {
+            UTM wp = Crumb.crumbs_by_index.get(index).getLocation();
+            path_waypoints[wp_index] = UTM_to_UtmPose(wp);
+            wp_index++;
+        }
+        startWaypoints(path_waypoints, AirboatController.POINT_AND_SHOOT.toString());
+    }
+
     /**
      * @see VehicleServer#setGains(int, double[])
      */
@@ -382,7 +692,8 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     public void setGains(int axis, double[] k) {
         // TODO: Get rid of this, it is a hack.
         // Special case to handle winch commands...
-        if (axis == 3) {
+        if (axis == 3)
+        {
             JSONObject command = new JSONObject();
             JSONObject winchSettings = new JSONObject();
 
@@ -403,7 +714,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 Log.w(TAG, "Unable to send winch command.", e);
             }
             return;
-        } else if (axis == 5) {
+        }
+        else if (axis == 5)
+        {
             r_PID = k.clone();
 
             // Save the PID values to the SharedPreferences as well.
@@ -412,7 +725,9 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     .putFloat("gain_rI", (float) r_PID[1])
                     .putFloat("gain_rD", (float) r_PID[2])
                     .apply();
-        } else if (axis == 0) {
+        }
+        else if (axis == 0)
+        {
             t_PID = k.clone();
 
             // Save the PID values to the SharedPreferences as well.
@@ -421,6 +736,82 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                     .putFloat("gain_tI", (float) t_PID[1])
                     .putFloat("gain_tD", (float) t_PID[2])
                     .apply();
+        }
+        else if (axis == 7) // AtlasSampler starting and reset
+        {
+            //k[0]
+            JSONObject command = new JSONObject();
+            JSONObject samplerSettings = new JSONObject();
+            try
+            {
+                if (k[0] != -1)
+                {
+                    String sampler = Double.toString(k[0]);
+                    if (k[1] == 1)
+                    {
+                        samplerSettings.put("e",sampler); //sends start
+                    }
+                    else if (k[1] == 0)
+                    {
+                        samplerSettings.put("d",sampler); //sends stop
+                    }
+
+                }
+                else if (k[0] == -1)
+                {
+                    if (k[1] == 1)
+                    {
+                        samplerSettings.put("r", "-1"); //sends reset all
+                    }
+                    else if (k[1] == 0)
+                    {
+                        samplerSettings.put("s", "-1"); //sends stop all
+                    }
+                }
+
+                for (int i = 1; i < 4; i++)
+                {
+                    String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
+                    String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+                    if (expected_type.equals("SAMPLER"))
+                    {
+                        command.put(String.format("s%d", i), samplerSettings);
+                        mController.send(command);
+                        if (k[0] != -1)
+                        {
+                            if (k[1] == 1)
+                            {
+                                mLogger.info(new JSONObject().put("sampler",
+                                        String.format("jar # %d start", (new Double(k[0]).intValue()) + 1)));
+                            }
+                            else if (k[1] == 0)
+                            {
+                                mLogger.info(new JSONObject().put("sampler",
+                                        String.format("jar # %d stop", (new Double(k[0]).intValue()) + 1)));
+                            }
+                        }
+                        else if (k[0] == -1)
+                        {
+                            if (k[1] == 1)
+                            {
+                                mLogger.info(new JSONObject().put("sampler", "reset all"));
+                            }
+                            else if (k[1] == 0)
+                            {
+                                mLogger.info(new JSONObject().put("sampler", "stop all"));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (JSONException e)
+            {
+                Log.w(TAG, "Unable to construct JSON string from sampler command: " + Arrays.toString(k));
+            }
+            catch (IOException e)
+            {
+                Log.w(TAG, "Unable to send sampler command.", e);
+            }
         }
 
         // Log the new gain settings to the logfile.
@@ -438,12 +829,20 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * Returns the current gyro readings
      */
     public double[] getGyro() {
-        return _gyroPhone.clone();
+        synchronized (gyro_lock)
+        {
+            return _gyroPhone.clone();
+        }
     }
 
     public void setPhoneGyro(float[] gyroValues) {
-        for (int i = 0; i < gyroValues.length; i++)
-            _gyroPhone[i] = (double) gyroValues[i];
+        synchronized (gyro_lock)
+        {
+            for (int i = 0; i < gyroValues.length; i++)
+            {
+                _gyroPhone[i] = (double) gyroValues[i];
+            }
+        }
     }
 
     /**
@@ -571,6 +970,10 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                                 // Parse out voltage and motor velocity values
                                 String[] data = value.getString("data").trim().split(" ");
                                 double voltage = Double.parseDouble(data[0]);
+                                synchronized (_failsafe_check_lock)
+                                {
+                                    battery_voltage = voltage;
+                                }
                                 double motor0Velocity = Double.parseDouble(data[1]);
                                 double motor1Velocity = Double.parseDouble(data[2]);
 
@@ -592,8 +995,63 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                         } else if (type.equalsIgnoreCase("bluebox")) {
                             // need to log sensor types that don't appear in the core library enum
+                            boolean skip = false; // TODO: add new sensor types to Platypus core lib
+                            String nmea = value.getString("data");
+                            String[] chunks = nmea.split(",");
+                            String key = chunks[0];
+                            if (key.equals("$GPGGA"))
+                            {
+                                // TODO: $GPGGA (gps)
+                                skip = true;
+                            }
+                            else if (key.equals("$PGO00"))
+                            {
+                                String sensor_type = chunks[4];
+                                double sensor_value = Double.parseDouble(chunks[5]);
+                                if (sensor_type.equals("conductivity"))
+                                {
+                                    reading.channel = sensor;
+                                    reading.type = SensorType.ES2;
+                                    reading.data = new double[]{sensor_value, 0.0};
+                                }
+                                else if (sensor_type.equals("Oxygen"))
+                                {
+                                    if (sensor_value < 0)
+                                    {
+                                        Log.w(TAG, "BlueBox DO sensor returned negative value.");
+                                        continue;
+                                    }
+                                    reading.channel = sensor;
+                                    reading.type = SensorType.ATLAS_DO;
+                                    reading.data = new double[]{sensor_value};
+                                }
+                                else if (sensor_type.equals("Turbidity"))
+                                {
+                                    skip = true; // TODO
+                                }
+                                else if (sensor_type.equals("Redox"))
+                                {
+                                    skip = true; // TODO
+                                }
+                                else if (sensor_type.equals("temperature"))
+                                {
+                                    reading.channel = sensor;
+                                    reading.type = SensorType.ES2;
+                                    reading.data = new double[]{0.0, Double.parseDouble(chunks[5])};
+                                }
+                                else
+                                {
+                                    Log.w(TAG, String.format("Unknown Bluebox $PGO00 sensor type: %s", sensor_type));
+                                    skip = true;
+                                }
+                            }
+                            else
+                            {
+                                Log.w(TAG, String.format("Unknown BlueBox message of type: %s", key));
+                                skip = true;
+                            }
                             mLogger.info(value);
-                            continue;
+                            if (skip) continue;
                         }
                         else { // unrecognized sensor type
                             Log.w(TAG, "Received data from sensor of unknown type: " + type);
@@ -813,77 +1271,69 @@ public class VehicleServerImpl extends AbstractVehicleServer {
         sendState(_utmPose);
     }
 
-    public void internal_startWaypoints_wrapper(final UtmPose[] waypoints,
-                                                final String controller)
-    {
-        // This is allows the phone to tell the difference between an internal call and one from the operator
-        start_waypoints_from_tablet = false;
-        startWaypoints(waypoints, controller);
-    }
-
     @Override
-    public void startWaypoints(final UtmPose[] waypoints,
-                               final String controller) {
-
+    public void startWaypoints(final UtmPose[] waypoints, final String controller)
+    {
+        last_heartbeat.set(System.currentTimeMillis());
         Log.i(TAG, "Starting waypoints with " + controller + ": "
                 + Arrays.toString(waypoints));
+
+        synchronized (_waypointLock)
+        {
+            if (waypoints.length > 0)
+            {
+                current_waypoint_index = 0;
+            }
+            _waypoints = waypoints.clone();
+        }
 
         // Create a waypoint navigation task
         TimerTask newNavigationTask = new TimerTask() {
             final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
-            // Retrieve the appropriate controller in initializer
-            VehicleController vc = DEFAULT_CONTROLLER;
-
-            {
-                try {
-                    vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
-                    //Log.i(TAG, "vc:"+ vc.toString() + "controller" + controller );
-                } catch (IllegalArgumentException e) {
-                    Log.w(TAG, "Unknown controller specified (using " + vc
-                            + " instead): " + controller);
-                }
-            }
+            LineFollowController lf = new LineFollowController();
+            VehicleController vc = (VehicleController) lf;
 
             @Override
             public void run() {
-                synchronized (_navigationLock) {
-                    //Log.i(TAG, "Synchronized");
-
-                    if (!_isAutonomous.get()) {
-                        // If we are not autonomous, do nothing
-                        Log.i(TAG, "Paused");
-                        sendWaypointUpdate(WaypointState.PAUSED);
-                    } else if (_waypoints.length == 0) {
-                        // If we are finished with waypoints, stop in place
+                int wp_index;
+                synchronized (_waypointLock)
+                {
+                    wp_index = current_waypoint_index;
+                }
+                if (!_isAutonomous.get())
+                {
+                    // If we are not autonomous, do nothing
+                    Log.i(TAG, "Paused");
+                    sendWaypointUpdate(WaypointState.PAUSED);
+                }
+                else if (wp_index == _waypoints.length)
+                {
+                    // finished
+                    synchronized (_waypointLock)
+                    {
                         current_waypoint_index = -1;
-                        Log.i(TAG, "Done");
-                        sendWaypointUpdate(WaypointState.DONE);
+                    }
+                    Log.i(TAG, "Done");
+                    sendWaypointUpdate(WaypointState.DONE);
+                    synchronized (_navigationLock)
+                    {
                         setVelocity(new Twist(DEFAULT_TWIST));
                         this.cancel();
                         _navigationTask = null;
-
-                    } else {
-                        // If we are still executing waypoints, use a
-                        // controller to figure out how to get to waypoint
-                        // TODO: measure dt directly instead of approximating
-                        Log.d(TAG, "controller :" + controller);
-                        vc.update(VehicleServerImpl.this, dt);
-                        sendWaypointUpdate(WaypointState.GOING);
                     }
+                }
+                else
+                {
+                    // TODO: measure dt directly instead of approximating
+                    Log.d(TAG, "controller.update(), " + controller);
+                    vc.update(VehicleServerImpl.this, dt);
+                    sendWaypointUpdate(WaypointState.GOING);
                 }
             }
         };
 
         synchronized (_navigationLock) {
-            // Change waypoints to new set of waypoints
-            _waypoints = new UtmPose[waypoints.length];
-
-            if (start_waypoints_from_tablet) current_waypoint_index = 0;
-            start_waypoints_from_tablet = true;
-
-            System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
-
             // Cancel any previous navigation tasks
             if (_navigationTask != null) _navigationTask.cancel();
 
@@ -905,17 +1355,21 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public void stopWaypoints() {
+        last_heartbeat.set(System.currentTimeMillis());
         // Stop the thread that is doing the "navigation" by terminating its
         // navigation process, clear all the waypoints, and stop the vehicle.
         synchronized (_navigationLock) {
             if (_navigationTask != null) {
                 _navigationTask.cancel();
                 _navigationTask = null;
-                _waypoints = new UtmPose[0];
-                current_waypoint_index = -1;
                 setVelocity(new Twist(DEFAULT_TWIST));
                 Log.i(TAG, "StopWaypoint");
             }
+        }
+        synchronized (_waypointLock)
+        {
+            _waypoints = new UtmPose[0];
+            current_waypoint_index = -1;
         }
         sendWaypointUpdate(WaypointState.CANCELLED);
     }
@@ -923,7 +1377,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public UtmPose[] getWaypoints() {
         UtmPose[] wpts;
-        synchronized (_navigationLock) {
+        synchronized (_waypointLock) {
             wpts = new UtmPose[_waypoints.length];
             System.arraycopy(_waypoints, 0, wpts, 0, wpts.length);
         }
@@ -932,7 +1386,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public WaypointState getWaypointStatus() {
-        synchronized (_navigationLock) {
+        synchronized (_waypointLock) {
             if (_waypoints.length > 0) {
                 return _isAutonomous.get() ? WaypointState.PAUSED
                         : WaypointState.GOING;
@@ -944,6 +1398,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public int getWaypointsIndex() {
+        last_heartbeat.set(System.currentTimeMillis()); // functions as operator heartbeat
         Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index));
         return current_waypoint_index;
     }
@@ -959,6 +1414,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
      * Sets a desired 6D velocity for the vehicle.
      */
     public void setVelocity(Twist vel) {
+        last_heartbeat.set(System.currentTimeMillis());
         _velocities = vel.clone();
 
         // Schedule a task to shutdown the velocity if no command is received within the timeout.
@@ -986,7 +1442,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
     @Override
     public void setAutonomous(boolean isAutonomous) {
+        last_heartbeat.set(System.currentTimeMillis());
         _isAutonomous.set(isAutonomous);
+        if (isAutonomous && first_autonomy.get())
+        {
+            first_autonomy.set(false);
+            home_UTM = UtmPose_to_UTM(_utmPose);
+        }
 
         // Set velocities to zero to allow for safer transitions
         _velocities = new Twist(DEFAULT_TWIST);
