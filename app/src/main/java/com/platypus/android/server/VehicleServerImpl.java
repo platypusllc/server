@@ -1330,11 +1330,21 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																}
 																else if (sensor_type.equals("Turbidity"))
 																{
-																		skip = true; // TODO
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.TURBIDITY;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
 																}
 																else if (sensor_type.equals("Redox"))
 																{
-																		skip = true; // TODO
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.REDOX;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
 																}
 																else if (sensor_type.equals("temperature"))
 																{
@@ -1347,6 +1357,15 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		SensorData sd = new SensorData();
 																		sd.channel = sensor;
 																		sd.type = DataType.T_GOSYS;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
+																else if (sensor_type.equals("Salinity"))
+																{
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.SALINITY;
 																		sd.value = sensor_value;
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
@@ -1375,7 +1394,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														continue;
 												}
 
-												for (SensorData sd : readings)
+												for (final SensorData sd : readings)
 												{
 														mLogger.info(new JSONObject()
 																		.put("sensor", new JSONObject()
@@ -1384,12 +1403,24 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																						.put("data", sd.value)));
 
 														// Send out the collected sensor reading
-														sendSensor(sd, 0); // send data in the timer task instead of here
 
-														// TODO: use memoryless sensordata transmission for now
+														// sends data with a slight delay so it doesn't send duplicates
+														// when sending more than one reading at a time
+														_sensorSendTimer.schedule(new TimerTask()
+														{
+																@Override
+																public void run()
+																{
+																		sendSensor(sd, 0);
+																}
+														}, 100);
+
+														// TODO: use memoryless sensordata transmission for now, switch later
+														// send battery data immediately, but everything else send with the task
 														//if (sd.type == DataType.BATTERY) continue; // don't store battery data
 														//new TimestampedSensorData(sd);
 												}
+												readings.clear();
 										}
 								}
 								else if (name.startsWith("g"))
