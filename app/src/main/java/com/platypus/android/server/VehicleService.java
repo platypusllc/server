@@ -386,6 +386,12 @@ public class VehicleService extends Service {
         _vehicleServerImpl = new VehicleServerImpl(this, mLogger, mController);
 		    sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
+		    // turn off gps provider if preferences say to use decawave instead
+        if (sp.getBoolean("pref_using_decawave", false))
+        {
+            gps.removeUpdates(locationListener);
+        }
+
         // Start up UDP vehicle service in the background
         startOrUpdateUdpServer();
 

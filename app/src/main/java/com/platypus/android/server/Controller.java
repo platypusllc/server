@@ -282,6 +282,7 @@ public class Controller {
         // Terminate and convert the buffers to an ASCII string.
         buffer[len] = '\0';
         String line = new String(buffer, 0, len, ASCII);
+        Log.i("decawave", String.format("Received string: %s", line));
 
         // Turn the line into a JSON object and return it.
         // If the line is malformed, wait for the next line.

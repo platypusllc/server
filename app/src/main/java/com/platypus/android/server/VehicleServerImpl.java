@@ -135,6 +135,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 		private AutonomousPredicates autonomous_predicates;
 		private VehicleState vehicle_state;
+		private Decawave decawave;
 
 		@Override
 		public void newAutonomousPredicateMessage(String apm)
@@ -815,6 +816,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				autonomous_predicates = new AutonomousPredicates(this);
 				autonomous_predicates.loadDefaults();
 
+				decawave = new Decawave(this, context);
+
 
 				// Load PID values from SharedPreferences.
 				// Use hard-coded defaults if not specified.
@@ -1025,6 +1028,19 @@ public class VehicleServerImpl extends AbstractVehicleServer
 										.putFloat("gain_tI", (float) t_PID[1])
 										.putFloat("gain_tD", (float) t_PID[2])
 										.apply();
+				}
+				else if (axis == 4)
+				{
+						// new decawave stuff
+						Log.v("decawave", Arrays.toString(k));
+						try
+						{
+								Decawave.newDecawaveDistances(k);
+						}
+						catch (Exception e)
+						{
+								Log.w("decawave", String.format("Decawave.newDecawaveDistances() threw exception: %s", e.getMessage()));
+						}
 				}
 
 				// Log the new gain settings to the logfile.
