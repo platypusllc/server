@@ -1035,7 +1035,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						Log.v("decawave", Arrays.toString(k));
 						try
 						{
-								Decawave.newDecawaveDistances(k);
+								decawave.newDecawaveDistances(k);
 						}
 						catch (Exception e)
 						{
