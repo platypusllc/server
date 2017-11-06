@@ -36,7 +36,7 @@ class Decawave
 		private static int median_filter_length = 20;
 		private double REJECTION_DISTANCE = 5.0; // meters change in a single step, beyond which we throw out the measurement
 		private VehicleServerImpl server;
-		private ScheduledThreadPoolExecutor pool;
+		private ScheduledThreadPoolExecutor pool; 
 		String logTag = "decawave";
 
 		Decawave(VehicleServerImpl _server, Context context)
