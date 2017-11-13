@@ -150,6 +150,18 @@ class Decawave
 		{
 
 				// TODO: keep track of last median result. If new value has jumped, throw away new value
+				if (median_filter_length <= 0) return new_distances;
+
+				for (int i = 0; i < 3; i++)
+				{
+						if (new_distances[i] == 0.0)
+						{
+								Log.w(logTag, String.format("Rejected new distances due to a%d pure zero", i));
+								return median_histories;
+						}
+				}
+
+				/*
 				if (d1_history.size() > 5)
 				{
 						for (int i = 0; i < 3; i++)
@@ -161,6 +173,7 @@ class Decawave
 								}
 						}
 				}
+				*/
 
 				// push in new value to static lists
 				// check size of dX_history objects against median filter length
