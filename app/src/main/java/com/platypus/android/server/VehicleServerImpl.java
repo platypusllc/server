@@ -135,6 +135,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 		private AutonomousPredicates autonomous_predicates;
 		private VehicleState vehicle_state;
+		private Decawave decawave;
 
 		@Override
 		public void newAutonomousPredicateMessage(String apm)
@@ -239,7 +240,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								JSONObject samplerSettings = new JSONObject();
 								try
 								{
-										samplerSettings.put("r", "");
+										samplerSettings.put("r", "-1");
 										for (int i = 1; i < 4; i++)
 										{
 												String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
@@ -815,6 +816,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				autonomous_predicates = new AutonomousPredicates(this);
 				autonomous_predicates.loadDefaults();
 
+				decawave = new Decawave(this, context);
+
 
 				// Load PID values from SharedPreferences.
 				// Use hard-coded defaults if not specified.
@@ -1025,6 +1028,95 @@ public class VehicleServerImpl extends AbstractVehicleServer
 										.putFloat("gain_tI", (float) t_PID[1])
 										.putFloat("gain_tD", (float) t_PID[2])
 										.apply();
+				}
+				else if (axis == 4)
+				{
+						// new decawave stuff
+						Log.v("decawave", Arrays.toString(k));
+						try
+						{
+								decawave.newDecawaveDistances(k);
+						}
+						catch (Exception e)
+						{
+								Log.w("decawave", String.format("Decawave.newDecawaveDistances() threw exception: %s", e.getMessage()));
+						}
+				}
+				else if (axis == 7) // AtlasSampler starting and reset
+				{
+						//k[0]
+						JSONObject command = new JSONObject();
+						JSONObject samplerSettings = new JSONObject();
+						try
+						{
+								if (k[0] != -1)
+								{
+										String sampler = Double.toString(k[0]);
+										if (k[1] == 1)
+										{
+												samplerSettings.put("e",sampler); //sends start
+										}
+										else if (k[1] == 0)
+										{
+												samplerSettings.put("d",sampler); //sends stop
+										}
+
+								}
+								else if (k[0] == -1)
+								{
+										if (k[1] == 1)
+										{
+												samplerSettings.put("r", "-1"); //sends reset all
+										}
+										else if (k[1] == 0)
+										{
+												samplerSettings.put("s", "-1"); //sends stop all
+										}
+								}
+
+								for (int i = 1; i < 4; i++)
+								{
+										String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
+										String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+										if (expected_type.equals("SAMPLER"))
+										{
+												command.put(String.format("s%d", i), samplerSettings);
+												mController.send(command);
+												if (k[0] != -1)
+												{
+														if (k[1] == 1)
+														{
+																mLogger.info(new JSONObject().put("sampler",
+																				String.format("jar # %d start", (new Double(k[0]).intValue()) + 1)));
+														}
+														else if (k[1] == 0)
+														{
+																mLogger.info(new JSONObject().put("sampler",
+																				String.format("jar # %d stop", (new Double(k[0]).intValue()) + 1)));
+														}
+												}
+												else if (k[0] == -1)
+												{
+														if (k[1] == 1)
+														{
+																mLogger.info(new JSONObject().put("sampler", "reset all"));
+														}
+														else if (k[1] == 0)
+														{
+																mLogger.info(new JSONObject().put("sampler", "stop all"));
+														}
+												}
+										}
+								}
+						}
+						catch (JSONException e)
+						{
+								Log.w(TAG, "Unable to construct JSON string from sampler command: " + Arrays.toString(k));
+						}
+						catch (IOException e)
+						{
+								Log.w(TAG, "Unable to send sampler command.", e);
+						}
 				}
 
 				// Log the new gain settings to the logfile.

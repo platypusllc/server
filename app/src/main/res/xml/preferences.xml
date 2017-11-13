@@ -85,11 +85,6 @@
             android:key="pref_vehicle_type"
             android:title="@string/pref_vehicle_type_title"
             android:summary="@string/pref_vehicle_type_summary" />
-        <CheckBoxPreference
-            android:defaultValue="false"
-            android:key="pref_bluebox_installed"
-            android:title="Is a BlueBox installed?"
-            android:summary="Only check this box if you have an INTCATCH BlueBox housing installed on the boat"/>
         <ListPreference
             android:key="pref_sensor_1_type"
             android:title="Sensor 1 Type"
@@ -114,6 +109,36 @@
             android:entries="@array/pref_sensor_3_type_entries"
             android:entryValues="@array/pref_sensor_3_type_values"
             android:summary="Set the type of sensor in socket 3" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="pref_bluebox_installed"
+            android:title="Is a BlueBox installed?"
+            android:summary="Only check this box if you have an INTCATCH BlueBox housing installed on the boat"/>
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="pref_using_decawave"
+            android:title="Use Decawave instead of GPS?"
+            android:summary="Only check this box if you are using Decawave instead of phone GPS"/>
+        <EditTextPreference
+            android:defaultValue="0.0, 0.0"
+            android:key="pref_decawave_anchor_0_latlng"
+            android:title="Decawave Anchor 0 Lat,Lng"
+            />
+        <EditTextPreference
+            android:defaultValue="0.0, 0.0"
+            android:key="pref_decawave_anchor_1_latlng"
+            android:title="Decawave Anchor 1 Lat,Lng"
+            />
+        <EditTextPreference
+            android:defaultValue="0.0, 0.0"
+            android:key="pref_decawave_anchor_2_latlng"
+            android:title="Decawave Anchor 2 Lat,Lng"
+            />
+        <EditTextPreference
+            android:defaultValue="20"
+            android:key="pref_decawave_anchor_median_filter_length"
+            android:title="size of decawave median filter"
+            />
     </PreferenceCategory>
 
 
