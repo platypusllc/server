@@ -1,5 +1,6 @@
 import java.io.*;
 
+import gnu.io.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.nio.charset.Charset;
@@ -7,10 +8,8 @@ import java.nio.charset.Charset;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.LinkedList;
-
-import gnu.io.CommPort;
-import gnu.io.CommPortIdentifier;
-import gnu.io.SerialPort;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Controller
 {
@@ -31,6 +30,9 @@ public class Controller
 
   private boolean connected = false;
   private OutputStream out;
+
+  public static Logger logger = Logger.getLogger(Controller.class.getName());
+
   public Controller()  {
 
 
@@ -51,20 +53,19 @@ public class Controller
       portIdentifier = CommPortIdentifier.getPortIdentifier(PORT_NAME);
     }
     catch (Exception e){
-      System.err.println("Port not found");
-      System.err.println(e);
+      logger.log(Level.parse("ERROR"),"Port not found.",e);
       connected = false;
       return false;
     }
 
     if(portIdentifier.isCurrentlyOwned()){
-      System.out.println("Error: Port is currently in use");
+      logger.log(Level.parse("ERROR"),"Port is currently in use.");
       connected = false;
       return false;
     }
     else
     {
-      System.out.println("connecting");
+      logger.log(Level.INFO,"Connecting to eboard.");
       connected = true;
       int timeout = 2000;
 
@@ -80,13 +81,17 @@ public class Controller
           }
           else
           {
-            System.out.println("Error: Not a serial port");
+            logger.log(Level.parse("ERROR"),"Not a serial port.");
             return false;
           }
         }
-        catch(Exception UnsupportedCommOperationException)
+        catch(UnsupportedCommOperationException e)
         {
-          System.out.println("Unnsuport Comm Operation Exception");
+          logger.log(Level.parse("ERROR"),"Unsupported Comm Operation.",e);
+        }
+        catch(PortInUseException e)
+        {
+          logger.log(Level.parse("ERROR"),"Port in use.",e);
         }
         try {
           InputStream in = serialPort.getInputStream();
@@ -94,9 +99,9 @@ public class Controller
           inThread = new Thread(new SerialReader(in));
           inThread.start();
         }
-        catch(Exception IOException)
+        catch(IOException e)
         {
-          System.out.println("IOException");
+          logger.log(Level.parse("ERROR"),"IOException with streams.",e);
         }
 
 
@@ -193,7 +198,7 @@ public class Controller
           System.out.print(messageQueue.peek());
           if (last_recv_cmd_t - System.currentTimeMillis() > HEART_BEAT_TIMEOUT)
           {
-            System.out.println("Didnt get heartbeat");
+            logger.log(Level.WARNING,"Did not recieve heartbeat from eboard.");
             disconnect();
           }
           else
