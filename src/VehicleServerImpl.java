@@ -411,7 +411,6 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                   command.put("m0", velocity0);
                   command.put("m1", velocity1);
-
                   // Send and log the transmitted command.
                   if (mController.isConnected())
                       mController.send(command);
@@ -958,8 +957,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
             if (!type.equalsIgnoreCase("battery")) {
               if (type.equalsIgnoreCase(_expected_type)) {
                 received_expected_sensor_type[sensor - 1] = true;
-                /*
-                  String message = "s" + sensor + ": expected = " + expected_type + " received = " + type;
+                  /*
                   Log.w(TAG, message);
                   NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(_context)
                   .setSmallIcon(R.drawable.camera_icon) //just some random icon placeholder
@@ -1052,6 +1050,7 @@ public class VehicleServerImpl extends AbstractVehicleServer {
                 synchronized (_failsafe_check_lock)
                   {
                     battery_voltage = voltage;
+                      //System.out.println(battery_voltage);
                   }
                 double motor0Velocity = Double.parseDouble(data[1]);
                 double motor1Velocity = Double.parseDouble(data[2]);

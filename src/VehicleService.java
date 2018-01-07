@@ -119,6 +119,6 @@ public class VehicleService {
        isRunning.set(true);
 
        logger.log(Level.INFO, "VehicleService started.");
-       return;
+
    }
 }

@@ -122,8 +122,9 @@ public class Controller
 
   public boolean isConnected()
   {
-    File eboard_file = new File("dev/eboard");
-    return eboard_file.exists();
+    //File eboard_file = new File("dev/eboard");
+    //return eboard_file.exists();
+    return true;
   }
 
   public void send(JSONObject obj) throws IOException, ControllerException
@@ -131,7 +132,12 @@ public class Controller
     if (!isConnected() && !connect()) {
         throw new ControllerException("Error", "Cannot send, no device found");
       }
-    byte[] message = (obj + "\r\n").getBytes(CHARSET);
+    byte[] message = (obj + "\r").getBytes(CHARSET); //
+    //System.out.println("<- " + obj.toString());
+//    if (out == null)
+//    {
+//      System.out.println("out is null");
+//    }
     out.write(message);
   }
 
@@ -203,7 +209,10 @@ public class Controller
             buffer[index] = '\0';
             String command = new String(buffer,0,index);
             //System.out.println(command);
-            messageQueue.add(command);
+            if (command.equals("") == false) {
+              messageQueue.add(command); //where are these empty strings coming from, ok they are coming from parsing the \n then the \r as a new command
+              //System.out.println("command: \"" + command + "\"");
+            }
             index = 0;
             buffer[0] = '\0';
 
