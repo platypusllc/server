@@ -1,0 +1,24 @@
+README:
+
+INSTALL:
+1) Clone project into intellij
+2) Might need to manually add the libraries in
+3) Download rxtx v2.2.
+4) Put RXTXcomm.jar in java/jre/lib/ext (actual path will be something like /usr/jdk-xx-xx-xx/jre/...)
+5) Put librxtxSerial.so in java/jre/lib/amd64
+6) Add your user to both the uucp and lock groups. Log out, log back in after this step.
+7) For now since there is no udev rules set up go to /run/. Then run sudo chmod 777 lock
+8) In src/Controller.java change PORT_NAME to the location in /dev/ for the arduino. To find this run ls -haltr | grep ttyACM. If you only have one arduino hooked up it should be one of these.
+9) In your run settings in intellij make sure your configuration has single instance only checked in the top right. 
+
+
+Notes:
+If you get an issue saying something about permission and the lock you either did not add your self to uucp/lock or you didnt do step 7. You might need to do this on every reboot.
+
+
+Todo:
+- Need to write all those udev rules and perhaps an install script.
+- Need to verify that sensor commands are getting properly handled after they get into vehicleserverimpl
+- Need to verify sending commands to the eboard works
+- Need way to gracefully shutdown the server so the log files get saved properly.
+- Need to add the heartbeat check in Controller.java. 

@@ -1,19 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="9bbd5b41-2434-4f84-9b1d-26ffa811b5b7" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/out/production/LinuxServer/Controller$ConnectionException.class" afterPath="$PROJECT_DIR$/out/production/LinuxServer/Controller$ConnectionException.class" />
-      <change beforePath="$PROJECT_DIR$/out/production/LinuxServer/Controller$ControllerException.class" afterPath="$PROJECT_DIR$/out/production/LinuxServer/Controller$ControllerException.class" />
-      <change beforePath="$PROJECT_DIR$/out/production/LinuxServer/Controller$SerialReader.class" afterPath="$PROJECT_DIR$/out/production/LinuxServer/Controller$SerialReader.class" />
-      <change beforePath="$PROJECT_DIR$/out/production/LinuxServer/Controller.class" afterPath="$PROJECT_DIR$/out/production/LinuxServer/Controller.class" />
-      <change beforePath="$PROJECT_DIR$/out/production/LinuxServer/VehicleServerImpl$3.class" afterPath="$PROJECT_DIR$/out/production/LinuxServer/VehicleServerImpl$3.class" />
-      <change beforePath="$PROJECT_DIR$/out/production/LinuxServer/VehicleService$1.class" afterPath="$PROJECT_DIR$/out/production/LinuxServer/VehicleService$1.class" />
-      <change beforePath="$PROJECT_DIR$/out/production/LinuxServer/VehicleService.class" afterPath="$PROJECT_DIR$/out/production/LinuxServer/VehicleService.class" />
-      <change beforePath="$PROJECT_DIR$/src/Controller.java" afterPath="$PROJECT_DIR$/src/Controller.java" />
-      <change beforePath="$PROJECT_DIR$/src/VehicleServerImpl.java" afterPath="$PROJECT_DIR$/src/VehicleServerImpl.java" />
-      <change beforePath="$PROJECT_DIR$/src/VehicleService.java" afterPath="$PROJECT_DIR$/src/VehicleService.java" />
-    </list>
+    <list default="true" id="9bbd5b41-2434-4f84-9b1d-26ffa811b5b7" name="Default" comment="" />
     <ignored path="$PROJECT_DIR$/out/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -59,8 +47,8 @@
       <file leaf-file-name="Controller.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/Controller.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="174">
-              <caret line="151" column="6" lean-forward="false" selection-start-line="151" selection-start-column="6" selection-end-line="151" selection-end-column="6" />
+            <state relative-caret-position="-3024">
+              <caret line="0" column="7" lean-forward="false" selection-start-line="0" selection-start-column="7" selection-end-line="0" selection-end-column="7" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#838#846#0" expanded="true" />
@@ -1013,8 +1001,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/Controller.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="151" column="6" lean-forward="false" selection-start-line="151" selection-start-column="6" selection-end-line="151" selection-end-column="6" />
+        <state relative-caret-position="-3024">
+          <caret line="0" column="7" lean-forward="false" selection-start-line="0" selection-start-column="7" selection-end-line="0" selection-end-column="7" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#838#846#0" expanded="true" />
