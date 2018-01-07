@@ -394,18 +394,17 @@ public class VehicleServerImpl extends AbstractVehicleServer {
               JSONObject velocity1 = new JSONObject();
 
               // Send velocities as a JSON command
-              try
-                {
+              try {
                   double constrainedV0 = clip(_velocities.dx() - _velocities.drz(), -1.0, 1.0);
                   double constrainedV1 = clip(_velocities.dx() + _velocities.drz(), -1.0, 1.0);
 
                   // Until ESC reboot is fixed, set the upper limit to SAFE_THRUST
                   constrainedV0 = map(constrainedV0,
-                                      -1.0, 1.0, // Original range.
-                                      -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                          -1.0, 1.0, // Original range.
+                          -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
                   constrainedV1 = map(constrainedV1,
-                                      -1.0, 1.0, // Original range.
-                                      -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
+                          -1.0, 1.0, // Original range.
+                          -VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST, VehicleServerImpl.SAFE_DIFFERENTIAL_THRUST); // New range.
 
                   velocity0.put("v", (float) constrainedV0);
                   velocity1.put("v", (float) constrainedV1);
@@ -415,11 +414,12 @@ public class VehicleServerImpl extends AbstractVehicleServer {
 
                   // Send and log the transmitted command.
                   if (mController.isConnected())
-                    mController.send(command);
+                      mController.send(command);
+
                   mLogger.info(new JSONObject().put("cmd", command));
-                }
+              }
               catch (JSONException e)
-                {
+              {
                   //Log.w(TAG, "Failed to serialize command.", e);
                   logger.log(Level.WARNING,"Failed to serialize command", e);
                 }

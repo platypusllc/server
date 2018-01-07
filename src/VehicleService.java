@@ -7,15 +7,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class VehicleService {
-    protected AtomicBoolean isRunning = new AtomicBoolean(false);
+    protected static AtomicBoolean isRunning = new AtomicBoolean(false);
 
-    private VehicleLogger mLogger;
+    private static VehicleLogger mLogger;
 
-    private Controller mController;
-    private VehicleServerImpl _vehicleServerImpl;
-    private UdpVehicleService _udpService;
+    private static Controller mController;
+    private static VehicleServerImpl _vehicleServerImpl;
+    private static UdpVehicleService _udpService;
 
-    private final Object mUdpLock = new Object();
+    private final static Object mUdpLock = new Object();
 
     public static Logger logger = Logger.getLogger(VehicleService.class.getName());
 
@@ -57,7 +57,7 @@ public class VehicleService {
             logger.log(Level.WARNING,"mController is null");
         }
     }
-    private void startOrUpdateUdpServer() {
+    private static void startOrUpdateUdpServer() {
         // Start up UDP vehicle service in the background
         new Thread(new Runnable() {
             @Override
@@ -76,47 +76,49 @@ public class VehicleService {
                         logger.log(Level.INFO,"UdpVehicleService launched on port " + port + ".");
                     } catch (Exception e) {
                         //Log.e(TAG, "UdpVehicleService failed to launch", e);
-                        logger.log(Level.parse("ERROR"),"UdpVehicleService failed to launch",e);
+                        //logger.log(Level.parse("E"),"UdpVehicleService failed to launch",e);
+                        logger.log(Level.SEVERE,"UdpVehicleService failed to launch",e);
                         //stopSelf();
                     }
                 }
             }
         }).start();
     }
-    public int onStartCommand(int flags, int startId) {
+   // public int onStartCommand(int flags, int startId) {
+   public static void main(String[] args) {
 
-        // Ensure that we do not reinitialize if not necessary.
-        if (isRunning.get()) {
-            logger.log(Level.WARNING, "Attempted to start while running");
-            //Log.w(TAG, "Attempted to start while running.");
-            return 1;
-        }
+       // Ensure that we do not reinitialize if not necessary.
+       if (isRunning.get()) {
+           logger.log(Level.WARNING, "Attempted to start while running");
+           //Log.w(TAG, "Attempted to start while running.");
+           return;
+       }
 
-        // start tracing to "/sdcard/trace_crw.trace"
-        // Debug.startMethodTracing("trace_crw");
+       // start tracing to "/sdcard/trace_crw.trace"
+       // Debug.startMethodTracing("trace_crw");
 
-        // Create a new vehicle log file for this service.
-        if (mLogger != null)
-            mLogger.close();
-        mLogger = new VehicleLogger();
+       // Create a new vehicle log file for this service.
+       if (mLogger != null)
+           mLogger.close();
+       mLogger = new VehicleLogger();
 
-        _vehicleServerImpl = new VehicleServerImpl( mLogger, mController);
+       mController = new Controller();
+       System.setProperty("gnu.io.rxtx.SerialPorts", mController.getPortName());
+       mController.connect();
 
-        startOrUpdateUdpServer();
+       _vehicleServerImpl = new VehicleServerImpl(mLogger, mController);
 
-        int[] axes = {0, 5};
-        for (int axis : axes) {
-            double[] gains = _vehicleServerImpl.getGains(axis);
-            _vehicleServerImpl.setGains(axis, gains);
-        }
+       startOrUpdateUdpServer();
 
-        isRunning.set(true);
+       int[] axes = {0, 5};
+       for (int axis : axes) {
+           double[] gains = _vehicleServerImpl.getGains(axis);
+           _vehicleServerImpl.setGains(axis, gains);
+       }
 
-        logger.log(Level.INFO,"VehicleService started.");
-        return 1;
-    }
+       isRunning.set(true);
 
-
-
-
-    }
+       logger.log(Level.INFO, "VehicleService started.");
+       return;
+   }
+}

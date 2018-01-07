@@ -5,6 +5,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import java.nio.charset.Charset;
 
+import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.LinkedList;
@@ -15,13 +16,13 @@ public class Controller
 {
   private static final String CHARSET = "US-ASCII";
   private static final int MAX_PACKET_SIZE = 1024;
-  private static final int BAUD_RATE = 9600;
+  private static final int BAUD_RATE = 115200;
 
   private static final int HEART_BEAT_TIMEOUT = 200; //ms
   private static long last_recv_cmd_t = 0;
 
   //private static final String PORT_NAME = "/dev/eboard";
-  private static final String PORT_NAME = "/dev/ttyUSB6"; //write udev rule to make this always /dev/eboard
+  private static final String PORT_NAME = "/dev/ttyACM0"; //write udev rule to make this always /dev/eboard
 
   private static Queue<String> messageQueue = new LinkedList<String>();
 
@@ -53,7 +54,8 @@ public class Controller
       portIdentifier = CommPortIdentifier.getPortIdentifier(PORT_NAME);
     }
     catch (Exception e){
-      logger.log(Level.parse("ERROR"),"Port not found.",e);
+      //logger.log(Level.parse("ERROR"),"Port not found.",e);
+      logger.log(Level.SEVERE,"Port not found.",e);
       connected = false;
       return false;
     }
@@ -147,6 +149,7 @@ public class Controller
       throw new NoSuchElementException();
     }
     String line = messageQueue.remove();
+    //System.out.println("REC: " + line);
     try {
       JSONObject response = new JSONObject(line);
       if (response.has("error")) {
@@ -176,52 +179,54 @@ public class Controller
       super(message);
     }
   }
-  public class SerialReader implements Runnable
-  {
-    InputStream in;
+  public class SerialReader implements Runnable {
 
-    public SerialReader ( InputStream in )
-    {
-      this.in = in;
+    Reader reader;
+    public SerialReader(InputStream in) {
+      this.reader = new InputStreamReader(in, StandardCharsets.US_ASCII);
     }
+
     //make this read into a buffer
     //print the buffer once null terminated, newline or carriage return
-    public void run ()
-    {
-      byte[] buffer = new byte[1024];
-      int len = -1;
-      try
-      {
-        while ((len = this.in.read(buffer)) > -1)
-        {
-          messageQueue.add(new String(buffer,0,len));
-          System.out.print(messageQueue.peek());
-          if (last_recv_cmd_t - System.currentTimeMillis() > HEART_BEAT_TIMEOUT)
-          {
-            logger.log(Level.WARNING,"Did not recieve heartbeat from eboard.");
-            disconnect();
-          }
-          else
-          {
-            last_recv_cmd_t = System.currentTimeMillis();
-          }
+    public void run() {
+      try {
+        int c;
+        char[] buffer = new char[100];
+        int index = 0;
+        while ((c = reader.read()) != -1) {
+          char ch = (char) c;
 
+          if (ch != '\n' && ch != '\r') {
+            buffer[index++] = ch;
+          }
+          else if (ch == '\n' || ch == '\r') {
+            buffer[index] = '\0';
+            String command = new String(buffer,0,index);
+            //System.out.println(command);
+            messageQueue.add(command);
+            index = 0;
+            buffer[0] = '\0';
+
+          }
         }
       }
-      catch (Exception e)
+      catch(IOException e)
       {
-        e.printStackTrace();
+        logger.log(Level.WARNING, "Could not open IOstream",e);
       }
     }
   }
 
+
   public static void main ( String[] args ) throws Exception
   {
+    System.setProperty("gnu.io.rxtx.SerialPorts", PORT_NAME);
     try
       {
-        listPorts();
+    //    listPorts();
         Controller mcontrol = new Controller();
         mcontrol.connect();
+
       }
     catch ( Exception e )
       {
@@ -230,12 +235,17 @@ public class Controller
   }
   static void listPorts()
   {
+
     java.util.Enumeration<CommPortIdentifier> portEnum = CommPortIdentifier.getPortIdentifiers();
+
     while ( portEnum.hasMoreElements() )
     {
       CommPortIdentifier portIdentifier = portEnum.nextElement();
       System.out.println(portIdentifier.getName());
     }
   }
-
+  public String getPortName()
+  {
+    return PORT_NAME;
+  }
 }
