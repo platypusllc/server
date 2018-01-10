@@ -1392,11 +1392,11 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																// TODO: $GPGGA (gps)
 																skip = true;
 														}
-														else if (key.equals("$PGO00"))
+														else if (key.equalsIgnoreCase("$PGO00"))
 														{
 																String sensor_type = chunks[4];
 																double sensor_value = Double.parseDouble(chunks[5]);
-																if (sensor_type.equals("conductivity"))
+																if (sensor_type.equalsIgnoreCase("conductivity"))
 																{
 																		SensorData sd = new SensorData();
 																		sd.channel = sensor;
@@ -1405,7 +1405,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
 																}
-																else if (sensor_type.equals("Oxygen"))
+																else if (sensor_type.equalsIgnoreCase("Oxygen"))
 																{
 																		if (sensor_value < 0)
 																		{
@@ -1420,7 +1420,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
 																}
-																else if (sensor_type.equals("Turbidity"))
+																else if (sensor_type.equalsIgnoreCase("Turbidity"))
 																{
 																		SensorData sd = new SensorData();
 																		sd.channel = sensor;
@@ -1429,7 +1429,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
 																}
-																else if (sensor_type.equals("Redox"))
+																else if (sensor_type.equalsIgnoreCase("Redox"))
 																{
 																		SensorData sd = new SensorData();
 																		sd.channel = sensor;
@@ -1438,7 +1438,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
 																}
-																else if (sensor_type.equals("temperature"))
+																else if (sensor_type.equalsIgnoreCase("temperature"))
 																{
 																		if (sensor_value < 0)
 																		{
@@ -1453,7 +1453,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
 																}
-																else if (sensor_type.equals("Salinity"))
+																else if (sensor_type.equalsIgnoreCase("Salinity"))
 																{
 																		SensorData sd = new SensorData();
 																		sd.channel = sensor;
