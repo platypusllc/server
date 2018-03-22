@@ -1429,6 +1429,15 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
 																}
+																else if (sensor_type.trim().equalsIgnoreCase("pH"))
+																{
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.PH_GOSYS;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
 																else if (sensor_type.trim().equalsIgnoreCase("Redox"))
 																{
 																		SensorData sd = new SensorData();
