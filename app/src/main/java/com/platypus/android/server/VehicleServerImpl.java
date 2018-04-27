@@ -1429,7 +1429,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
 																}
-																else if (sensor_type.trim().equalsIgnoreCase("pH"))
+																else if (sensor_type.trim().equalsIgnoreCase("pH") ||
+																				sensor_type.trim().equalsIgnoreCase("pHGlas"))
 																{
 																		SensorData sd = new SensorData();
 																		sd.channel = sensor;
@@ -1467,6 +1468,42 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		SensorData sd = new SensorData();
 																		sd.channel = sensor;
 																		sd.type = DataType.SALINITY;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
+																else if (sensor_type.trim().equalsIgnoreCase("chlorophyll"))
+																{
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.CHLOROPHYLLA;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
+																else if (sensor_type.trim().equalsIgnoreCase("nitrate"))
+																{
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.NITRATE;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
+																else if (sensor_type.trim().equalsIgnoreCase("nitrite"))
+																{
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.NITRITE;
+																		sd.value = sensor_value;
+																		sd.latlng = current_latlng;
+																		readings.add(sd);
+																}
+																else if (sensor_type.trim().equalsIgnoreCase("TOC"))
+																{
+																		SensorData sd = new SensorData();
+																		sd.channel = sensor;
+																		sd.type = DataType.TOC;
 																		sd.value = sensor_value;
 																		sd.latlng = current_latlng;
 																		readings.add(sd);
