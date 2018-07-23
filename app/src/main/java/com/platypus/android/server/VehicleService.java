@@ -135,7 +135,11 @@ public class VehicleService extends Service {
                 // TODO Auto-generated method stub
                 SensorManager.getRotationMatrixFromVector(rotationMatrix,
                         event.values);
-                double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
+
+                float[] values = new float[3];
+                SensorManager.getOrientation(rotationMatrix,values);
+                //double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
+                double yaw = Math.PI-values[0];
 
                 // include 90 degrees offset if a bluebox housing is installed on the boat
 		            if (sp != null)
