@@ -55,6 +55,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 {
 
 		private static final int UPDATE_INTERVAL_MS = 100;
+		private boolean repeatedWaypoints = false;
 
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		// ASDF
@@ -1042,6 +1043,20 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								Log.w("decawave", String.format("Decawave.newDecawaveDistances() threw exception: %s", e.getMessage()));
 						}
 				}
+				else if (axis == 8)
+				{
+					// Repeated waypoints
+					Log.v("repeated waypoints", Arrays.toString(k));
+					try
+					{
+						if (k[0] < 0) repeatedWaypoints = false;
+						else repeatedWaypoints = true;
+					}
+					catch (Exception e)
+					{
+						Log.w("repeated waypoints", String.format("Repeated waypoints threw exception: %s", e.getMessage()));
+					}
+				}
 				else if (axis == 7) // AtlasSampler starting and reset
 				{
 						//k[0]
@@ -1885,16 +1900,21 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								}
 								else if (wp_index == _waypoints.length)
 								{
+									if (repeatedWaypoints) {
+										current_waypoint_index.set(0);
+										vc.update(VehicleServerImpl.this, dt);
+										sendWaypointUpdate(WaypointState.GOING);
+									} else {
 										// finished
 										current_waypoint_index.set(-1);
 										Log.i(TAG, "Done");
 										sendWaypointUpdate(WaypointState.DONE);
-										synchronized (_navigationLock)
-										{
-												setVelocity(new Twist(DEFAULT_TWIST));
-												this.cancel();
-												_navigationTask = null;
+										synchronized (_navigationLock) {
+											setVelocity(new Twist(DEFAULT_TWIST));
+											this.cancel();
+											_navigationTask = null;
 										}
+									}
 								}
 								else
 								{
