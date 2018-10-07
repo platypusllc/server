@@ -4,9 +4,7 @@
     android:versionCode="2"
     android:versionName="4.2.1">
 
-    <uses-sdk
-        android:minSdkVersion="21"
-        android:targetSdkVersion="23" />
+    <uses-sdk android:targetSdkVersion="23" />
 
     <uses-feature android:name="android.hardware.usb.accessory" />
 

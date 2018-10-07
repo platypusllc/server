@@ -105,6 +105,12 @@ class LineFollowController implements VehicleController {
         double distanceSq = planarDistanceSq(current_pose, destination_pose);
         if (distanceSq < SUFFICIENT_PROXIMITY*SUFFICIENT_PROXIMITY)
         {
+            if (!server_impl.<Boolean>getState(VehicleState.States.IS_TAKING_SAMPLE.name)
+                && !server_impl.<Boolean>getState(VehicleState.States.IS_STATION_KEEPING.name))
+            {
+                station_keeping = false;
+            }
+
             // check if there is a station keep time associated with the current waypoint
             // if there is, do NOT increment the index until that amount of time has expired
             if (!station_keeping)

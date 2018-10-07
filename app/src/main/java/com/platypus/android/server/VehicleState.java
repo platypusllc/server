@@ -47,6 +47,7 @@ public class VehicleState
 				IS_RUNNING("is_running"),
 				IS_GOING_HOME("is_going_home"),
 				IS_TAKING_SAMPLE("is_taking_sample"),
+				IS_STATION_KEEPING("is_station_keeping"),
 				NEXT_AVAILABLE_JAR("next_jar"),
 				JARS_AVAILABLE("jars_available"),
 				ALWAYS_TRUE("always_true"),
@@ -386,6 +387,7 @@ public class VehicleState
 						void customSet(int index, Long in) { }
 				});
 
+				state_map.put(States.IS_STATION_KEEPING.name, new BooleanState());
 				state_map.put(States.IS_CONNECTED.name, new BooleanState());
 				state_map.put(States.IS_AUTONOMOUS.name, new BooleanState());
 				state_map.put(States.IS_RUNNING.name, new BooleanState());

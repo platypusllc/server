@@ -105,6 +105,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				STOP_SAMPLER("sampler_stop"),
 				RESET_SAMPLER("sampler_reset"),
 				START_SAMPLER_TEST("start_sampler_test"),
+				START_STATION_KEEPING("start_station_keeping"),
+				STOP_STATION_KEEPING("stop_station_keeping"),
 				DO_NOTHING("do_nothing");
 
 				final String name;
@@ -152,45 +154,36 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		void performAction(String action_string)
 		{
 				Actions action = Actions.fromString(action_string);
-				switch (action)
-				{
-						case EXAMPLE:
-						{
-								exampleAction();
-								break;
+				switch (action) {
+					case EXAMPLE: {
+						exampleAction();
+						break;
+					}
+					case DO_NOTHING: {
+						break;
+					}
+					case START_SAMPLER: {
+						// First, find next available sample jar
+						Object retrieval = getState(VehicleState.States.NEXT_AVAILABLE_JAR.name);
+						if (retrieval == null) {
+							Log.e("AP", "Retrieved a null after requesting next available jar");
+							return;
 						}
-						case DO_NOTHING:
-						{
-								break;
-						}
-						case START_SAMPLER:
-						{
-								// First, find next available sample jar
-								Object retrieval = getState(VehicleState.States.NEXT_AVAILABLE_JAR.name);
-								if (retrieval == null)
-								{
-										Log.e("AP", "Retrieved a null after requesting next available jar");
-										return;
-								}
-								Integer next_available_jar = (Integer) retrieval;
+						Integer next_available_jar = (Integer) retrieval;
 
-								if (next_available_jar < 0)
-								{
-										Log.w("AP", "No sampler jars are available. Ignoring START_SAMPLER command");
-										return;
-								}
-								Log.i("AP", String.format("Starting sampler jar # %d", next_available_jar));
-								JSONObject command = new JSONObject();
-								JSONObject samplerSettings = new JSONObject();
-								try
-								{
-										samplerSettings.put("e", next_available_jar.toString());
-										for (int i = 1; i < 4; i++)
-										{
-												String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
-												String expected_type = mPrefs.getString(sensor_array_name, "NONE");
-												if (expected_type.equals("SAMPLER"))
-												{
+						if (next_available_jar < 0) {
+							Log.w("AP", "No sampler jars are available. Ignoring START_SAMPLER command");
+							return;
+						}
+						Log.i("AP", String.format("Starting sampler jar # %d", next_available_jar));
+						JSONObject command = new JSONObject();
+						JSONObject samplerSettings = new JSONObject();
+						try {
+							samplerSettings.put("e", next_available_jar.toString());
+							for (int i = 1; i < 4; i++) {
+								String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
+								String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+								if (expected_type.equals("SAMPLER")) {
 														/*
 														Log.v("AP", String.format("Before insertWaypoint: \n" +
 																		"# of WPs = %d\n" +
@@ -198,12 +191,12 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		"WPs: %s", _waypoints.length, current_waypoint_index.get(), Arrays.toString(_waypoints)));
 														*/
 
-														final long SAMPLER_STATION_KEEP_TIME = 4*60*1000; // TODO: don't hardcode this
-														int cwp = current_waypoint_index.get();
-														UtmPose current_utmpose = getState(VehicleState.States.CURRENT_POSE.name);
-														insertWaypoint((cwp > 0 ? cwp : 0), // never less than 0
-																		current_utmpose.getLatLong(),
-																		SAMPLER_STATION_KEEP_TIME);
+									final long SAMPLER_STATION_KEEP_TIME = 4 * 60 * 1000; // TODO: don't hardcode this
+									int cwp = current_waypoint_index.get();
+									UtmPose current_utmpose = getState(VehicleState.States.CURRENT_POSE.name);
+									insertWaypoint((cwp > 0 ? cwp : 0), // never less than 0
+											current_utmpose.getLatLong(),
+											SAMPLER_STATION_KEEP_TIME);
 
 														/*
 														Log.v("AP", String.format("After insertWaypoint: \n" +
@@ -212,69 +205,59 @@ public class VehicleServerImpl extends AbstractVehicleServer
 																		"WPs: %s", _waypoints.length, current_waypoint_index.get(), Arrays.toString(_waypoints)));
 														*/
 
-														command.put(String.format("s%d", i), samplerSettings);
+									command.put(String.format("s%d", i), samplerSettings);
 
-														// TODO: only call mController.send() if hardware is connected
-														setState(VehicleState.States.IS_TAKING_SAMPLE.name, true);
-														vehicle_state.usingJar(next_available_jar);
-														mController.send(command);
+									// TODO: only call mController.send() if hardware is connected
+									setState(VehicleState.States.IS_TAKING_SAMPLE.name, true);
+									vehicle_state.usingJar(next_available_jar);
+									mController.send(command);
 
-														// TODO: start a time task that will run after SAMPLER_STATION_KEEP_TIME, setting is_taking_sample to false
+									// TODO: start a time task that will run after SAMPLER_STATION_KEEP_TIME, setting is_taking_sample to false
 
 
-														return;
-												}
-										}
+									return;
 								}
-								catch (Exception e)
-								{
-										Log.e("AP", String.format("START_SAMPLER action error: %s", e.getMessage()));
-								}
-								break;
+							}
+						} catch (Exception e) {
+							Log.e("AP", String.format("START_SAMPLER action error: %s", e.getMessage()));
 						}
+						break;
+					}
 
-						case RESET_SAMPLER:
-						{
-								vehicle_state.resetSampleJars();
-								Log.i("AP", "Resetting the sampler");
-								JSONObject command = new JSONObject();
-								JSONObject samplerSettings = new JSONObject();
-								try
-								{
-										samplerSettings.put("r", "-1");
-										for (int i = 1; i < 4; i++)
-										{
-												String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
-												String expected_type = mPrefs.getString(sensor_array_name, "NONE");
-												if (expected_type.equals("SAMPLER"))
-												{
-														command.put(String.format("s%d", i), samplerSettings);
-														mController.send(command);
-														return;
-												}
-										}
+					case RESET_SAMPLER: {
+						vehicle_state.resetSampleJars();
+						Log.i("AP", "Resetting the sampler");
+						JSONObject command = new JSONObject();
+						JSONObject samplerSettings = new JSONObject();
+						try {
+							samplerSettings.put("r", "-1");
+							for (int i = 1; i < 4; i++) {
+								String sensor_array_name = "pref_sensor_" + Integer.toString(i) + "_type";
+								String expected_type = mPrefs.getString(sensor_array_name, "NONE");
+								if (expected_type.equals("SAMPLER")) {
+									command.put(String.format("s%d", i), samplerSettings);
+									mController.send(command);
+									return;
 								}
-								catch (Exception e)
-								{
-										Log.e("AP", String.format("Reset sampler action error: %s", e.getMessage()));
-								}
-								break;
+							}
+						} catch (Exception e) {
+							Log.e("AP", String.format("Reset sampler action error: %s", e.getMessage()));
 						}
+						break;
+					}
 
-						// TODO: finish up the remaining actions
-						case RETURN_HOME:
-						{
-								Log.w("AP", "RETURNING HOME");
-								break;
-						}
+					// TODO: finish up the remaining actions
+					case RETURN_HOME: {
+						Log.w("AP", "RETURNING HOME");
+						break;
+					}
 
-						case START_SAMPLER_TEST:
-						{
-								Log.i("AP", "Starting the forced sampler test");
-								// ASDF
-								// call startWaypoints
-								// force the server to think it is at one of the waypoints
-								// see if the sampler starts, a new waypoint is inserted, and station keeping starts
+					case START_SAMPLER_TEST: {
+						Log.i("AP", "Starting the forced sampler test");
+						// ASDF
+						// call startWaypoints
+						// force the server to think it is at one of the waypoints
+						// see if the sampler starts, a new waypoint is inserted, and station keeping starts
 								/*
 								UtmPose[] example_waypoints =
 												{
@@ -286,8 +269,40 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								startWaypoints(example_waypoints, "whatever");
 								current_waypoint_index.set(2);
 								*/
-								break;
+						break;
+					}
+
+					case START_STATION_KEEPING:
+					{
+
+						try {
+							final long STATION_KEEP_TIME = 24 * 60 * 60 * 1000; // 24 Hours
+							int cwp = current_waypoint_index.get();
+							UtmPose current_utmpose = getState(VehicleState.States.CURRENT_POSE.name);
+							insertWaypoint((cwp > 0 ? cwp : 0), // never less than 0
+									current_utmpose.getLatLong(),
+									STATION_KEEP_TIME);
+
+							setState(VehicleState.States.IS_STATION_KEEPING.name, true);
+
+						} catch (Exception e) {
+							Log.e("AP", String.format("START_STATION_KEEPING action error: %s", e.getMessage()));
 						}
+						break;
+					}
+
+					case STOP_STATION_KEEPING:
+					{
+						try {
+							incrementWaypointIndex();
+
+							setState(VehicleState.States.IS_STATION_KEEPING.name, false);
+
+						} catch (Exception e) {
+							Log.e("AP", String.format("STOP_STATION_KEEPING action error: %s", e.getMessage()));
+						}
+						break;
+					}
 
 						default:
 								break;
