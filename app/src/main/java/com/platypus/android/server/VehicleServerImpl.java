@@ -1058,9 +1058,8 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								Log.w("decawave", String.format("Decawave.newDecawaveDistances() threw exception: %s", e.getMessage()));
 						}
 				}
-				else if (axis == 8)
+				else if (axis == 8) // Repeat Waypoints
 				{
-					// Repeated waypoints
 					Log.v("repeated waypoints", Arrays.toString(k));
 					try
 					{
@@ -1070,6 +1069,27 @@ public class VehicleServerImpl extends AbstractVehicleServer
 					catch (Exception e)
 					{
 						Log.w("repeated waypoints", String.format("Repeated waypoints threw exception: %s", e.getMessage()));
+					}
+				}
+				else if (axis == 9) // Station Keeping
+				{
+					if (k[0] > 0 ) // Start Station Keeping
+					{
+						final long STATION_KEEP_TIME = 24 * 60 * 60 * 1000; // 24 Hours
+						int cwp = current_waypoint_index.get();
+						UtmPose current_utmpose = getState(VehicleState.States.CURRENT_POSE.name);
+						insertWaypoint((cwp > 0 ? cwp : 0), // never less than 0
+								current_utmpose.getLatLong(),
+								STATION_KEEP_TIME);
+
+						setState(VehicleState.States.IS_STATION_KEEPING.name, true);
+
+					}
+					else
+					{
+						incrementWaypointIndex();
+
+						setState(VehicleState.States.IS_STATION_KEEPING.name, false);
 					}
 				}
 				else if (axis == 7) // AtlasSampler starting and reset
