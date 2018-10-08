@@ -1101,8 +1101,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 					{
 						System.out.println("turning station keeping off");
 						setState(VehicleState.States.IS_STATION_KEEPING.name, false);
-						incrementWaypointIndex();
+						//incrementWaypointIndex();
 						isStationKeepoing = false;
+						deleteCurrentWaypoint();
 					}
 
 				}
@@ -1900,6 +1901,26 @@ public class VehicleServerImpl extends AbstractVehicleServer
 						_waypointsKeepTimes = times_list.toArray(new Long[0]);
 						current_waypoint_index.set(inserted_index);
 				}
+		}
+
+		void deleteCurrentWaypoint()
+		{
+			System.out.println("deleted waypoint");
+			synchronized (_waypointLock)
+			{
+				int deleted_index = current_waypoint_index.get();
+				ArrayList<double[]> waypoint_list = new ArrayList<>();
+				ArrayList<Long> times_list = new ArrayList<>();
+				waypoint_list.addAll(Arrays.asList(_waypoints));
+				times_list.addAll(Arrays.asList(_waypointsKeepTimes));
+				waypoint_list.remove(deleted_index);
+				times_list.remove(deleted_index);
+				setAutonomous(true);
+				startWaypoints(waypoint_list.toArray(new double[0][0]));
+				_waypointsKeepTimes = times_list.toArray(new Long[0]);
+				current_waypoint_index.set(deleted_index);
+
+			}
 		}
 
 		@Override
