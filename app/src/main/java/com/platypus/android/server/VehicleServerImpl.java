@@ -353,12 +353,12 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 		void incrementWaypointIndex()
 		{
-			if (current_waypoint_index.get() >= _waypoints.length - 1) {
-				current_waypoint_index.set(-1);
-			}
-			else {
+			//if (current_waypoint_index.get() >= _waypoints.length - 1) {
+			//current_waypoint_index.set(-1);
+		//}
+			//else {
 				current_waypoint_index.incrementAndGet();
-			}
+		//}
 			Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index.get()));
 		}
 
@@ -1350,6 +1350,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 														sd.type = DataType.PH_ATLAS;
 														sd.value = ph_data;
 														sd.latlng = current_latlng;
+														System.out.println("blah "+ sd.toString());
 														readings.add(sd);
 														// set the internal state
 														setState(VehicleState.States.PH.name, ph_data);
@@ -1969,15 +1970,18 @@ public class VehicleServerImpl extends AbstractVehicleServer
 										Log.d(TAG, "Paused");
 										sendWaypointUpdate(WaypointState.PAUSED);
 								}
-								else if (wp_index >= _waypoints.length)
+							    else if (wp_index >= _waypoints.length)
 								{
 									if (repeatedWaypoints && waypoints.length > 0) {
 										current_waypoint_index.set(0);
 										vc.update(VehicleServerImpl.this, dt);
 										sendWaypointUpdate(WaypointState.GOING);
+										System.out.println("repeat waypoints index currently "+ current_waypoint_index.get());
+										System.out.println("repeat waypoints " + Arrays.deepToString(_waypoints));
 									} else {
 										// finished
 										current_waypoint_index.set(-1);
+										System.out.println("current done ");
 										Log.i(TAG, "Done");
 										sendWaypointUpdate(WaypointState.DONE);
 										synchronized (_navigationLock) {
@@ -2077,6 +2081,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		{
 				setState(VehicleState.States.TIME_SINCE_OPERATOR.name, null);
 				Log.i(TAG, String.format("Current waypoint index = %d", current_waypoint_index.get()));
+				System.out.println("Current waypoint length " + _waypoints.length);
 				return current_waypoint_index.get();
 		}
 
