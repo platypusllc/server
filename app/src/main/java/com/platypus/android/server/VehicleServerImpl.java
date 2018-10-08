@@ -56,6 +56,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 		private static final int UPDATE_INTERVAL_MS = 100;
 		private boolean repeatedWaypoints = false;
+		private boolean isStationKeepoing = false;
 
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		// ASDF
@@ -352,8 +353,13 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 		void incrementWaypointIndex()
 		{
+			if (current_waypoint_index.get() >= _waypoints.length - 1) {
+				current_waypoint_index.set(-1);
+			}
+			else {
 				current_waypoint_index.incrementAndGet();
-				Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index.get()));
+			}
+			Log.i(TAG, String.format("New waypoint index = %d", current_waypoint_index.get()));
 		}
 
 		double[] getCurrentWaypoint()
@@ -1061,6 +1067,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				else if (axis == 8) // Repeat Waypoints
 				{
 					Log.v("repeated waypoints", Arrays.toString(k));
+					System.out.println("repeating waypoints " + k[0]);
 					try
 					{
 						if (k[0] < 0) repeatedWaypoints = false;
@@ -1073,8 +1080,13 @@ public class VehicleServerImpl extends AbstractVehicleServer
 				}
 				else if (axis == 9) // Station Keeping
 				{
-					if (k[0] > 0 ) // Start Station Keeping
+
+					System.out.println("station keepoing " + k[0]);
+
+					if (isStationKeepoing == false && k[0] > 0 && !this.<Boolean>getState(VehicleState.States.IS_STATION_KEEPING.name)) // Start Station Keeping
 					{
+						isStationKeepoing = true;
+						System.out.println("station keeping inserted waypoints");
 						final long STATION_KEEP_TIME = 24 * 60 * 60 * 1000; // 24 Hours
 						int cwp = current_waypoint_index.get();
 						UtmPose current_utmpose = getState(VehicleState.States.CURRENT_POSE.name);
@@ -1083,14 +1095,16 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								STATION_KEEP_TIME);
 
 						setState(VehicleState.States.IS_STATION_KEEPING.name, true);
-
+						
 					}
-					else
+					else if (isStationKeepoing == true && k[0] < 0 && this.<Boolean>getState(VehicleState.States.IS_STATION_KEEPING.name))
 					{
-						incrementWaypointIndex();
-
+						System.out.println("turning station keeping off");
 						setState(VehicleState.States.IS_STATION_KEEPING.name, false);
+						incrementWaypointIndex();
+						isStationKeepoing = false;
 					}
+
 				}
 				else if (axis == 7) // AtlasSampler starting and reset
 				{
@@ -1866,6 +1880,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 
 		void insertWaypoint(int inserted_index, double[] waypoint, long station_keep_time)
 		{
+			System.out.println("inserted waypoint");
 				synchronized (_waypointLock)
 				{
 						if (inserted_index < 0)
@@ -1933,9 +1948,9 @@ public class VehicleServerImpl extends AbstractVehicleServer
 										Log.d(TAG, "Paused");
 										sendWaypointUpdate(WaypointState.PAUSED);
 								}
-								else if (wp_index == _waypoints.length)
+								else if (wp_index >= _waypoints.length)
 								{
-									if (repeatedWaypoints) {
+									if (repeatedWaypoints && waypoints.length > 0) {
 										current_waypoint_index.set(0);
 										vc.update(VehicleServerImpl.this, dt);
 										sendWaypointUpdate(WaypointState.GOING);
