@@ -366,9 +366,10 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		{
 				synchronized (_waypointLock)
 				{
-						if (current_waypoint_index.get() >= 0)
+						int index = current_waypoint_index.get();
+						if (index >= 0 && index < _waypoints.length)
 						{
-								return _waypoints[current_waypoint_index.get()];
+								return _waypoints[index];
 						}
 						else
 						{
@@ -396,9 +397,10 @@ public class VehicleServerImpl extends AbstractVehicleServer
 		{
 				synchronized (_waypointLock)
 				{
-						if (current_waypoint_index.get() >= 0)
+						int index = current_waypoint_index.get();
+						if (index >= 0 && index < _waypointsKeepTimes.length)
 						{
-								return _waypointsKeepTimes[current_waypoint_index.get()];
+								return _waypointsKeepTimes[index];
 						}
 						else
 						{
@@ -1890,6 +1892,10 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								Log.w("AP", "insertWaypoint(): inserted_index is less than 0. Setting to 0.");
 								inserted_index = 0;
 						}
+						else if (inserted_index > _waypoints.length)
+						{
+							inserted_index = _waypoints.length;
+						}
 						ArrayList<double[]> waypoint_list = new ArrayList<>();
 						ArrayList<Long> times_list = new ArrayList<>();
 						waypoint_list.addAll(Arrays.asList(_waypoints));
@@ -1910,17 +1916,23 @@ public class VehicleServerImpl extends AbstractVehicleServer
 			synchronized (_waypointLock)
 			{
 				int deleted_index = current_waypoint_index.get();
-				ArrayList<double[]> waypoint_list = new ArrayList<>();
-				ArrayList<Long> times_list = new ArrayList<>();
-				waypoint_list.addAll(Arrays.asList(_waypoints));
-				times_list.addAll(Arrays.asList(_waypointsKeepTimes));
-				waypoint_list.remove(deleted_index);
-				times_list.remove(deleted_index);
-				setAutonomous(true);
-				startWaypoints(waypoint_list.toArray(new double[0][0]));
-				_waypointsKeepTimes = times_list.toArray(new Long[0]);
-				current_waypoint_index.set(deleted_index);
-
+				if (_waypoints.length <= 1) // Theres only one waypoint in the list
+				{
+					stopWaypoints();
+				}
+				else if (deleted_index >= 0 && deleted_index < _waypoints.length)
+				{
+					ArrayList<double[]> waypoint_list = new ArrayList<>();
+					ArrayList<Long> times_list = new ArrayList<>();
+					waypoint_list.addAll(Arrays.asList(_waypoints));
+					times_list.addAll(Arrays.asList(_waypointsKeepTimes));
+					waypoint_list.remove(deleted_index);
+					times_list.remove(deleted_index);
+					setAutonomous(true);
+					startWaypoints(waypoint_list.toArray(new double[0][0]));
+					_waypointsKeepTimes = times_list.toArray(new Long[0]);
+					current_waypoint_index.set(deleted_index);
+				}
 			}
 		}
 
@@ -1972,7 +1984,7 @@ public class VehicleServerImpl extends AbstractVehicleServer
 								}
 							    else if (wp_index >= _waypoints.length)
 								{
-									if (repeatedWaypoints && waypoints.length > 0) {
+									if (repeatedWaypoints && _waypoints.length > 0) {
 										current_waypoint_index.set(0);
 										vc.update(VehicleServerImpl.this, dt);
 										sendWaypointUpdate(WaypointState.GOING);
