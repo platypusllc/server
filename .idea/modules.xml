@@ -2,8 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/GitHub-server.iml" filepath="$PROJECT_DIR$/.idea/modules/GitHub-server.iml" group="server" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/server.iml" filepath="$PROJECT_DIR$/server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/server-app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/server-app.iml" group="server/app" />
     </modules>
   </component>
 </project>

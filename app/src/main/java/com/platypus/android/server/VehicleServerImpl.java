@@ -1274,6 +1274,13 @@ public class VehicleServerImpl extends AbstractVehicleServer {
     @Override
     public void startWaypoints(final UtmPose[] waypoints, final String controller)
     {
+        System.out.println("waypoint logging - server " + waypoints.length);
+        for (int i = 0; i < waypoints.length; i++)
+        {
+            System.out.println("waypoint logging - server latlng " + UtmPose_to_LatLng(waypoints[i]));
+            System.out.println("waypoint logging - server utm" + waypoints[i].toString());
+
+        }
         last_heartbeat.set(System.currentTimeMillis());
         Log.i(TAG, "Starting waypoints with " + controller + ": "
                 + Arrays.toString(waypoints));
